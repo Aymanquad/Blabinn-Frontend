@@ -74,9 +74,38 @@ class AuthService {
       _status = AuthStatus.loading;
       _isLoading = true;
       
-      // Get user profile from backend
-      final profileData = await _apiService.getMyProfile();
-      _currentUser = User.fromJson(profileData['user']);
+      // Try to get user profile from backend
+      try {
+        final profileData = await _apiService.getMyProfile();
+        // Backend returns profile data in 'profile' key, not 'user' key
+        final profile = profileData['profile'];
+        
+        // Ensure uid is included in the profile data
+        if (profile['uid'] == null) {
+          profile['uid'] = firebaseUser.uid;
+        }
+        
+        _currentUser = User.fromJson(profile);
+        print('✅ Profile loaded successfully for user');
+      } catch (profileError) {
+        // If profile doesn't exist, create a basic user from Firebase data
+        if (profileError.toString().contains('Profile not found')) {
+          print('ℹ️ No profile found, user needs to create one');
+          
+          // Create a basic user from Firebase auth data
+          _currentUser = User(
+            id: firebaseUser.uid,
+            username: firebaseUser.displayName ?? 'User',
+            email: firebaseUser.email,
+            profileImage: firebaseUser.photoURL,
+            createdAt: DateTime.now(),
+            updatedAt: DateTime.now(),
+          );
+        } else {
+          // Re-throw other errors
+          throw profileError;
+        }
+      }
       
       _isAuthenticated = true;
       _status = AuthStatus.authenticated;
@@ -222,7 +251,15 @@ class AuthService {
 
     try {
       final updatedData = await _apiService.updateProfile(updates);
-      await updateCurrentUser(User.fromJson(updatedData['user']));
+      // Backend returns profile data in 'profile' key, not 'user' key
+      final profile = updatedData['profile'];
+      
+      // Ensure uid is included in the profile data
+      if (profile['uid'] == null && _currentUser != null) {
+        profile['uid'] = _currentUser!.id;
+      }
+      
+      await updateCurrentUser(User.fromJson(profile));
       return AuthResult.success(_currentUser!);
     } catch (e) {
       return AuthResult.error(_getErrorMessage(e));

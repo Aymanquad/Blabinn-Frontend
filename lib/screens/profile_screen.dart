@@ -192,6 +192,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   
                   const Divider(height: 1),
                   
+                  // Profile Management
+                  ListTile(
+                    leading: const Icon(Icons.person_outline),
+                    title: const Text('Manage Profile'),
+                    trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                    onTap: () {
+                      Navigator.pushNamed(context, '/profile-management');
+                    },
+                  ),
+                  
+                  const Divider(height: 1),
+                  
                   // Privacy Settings
                   ListTile(
                     leading: const Icon(Icons.privacy_tip),

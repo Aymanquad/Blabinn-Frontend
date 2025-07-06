@@ -135,17 +135,17 @@ class ApiService {
 
   // Profile methods - Updated to match backend endpoints
   Future<Map<String, dynamic>> getMyProfile() async {
-    final response = await _get('/auth/profile');
+    final response = await _get('/profiles/me');
     return _handleResponse(response);
   }
 
   Future<Map<String, dynamic>> updateProfile(Map<String, dynamic> updates) async {
-    final response = await _put('/auth/profile', updates);
+    final response = await _put('/profiles/me', updates);
     return _handleResponse(response);
   }
 
   Future<Map<String, dynamic>> deleteAccount() async {
-    final response = await _delete('/auth/account');
+    final response = await _delete('/profiles/me');
     return _handleResponse(response);
   }
 
