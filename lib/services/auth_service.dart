@@ -275,7 +275,22 @@ class AuthService {
   // Get error message
   String _getErrorMessage(dynamic error) {
     if (error is Exception) {
-      return error.toString().replaceAll('Exception: ', '');
+      final message = error.toString().replaceAll('Exception: ', '');
+      
+      // Handle specific error types
+      if (message.contains('Rate limit exceeded')) {
+        return message; // Return the full rate limit message with retry time
+      } else if (message.contains('Google sign-in cancelled')) {
+        return 'Sign-in was cancelled';
+      } else if (message.contains('Apple sign-in failed')) {
+        return 'Apple sign-in failed. Please try again';
+      } else if (message.contains('Firebase is not configured')) {
+        return 'Firebase configuration missing. Please check your setup';
+      } else if (message.contains('Backend authentication failed')) {
+        return 'Server authentication failed. Please check your internet connection and try again';
+      }
+      
+      return message;
     }
     return error.toString();
   }

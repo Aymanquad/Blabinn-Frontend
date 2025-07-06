@@ -315,9 +315,19 @@ class FirebaseAuthService {
           'isNewUser': userData['isNewUser'] ?? false,
           'message': data['message'],
         };
+      } else if (response.statusCode == 429) {
+        // Handle rate limiting specifically
+        print('⚠️ Rate limit exceeded');
+        final data = jsonDecode(response.body);
+        final retryAfter = data['retryAfter'] ?? 900; // Default to 15 minutes
+        final retryMinutes = (retryAfter / 60).ceil();
+        
+        throw Exception('Rate limit exceeded. Please try again in $retryMinutes minutes.\n\nTip: If you\'re testing frequently, restart the backend server to reset the rate limits.');
       } else {
         print('❌ Backend error: ${response.statusCode} - ${response.body}');
-        throw Exception('Backend authentication failed: ${response.statusCode}');
+        final data = jsonDecode(response.body);
+        final errorMessage = data['message'] ?? 'Backend authentication failed';
+        throw Exception('$errorMessage (Status: ${response.statusCode})');
       }
     } catch (e) {
       print('🚨 Backend request failed: $e');
