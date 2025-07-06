@@ -8,6 +8,8 @@ import 'screens/connect_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/search_screen.dart';
 import 'screens/friend_requests_screen.dart';
+import 'screens/friends_screen.dart';
+import 'screens/user_profile_screen.dart';
 
 class ChatApp extends StatelessWidget {
   const ChatApp({super.key});
@@ -65,6 +67,19 @@ class ChatApp extends StatelessWidget {
         '/login': (context) => const LoginScreen(),
         '/search': (context) => const SearchScreen(),
         '/friend-requests': (context) => const FriendRequestsScreen(),
+        '/friends': (context) => const FriendsScreen(),
+        '/user-profile': (context) {
+          final args = ModalRoute.of(context)?.settings.arguments;
+          if (args is String) {
+            return UserProfileScreen(userId: args);
+          }
+          // Fallback for debugging
+          return const Scaffold(
+            body: Center(
+              child: Text('Invalid user ID provided'),
+            ),
+          );
+        },
       },
     );
   }

@@ -325,6 +325,12 @@ class ApiService {
     return _handleResponse(response);
   }
 
+  Future<Map<String, dynamic>> getUserProfile(String userId) async {
+    final response = await _get('/profiles/$userId');
+    final data = _handleResponse(response);
+    return data['profile'] ?? data;
+  }
+
   // Chat methods (if needed)
   Future<Map<String, dynamic>> getChatRooms() async {
     final response = await _get('/chat/rooms');
