@@ -1,9 +1,11 @@
-
 enum MessageType {
   text,
   image,
   location,
   system,
+  video,
+  audio,
+  file,
 }
 
 enum MessageStatus {
@@ -33,6 +35,8 @@ class Message {
   final bool isEdited;
   final DateTime? editedAt;
   final List<String> readBy;
+  final Map<String, dynamic>? metadata;
+  final String? formattedTime;
 
   Message({
     required this.id,
@@ -53,6 +57,8 @@ class Message {
     this.isEdited = false,
     this.editedAt,
     this.readBy = const [],
+    this.metadata,
+    this.formattedTime,
   });
 
   Message copyWith({
@@ -74,6 +80,8 @@ class Message {
     bool? isEdited,
     DateTime? editedAt,
     List<String>? readBy,
+    Map<String, dynamic>? metadata,
+    String? formattedTime,
   }) {
     return Message(
       id: id ?? this.id,
@@ -94,6 +102,8 @@ class Message {
       isEdited: isEdited ?? this.isEdited,
       editedAt: editedAt ?? this.editedAt,
       readBy: readBy ?? this.readBy,
+      metadata: metadata ?? this.metadata,
+      formattedTime: formattedTime ?? this.formattedTime,
     );
   }
 
@@ -117,6 +127,8 @@ class Message {
       'isEdited': isEdited,
       'editedAt': editedAt?.toIso8601String(),
       'readBy': readBy,
+      'metadata': metadata,
+      'formattedTime': formattedTime,
     };
   }
 
@@ -144,10 +156,12 @@ class Message {
       longitude: json['longitude'] as double?,
       locationName: json['locationName'] as String?,
       isEdited: json['isEdited'] as bool? ?? false,
-      editedAt: json['editedAt'] != null 
+      editedAt: json['editedAt'] != null
           ? DateTime.parse(json['editedAt'] as String)
           : null,
       readBy: List<String>.from(json['readBy'] ?? []),
+      metadata: json['metadata'] as Map<String, dynamic>?,
+      formattedTime: json['formattedTime'] as String?,
     );
   }
 
@@ -170,31 +184,33 @@ class Message {
   bool get isImage => type == MessageType.image;
   bool get isLocation => type == MessageType.location;
   bool get isSystem => type == MessageType.system;
-  
-  bool get isFromMe => senderId == 'currentUserId'; // This will be set by provider
+
+  bool get isFromMe =>
+      senderId == 'currentUserId'; // This will be set by provider
   bool get isRead => readBy.isNotEmpty;
-  bool get hasTranslation => translatedContent != null && translatedContent!.isNotEmpty;
+  bool get hasTranslation =>
+      translatedContent != null && translatedContent!.isNotEmpty;
   bool get hasLocation => latitude != null && longitude != null;
-  
+
   String get displayContent {
     if (hasTranslation) {
       return translatedContent!;
     }
     return content;
   }
-  
+
   String get timeAgo {
     final now = DateTime.now();
     final difference = now.difference(timestamp);
-    
+
     if (difference.inMinutes < 1) return 'Just now';
     if (difference.inMinutes < 60) return '${difference.inMinutes}m ago';
     if (difference.inHours < 24) return '${difference.inHours}h ago';
     if (difference.inDays < 7) return '${difference.inDays}d ago';
-    
+
     return '${timestamp.day}/${timestamp.month}/${timestamp.year}';
   }
-  
+
   String get statusText {
     switch (status) {
       case MessageStatus.sending:
@@ -209,4 +225,4 @@ class Message {
         return 'Failed';
     }
   }
-} 
+}

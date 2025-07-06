@@ -6,6 +6,8 @@ import 'screens/profile_screen.dart';
 import 'screens/profile_management_screen.dart';
 import 'screens/connect_screen.dart';
 import 'screens/login_screen.dart';
+import 'screens/search_screen.dart';
+import 'screens/friend_requests_screen.dart';
 
 class ChatApp extends StatelessWidget {
   const ChatApp({super.key});
@@ -61,6 +63,8 @@ class ChatApp extends StatelessWidget {
         '/profile-management': (context) => const ProfileManagementScreen(),
         '/connect': (context) => const ConnectScreen(),
         '/login': (context) => const LoginScreen(),
+        '/search': (context) => const SearchScreen(),
+        '/friend-requests': (context) => const FriendRequestsScreen(),
       },
     );
   }
@@ -211,4 +215,4 @@ class ChatListScreen extends StatelessWidget {
       ),
     );
   }
-} 
+}

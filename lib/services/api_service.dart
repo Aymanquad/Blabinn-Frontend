@@ -39,41 +39,46 @@ class ApiService {
   Future<Map<String, String>> get _headers async {
     // Always try to get fresh token
     await _refreshFirebaseToken();
-    
+
     final headers = {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
     };
-    
+
     if (_firebaseToken != null) {
       headers['Authorization'] = 'Bearer $_firebaseToken';
     }
-    
+
     return headers;
   }
 
   // Generic HTTP methods
   Future<http.Response> _get(String endpoint) async {
     try {
-      final response = await http.get(
-        Uri.parse('$_baseUrl$endpoint'),
-        headers: await _headers,
-      ).timeout(_timeout);
-      
+      final response = await http
+          .get(
+            Uri.parse('$_baseUrl$endpoint'),
+            headers: await _headers,
+          )
+          .timeout(_timeout);
+
       return response;
     } catch (e) {
       throw Exception('Network error: $e');
     }
   }
 
-  Future<http.Response> _post(String endpoint, Map<String, dynamic> data) async {
+  Future<http.Response> _post(
+      String endpoint, Map<String, dynamic> data) async {
     try {
-      final response = await http.post(
-        Uri.parse('$_baseUrl$endpoint'),
-        headers: await _headers,
-        body: jsonEncode(data),
-      ).timeout(_timeout);
-      
+      final response = await http
+          .post(
+            Uri.parse('$_baseUrl$endpoint'),
+            headers: await _headers,
+            body: jsonEncode(data),
+          )
+          .timeout(_timeout);
+
       return response;
     } catch (e) {
       throw Exception('Network error: $e');
@@ -82,12 +87,14 @@ class ApiService {
 
   Future<http.Response> _put(String endpoint, Map<String, dynamic> data) async {
     try {
-      final response = await http.put(
-        Uri.parse('$_baseUrl$endpoint'),
-        headers: await _headers,
-        body: jsonEncode(data),
-      ).timeout(_timeout);
-      
+      final response = await http
+          .put(
+            Uri.parse('$_baseUrl$endpoint'),
+            headers: await _headers,
+            body: jsonEncode(data),
+          )
+          .timeout(_timeout);
+
       return response;
     } catch (e) {
       throw Exception('Network error: $e');
@@ -96,11 +103,13 @@ class ApiService {
 
   Future<http.Response> _delete(String endpoint) async {
     try {
-      final response = await http.delete(
-        Uri.parse('$_baseUrl$endpoint'),
-        headers: await _headers,
-      ).timeout(_timeout);
-      
+      final response = await http
+          .delete(
+            Uri.parse('$_baseUrl$endpoint'),
+            headers: await _headers,
+          )
+          .timeout(_timeout);
+
       return response;
     } catch (e) {
       throw Exception('Network error: $e');
@@ -139,7 +148,8 @@ class ApiService {
     return _handleResponse(response);
   }
 
-  Future<Map<String, dynamic>> updateProfile(Map<String, dynamic> updates) async {
+  Future<Map<String, dynamic>> updateProfile(
+      Map<String, dynamic> updates) async {
     final response = await _put('/profiles/me', updates);
     return _handleResponse(response);
   }
@@ -150,12 +160,15 @@ class ApiService {
   }
 
   // Profile-specific endpoints
-  Future<Map<String, dynamic>> checkUsernameAvailability(String username) async {
-    final response = await _post('/profiles/check-username', {'username': username});
+  Future<Map<String, dynamic>> checkUsernameAvailability(
+      String username) async {
+    final response =
+        await _post('/profiles/check-username', {'username': username});
     return _handleResponse(response);
   }
 
-  Future<Map<String, dynamic>> createProfile(Map<String, dynamic> profileData) async {
+  Future<Map<String, dynamic>> createProfile(
+      Map<String, dynamic> profileData) async {
     final response = await _post('/profiles', profileData);
     return _handleResponse(response);
   }
@@ -165,8 +178,13 @@ class ApiService {
     return _handleResponse(response);
   }
 
-  Future<List<Map<String, dynamic>>> searchProfiles(Map<String, dynamic> searchParams) async {
-    final response = await _post('/profiles/search', searchParams);
+  Future<List<Map<String, dynamic>>> searchProfiles(
+      Map<String, dynamic> searchParams) async {
+    // Convert search params to query string for GET request
+    final queryParams = searchParams.entries
+        .map((e) => '${e.key}=${Uri.encodeComponent(e.value.toString())}')
+        .join('&');
+    final response = await _get('/profiles/search?$queryParams');
     final data = _handleResponse(response);
     return List<Map<String, dynamic>>.from(data['profiles'] ?? []);
   }
@@ -182,18 +200,19 @@ class ApiService {
     try {
       final headers = await _headers;
       headers.remove('Content-Type'); // Let http handle multipart content-type
-      
+
       final request = http.MultipartRequest(
         'POST',
         Uri.parse('$_baseUrl/profiles/me/picture'),
       );
-      
+
       request.headers.addAll(headers);
-      request.files.add(await http.MultipartFile.fromPath('profilePicture', imageFile.path));
-      
+      request.files.add(
+          await http.MultipartFile.fromPath('profilePicture', imageFile.path));
+
       final response = await request.send().timeout(_timeout);
       final responseData = await response.stream.bytesToString();
-      
+
       if (response.statusCode >= 200 && response.statusCode < 300) {
         return jsonDecode(responseData);
       } else {
@@ -209,18 +228,19 @@ class ApiService {
     try {
       final headers = await _headers;
       headers.remove('Content-Type');
-      
+
       final request = http.MultipartRequest(
         'POST',
         Uri.parse('$_baseUrl/profiles/me/gallery'),
       );
-      
+
       request.headers.addAll(headers);
-      request.files.add(await http.MultipartFile.fromPath('galleryPicture', imageFile.path));
-      
+      request.files.add(
+          await http.MultipartFile.fromPath('galleryPicture', imageFile.path));
+
       final response = await request.send().timeout(_timeout);
       final responseData = await response.stream.bytesToString();
-      
+
       if (response.statusCode >= 200 && response.statusCode < 300) {
         return jsonDecode(responseData);
       } else {
@@ -238,12 +258,70 @@ class ApiService {
   }
 
   Future<Map<String, dynamic>> setMainPicture(String filename) async {
-    final response = await _put('/profiles/me/gallery/main', {'filename': filename});
+    final response =
+        await _put('/profiles/me/gallery/main', {'filename': filename});
     return _handleResponse(response);
   }
 
   Future<Map<String, dynamic>> removeGalleryPicture(String filename) async {
     final response = await _delete('/profiles/me/gallery/$filename');
+    return _handleResponse(response);
+  }
+
+  // Connection/Friend Request methods
+  Future<Map<String, dynamic>> sendFriendRequest(String toUserId,
+      {String? message, String? type}) async {
+    final data = {
+      'toUserId': toUserId,
+      if (message != null) 'message': message,
+      if (type != null) 'type': type,
+    };
+    final response = await _post('/connections/friend-request', data);
+    return _handleResponse(response);
+  }
+
+  Future<Map<String, dynamic>> acceptFriendRequest(String connectionId) async {
+    final response =
+        await _put('/connections/friend-request/$connectionId/accept', {});
+    return _handleResponse(response);
+  }
+
+  Future<Map<String, dynamic>> rejectFriendRequest(String connectionId) async {
+    final response =
+        await _put('/connections/friend-request/$connectionId/reject', {});
+    return _handleResponse(response);
+  }
+
+  Future<Map<String, dynamic>> cancelFriendRequest(String connectionId) async {
+    final response = await _delete('/connections/friend-request/$connectionId');
+    return _handleResponse(response);
+  }
+
+  Future<List<Map<String, dynamic>>> getIncomingFriendRequests() async {
+    final response = await _get('/connections/friend-requests/incoming');
+    final data = _handleResponse(response);
+    return List<Map<String, dynamic>>.from(data['requests'] ?? []);
+  }
+
+  Future<List<Map<String, dynamic>>> getOutgoingFriendRequests() async {
+    final response = await _get('/connections/friend-requests/outgoing');
+    final data = _handleResponse(response);
+    return List<Map<String, dynamic>>.from(data['requests'] ?? []);
+  }
+
+  Future<List<Map<String, dynamic>>> getFriends() async {
+    final response = await _get('/connections/friends');
+    final data = _handleResponse(response);
+    return List<Map<String, dynamic>>.from(data['friends'] ?? []);
+  }
+
+  Future<Map<String, dynamic>> removeFriend(String friendUserId) async {
+    final response = await _delete('/connections/friends/$friendUserId');
+    return _handleResponse(response);
+  }
+
+  Future<Map<String, dynamic>> getConnectionStatus(String targetUserId) async {
+    final response = await _get('/connections/status/$targetUserId');
     return _handleResponse(response);
   }
 
@@ -253,7 +331,8 @@ class ApiService {
     return _handleResponse(response);
   }
 
-  Future<Map<String, dynamic>> createChatRoom(Map<String, dynamic> roomData) async {
+  Future<Map<String, dynamic>> createChatRoom(
+      Map<String, dynamic> roomData) async {
     final response = await _post('/chat/rooms', roomData);
     return _handleResponse(response);
   }
@@ -263,7 +342,8 @@ class ApiService {
     return _handleResponse(response);
   }
 
-  Future<Map<String, dynamic>> sendMessage(String roomId, Map<String, dynamic> messageData) async {
+  Future<Map<String, dynamic>> sendMessage(
+      String roomId, Map<String, dynamic> messageData) async {
     final response = await _post('/chat/rooms/$roomId/messages', messageData);
     return _handleResponse(response);
   }
@@ -275,7 +355,8 @@ class ApiService {
   }
 
   @deprecated
-  Future<Map<String, dynamic>> register(String username, String email, String password) async {
+  Future<Map<String, dynamic>> register(
+      String username, String email, String password) async {
     throw Exception('Use Firebase authentication instead');
   }
 
@@ -310,12 +391,7 @@ class ApiService {
   }
 
   @deprecated
-  Future<List<User>> getFriends() async {
-    throw Exception('Use Firebase authentication instead');
-  }
-
-  @deprecated
   Future<void> addFriend(String userId) async {
     throw Exception('Use Firebase authentication instead');
   }
-} 
+}

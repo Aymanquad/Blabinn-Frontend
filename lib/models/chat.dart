@@ -11,6 +11,8 @@ enum ChatStatus {
   archived,
   blocked,
   deleted,
+  ended,
+  reported,
 }
 
 class Chat {
@@ -28,6 +30,11 @@ class Chat {
   final Map<String, DateTime> lastSeen;
   final String? imageUrl;
   final String? description;
+  final String? participant1Id;
+  final String? participant2Id;
+  final DateTime? lastMessageAt;
+  final DateTime? endedAt;
+  final String? reason;
 
   Chat({
     required this.id,
@@ -44,6 +51,11 @@ class Chat {
     this.lastSeen = const {},
     this.imageUrl,
     this.description,
+    this.participant1Id,
+    this.participant2Id,
+    this.lastMessageAt,
+    this.endedAt,
+    this.reason,
   });
 
   Chat copyWith({
@@ -61,6 +73,11 @@ class Chat {
     Map<String, DateTime>? lastSeen,
     String? imageUrl,
     String? description,
+    String? participant1Id,
+    String? participant2Id,
+    DateTime? lastMessageAt,
+    DateTime? endedAt,
+    String? reason,
   }) {
     return Chat(
       id: id ?? this.id,
@@ -77,6 +94,11 @@ class Chat {
       lastSeen: lastSeen ?? this.lastSeen,
       imageUrl: imageUrl ?? this.imageUrl,
       description: description ?? this.description,
+      participant1Id: participant1Id ?? this.participant1Id,
+      participant2Id: participant2Id ?? this.participant2Id,
+      lastMessageAt: lastMessageAt ?? this.lastMessageAt,
+      endedAt: endedAt ?? this.endedAt,
+      reason: reason ?? this.reason,
     );
   }
 
@@ -93,9 +115,15 @@ class Chat {
       'unreadCount': unreadCount,
       'isTyping': isTyping,
       'typingUsers': typingUsers,
-      'lastSeen': lastSeen.map((key, value) => MapEntry(key, value.toIso8601String())),
+      'lastSeen':
+          lastSeen.map((key, value) => MapEntry(key, value.toIso8601String())),
       'imageUrl': imageUrl,
       'description': description,
+      'participant1Id': participant1Id,
+      'participant2Id': participant2Id,
+      'lastMessageAt': lastMessageAt?.toIso8601String(),
+      'endedAt': endedAt?.toIso8601String(),
+      'reason': reason,
     };
   }
 
@@ -114,17 +142,27 @@ class Chat {
       ),
       createdAt: DateTime.parse(json['createdAt'] as String),
       updatedAt: DateTime.parse(json['updatedAt'] as String),
-      lastMessage: json['lastMessage'] != null 
+      lastMessage: json['lastMessage'] != null
           ? Message.fromJson(json['lastMessage'] as Map<String, dynamic>)
           : null,
       unreadCount: json['unreadCount'] as int? ?? 0,
       isTyping: json['isTyping'] as bool? ?? false,
       typingUsers: List<String>.from(json['typingUsers'] ?? []),
       lastSeen: (json['lastSeen'] as Map<String, dynamic>?)?.map(
-        (key, value) => MapEntry(key, DateTime.parse(value as String)),
-      ) ?? {},
+            (key, value) => MapEntry(key, DateTime.parse(value as String)),
+          ) ??
+          {},
       imageUrl: json['imageUrl'] as String?,
       description: json['description'] as String?,
+      participant1Id: json['participant1Id'] as String?,
+      participant2Id: json['participant2Id'] as String?,
+      lastMessageAt: json['lastMessageAt'] != null
+          ? DateTime.parse(json['lastMessageAt'] as String)
+          : null,
+      endedAt: json['endedAt'] != null
+          ? DateTime.parse(json['endedAt'] as String)
+          : null,
+      reason: json['reason'] as String?,
     );
   }
 
@@ -146,26 +184,26 @@ class Chat {
   bool get isRandomChat => type == ChatType.random;
   bool get isFriendChat => type == ChatType.friend;
   bool get isGroupChat => type == ChatType.group;
-  
+
   bool get isActive => status == ChatStatus.active;
   bool get isArchived => status == ChatStatus.archived;
   bool get isBlocked => status == ChatStatus.blocked;
   bool get isDeleted => status == ChatStatus.deleted;
-  
+
   bool get hasUnreadMessages => unreadCount > 0;
   bool get hasLastMessage => lastMessage != null;
   bool get hasImage => imageUrl != null && imageUrl!.isNotEmpty;
-  
+
   String get displayName {
     if (isRandomChat) {
       return 'Random Chat';
     }
     return name;
   }
-  
+
   String get lastMessageText {
     if (lastMessage == null) return 'No messages yet';
-    
+
     switch (lastMessage!.type) {
       case MessageType.text:
         return lastMessage!.displayContent;
@@ -175,26 +213,40 @@ class Chat {
         return '📍 Location';
       case MessageType.system:
         return lastMessage!.content;
+      case MessageType.video:
+        return '🎥 Video';
+      case MessageType.audio:
+        return '🎵 Audio';
+      case MessageType.file:
+        return '📎 File';
     }
   }
-  
+
   String get lastMessageTime {
     if (lastMessage == null) return '';
     return lastMessage!.timeAgo;
   }
-  
+
   bool isParticipant(String userId) {
     return participantIds.contains(userId);
   }
-  
+
   bool isTypingBy(String userId) {
     return typingUsers.contains(userId);
   }
-  
+
   DateTime? getLastSeen(String userId) {
     return lastSeen[userId];
   }
-  
+
+  String? getOtherParticipantId(String currentUserId) {
+    if (participantIds.length != 2) return null;
+    return participantIds.firstWhere(
+      (id) => id != currentUserId,
+      orElse: () => '',
+    );
+  }
+
   String get typingText {
     if (typingUsers.isEmpty) return '';
     if (typingUsers.length == 1) {
@@ -264,4 +316,4 @@ class Chat {
   List<String> getOtherParticipants(String currentUserId) {
     return participantIds.where((id) => id != currentUserId).toList();
   }
-} 
+}

@@ -50,8 +50,10 @@ class ProfileCard extends StatelessWidget {
             CircleAvatar(
               radius: 40,
               backgroundColor: AppColors.secondary,
-              backgroundImage: user.avatar != null ? NetworkImage(user.avatar!) : null,
-              child: user.avatar == null
+              backgroundImage: user.hasProfileImage
+                  ? NetworkImage(user.profileImage!)
+                  : null,
+              child: !user.hasProfileImage
                   ? Text(
                       user.displayName.substring(0, 1).toUpperCase(),
                       style: const TextStyle(
@@ -98,7 +100,8 @@ class ProfileCard extends StatelessWidget {
                     width: 8,
                     height: 8,
                     decoration: BoxDecoration(
-                      color: user.isOnline ? AppColors.online : AppColors.offline,
+                      color:
+                          user.isOnline ? AppColors.online : AppColors.offline,
                       shape: BoxShape.circle,
                     ),
                   ),
@@ -115,7 +118,8 @@ class ProfileCard extends StatelessWidget {
               if (user.isPremium) ...[
                 const SizedBox(height: 8),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
                     color: AppColors.accent,
                     borderRadius: BorderRadius.circular(12),
@@ -166,7 +170,8 @@ class ProfileCard extends StatelessWidget {
             runSpacing: 8,
             children: user.interests.map((interest) {
               return Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
                   color: AppColors.primary.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(16),
@@ -256,8 +261,8 @@ class ProfileCard extends StatelessWidget {
         Expanded(
           child: _buildActionButton(
             icon: Icons.people,
-            label: user.isFriend('current_user') ? 'Remove' : 'Add Friend',
-            color: user.isFriend('current_user') ? AppColors.error : AppColors.accent,
+            label: user.isFriend ? 'Remove' : 'Add Friend',
+            color: user.isFriend ? AppColors.error : AppColors.accent,
             onPressed: () {
               // TODO: Add/remove friend
             },
@@ -330,10 +335,10 @@ class CompactProfileCard extends StatelessWidget {
             padding: const EdgeInsets.all(12),
             child: Row(
               children: [
-                _buildProfileImage(),
+                _buildProfileImage(context),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: _buildProfileInfo(),
+                  child: _buildProfileInfo(context),
                 ),
                 if (showOnlineStatus) _buildOnlineStatus(),
               ],
@@ -344,18 +349,18 @@ class CompactProfileCard extends StatelessWidget {
     );
   }
 
-  Widget _buildProfileImage() {
+  Widget _buildProfileImage(BuildContext context) {
     return Stack(
       children: [
         CircleAvatar(
           radius: 20,
-          backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.2),
-          backgroundImage: user.profileImageUrl != null
-              ? NetworkImage(user.profileImageUrl!)
-              : null,
-          child: user.profileImageUrl == null
+          backgroundColor:
+              Theme.of(context).colorScheme.primary.withOpacity(0.2),
+          backgroundImage:
+              user.hasProfileImage ? NetworkImage(user.profileImage!) : null,
+          child: !user.hasProfileImage
               ? Text(
-                  (user.displayName ?? user.username ?? 'U')[0].toUpperCase(),
+                  user.displayName.substring(0, 1).toUpperCase(),
                   style: TextStyle(
                     fontSize: 16,
                     color: Theme.of(context).colorScheme.primary,
@@ -385,21 +390,21 @@ class CompactProfileCard extends StatelessWidget {
     );
   }
 
-  Widget _buildProfileInfo() {
+  Widget _buildProfileInfo(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          user.displayName ?? user.username ?? 'User',
+          user.displayName,
           style: const TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w600,
           ),
         ),
-        if (user.country != null) ...[
+        if (user.location != null) ...[
           const SizedBox(height: 2),
           Text(
-            user.country!,
+            user.location!,
             style: TextStyle(
               color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
               fontSize: 12,
@@ -420,4 +425,4 @@ class CompactProfileCard extends StatelessWidget {
       ),
     );
   }
-} 
+}
