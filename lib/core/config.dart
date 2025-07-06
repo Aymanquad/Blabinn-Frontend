@@ -1,3 +1,6 @@
+import 'dart:io';
+import 'package:flutter/foundation.dart';
+
 class AppConfig {
   // Environment
   static const String environment = String.fromEnvironment(
@@ -5,22 +8,75 @@ class AppConfig {
     defaultValue: 'development',
   );
   
-  // API Configuration
-  static const String apiBaseUrl = String.fromEnvironment(
-    'API_BASE_URL',
-    defaultValue: 'https://your-backend-url.railway.app',
-  );
+  // Platform-specific API Configuration
+  static String get _platformApiBaseUrl {
+    // For web builds, use localhost
+    if (kIsWeb) {
+      return 'http://localhost:3000';
+    }
+    
+    // For mobile platforms
+    if (Platform.isAndroid) {
+      // Android emulator uses special IP to reach host machine
+      return const String.fromEnvironment(
+        'API_BASE_URL',
+        defaultValue: 'http://10.0.2.2:3000', // Android emulator host IP
+      );
+    } else if (Platform.isIOS) {
+      // iOS simulator can use localhost
+      return const String.fromEnvironment(
+        'API_BASE_URL',
+        defaultValue: 'http://localhost:3000',
+      );
+    } else {
+      // Fallback for other platforms
+      return const String.fromEnvironment(
+        'API_BASE_URL',
+        defaultValue: 'http://localhost:3000',
+      );
+    }
+  }
+  
+  // API Configuration - Now uses platform-specific URL
+  static String get apiBaseUrl => _platformApiBaseUrl;
   
   static const String apiVersion = String.fromEnvironment(
     'API_VERSION',
     defaultValue: 'v1',
   );
   
-  // WebSocket Configuration
-  static const String wsUrl = String.fromEnvironment(
-    'WS_URL',
-    defaultValue: 'wss://your-backend-url.railway.app',
+  // WebSocket Configuration - Updated to match backend
+  static String get wsBaseUrl {
+    if (kIsWeb) {
+      return 'ws://localhost:3000';
+    }
+    
+    if (Platform.isAndroid) {
+      return const String.fromEnvironment(
+        'WS_URL',
+        defaultValue: 'ws://10.0.2.2:3000',
+      );
+    } else if (Platform.isIOS) {
+      return const String.fromEnvironment(
+        'WS_URL',
+        defaultValue: 'ws://localhost:3000',
+      );
+    } else {
+      return const String.fromEnvironment(
+        'WS_URL',
+        defaultValue: 'ws://localhost:3000',
+      );
+    }
+  }
+  
+  // Alternative URLs for physical devices (use your computer's IP)
+  // To find your IP: ipconfig (Windows) or ifconfig (Mac/Linux)
+  static const String _physicalDeviceIP = String.fromEnvironment(
+    'PHYSICAL_DEVICE_IP',
+    defaultValue: '192.168.1.7', // Your computer's actual IP address
   );
+  
+  static String get physicalDeviceApiUrl => 'http://$_physicalDeviceIP:3000';
   
   // Google Translate API
   static const String googleTranslateApiKey = String.fromEnvironment(
@@ -79,7 +135,7 @@ class AppConfig {
   // Debug Settings
   static const bool enableDebugLogs = bool.fromEnvironment(
     'ENABLE_DEBUG_LOGS',
-    defaultValue: false,
+    defaultValue: true, // Enable for development
   );
   
   static const bool enableMockData = bool.fromEnvironment(
@@ -91,15 +147,26 @@ class AppConfig {
   static const int maxRetryAttempts = 3;
   static const Duration retryDelay = Duration(seconds: 2);
   static const Duration cacheExpiration = Duration(hours: 24);
+  static const Duration apiTimeout = Duration(seconds: 30);
   
   // Validation
   static bool get isProduction => environment == 'production';
   static bool get isDevelopment => environment == 'development';
   static bool get isStaging => environment == 'staging';
   
-  // API URLs
-  static String get apiUrl => '$apiBaseUrl/api/$apiVersion';
-  static String get wsEndpoint => '$wsUrl/socket.io';
+  // API URLs - Updated to match backend structure
+  static String get apiUrl => '$apiBaseUrl/api';
+  static String get wsEndpoint => '$wsBaseUrl/socket.io';
+  
+  // Debug info
+  static Map<String, dynamic> get debugInfo => {
+    'platform': Platform.operatingSystem,
+    'isWeb': kIsWeb,
+    'apiBaseUrl': apiBaseUrl,
+    'apiUrl': apiUrl,
+    'wsBaseUrl': wsBaseUrl,
+    'physicalDeviceApiUrl': physicalDeviceApiUrl,
+  };
   
   // Feature availability
   static bool get hasGoogleTranslate => googleTranslateApiKey.isNotEmpty;

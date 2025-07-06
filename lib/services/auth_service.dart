@@ -1,10 +1,12 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import '../core/constants.dart';
 import '../core/config.dart';
 import '../models/user.dart';
 import 'api_service.dart';
+import 'firebase_auth_service.dart';
 
 enum AuthStatus {
   initial,
@@ -20,12 +22,11 @@ class AuthService {
   AuthService._internal();
 
   final ApiService _apiService = ApiService();
+  final FirebaseAuthService _firebaseAuth = FirebaseAuthService();
   final DeviceInfoPlugin _deviceInfo = DeviceInfoPlugin();
 
   AuthStatus _status = AuthStatus.initial;
   User? _currentUser;
-  String? _authToken;
-  String? _refreshToken;
   String? _deviceId;
   bool _isAuthenticated = false;
   bool _isLoading = false;
@@ -33,8 +34,6 @@ class AuthService {
   // Getters
   AuthStatus get status => _status;
   User? get currentUser => _currentUser;
-  String? get authToken => _authToken;
-  String? get refreshToken => _refreshToken;
   String? get deviceId => _deviceId;
   bool get isAuthenticated => _isAuthenticated;
   bool get isLoading => _isLoading;
@@ -44,12 +43,22 @@ class AuthService {
     try {
       _status = AuthStatus.loading;
       
-      // Load stored authentication data
-      await _loadStoredAuth();
+      // Initialize API service
+      await _apiService.initialize();
       
-      // If we have a token, validate it
-      if (_authToken != null) {
-        await _validateToken();
+      // Listen to Firebase auth state changes
+      _firebaseAuth.authStateChanges.listen((firebaseUser) {
+        if (firebaseUser != null) {
+          _onFirebaseUserChanged(firebaseUser);
+        } else {
+          _onFirebaseUserSignedOut();
+        }
+      });
+      
+      // Check if user is already signed in
+      final firebaseUser = _firebaseAuth.currentUser;
+      if (firebaseUser != null) {
+        await _onFirebaseUserChanged(firebaseUser);
       } else {
         _status = AuthStatus.unauthenticated;
       }
@@ -59,107 +68,150 @@ class AuthService {
     }
   }
 
-  // Login with email and password
-  Future<AuthResult> login(String email, String password) async {
-    if (_isLoading) return AuthResult.loading();
-
-    _isLoading = true;
-
-    try {
-      final response = await _apiService.login(email, password);
-      
-      if (response['user'] != null && response['token'] != null) {
-        _currentUser = User.fromJson(response['user']);
-        _authToken = response['token'];
-        
-        await _saveAuthData(response);
-        _apiService.setAuthToken(_authToken!);
-        
-        _isLoading = false;
-        return AuthResult.success(_currentUser!);
-      } else {
-        _isLoading = false;
-        return AuthResult.error('Invalid response from server');
-      }
-    } catch (e) {
-      _isLoading = false;
-      return AuthResult.error(_getErrorMessage(e));
-    }
-  }
-
-  // Register new user
-  Future<AuthResult> register(String email, String password, String username) async {
-    if (_isLoading) return AuthResult.loading();
-
-    _isLoading = true;
-
-    try {
-      final response = await _apiService.register(email, password, username);
-      
-      if (response['user'] != null && response['token'] != null) {
-        _currentUser = User.fromJson(response['user']);
-        _authToken = response['token'];
-        
-        await _saveAuthData(response);
-        _apiService.setAuthToken(_authToken!);
-        
-        _isLoading = false;
-        return AuthResult.success(_currentUser!);
-      } else {
-        _isLoading = false;
-        return AuthResult.error('Registration failed');
-      }
-    } catch (e) {
-      _isLoading = false;
-      return AuthResult.error(_getErrorMessage(e));
-    }
-  }
-
-  // Login as guest
-  Future<AuthResult> loginAsGuest() async {
-    if (_isLoading) return AuthResult.loading();
-
-    _isLoading = true;
-
+  // Handle Firebase user changes
+  Future<void> _onFirebaseUserChanged(dynamic firebaseUser) async {
     try {
       _status = AuthStatus.loading;
+      _isLoading = true;
       
-      // Get or generate device ID
-      await _getDeviceId();
+      // Get user profile from backend
+      final profileData = await _apiService.getMyProfile();
+      _currentUser = User.fromJson(profileData['user']);
       
-      final response = await _apiService.guestLogin(_deviceId!);
+      _isAuthenticated = true;
+      _status = AuthStatus.authenticated;
+      _isLoading = false;
       
-      if (response['user'] != null && response['token'] != null) {
-        _currentUser = User.fromJson(response['user']);
-        _authToken = response['token'];
-        
-        await _saveAuthData(response);
-        _apiService.setAuthToken(_authToken!);
-        
+      // Save user data locally
+      await _saveUserData();
+    } catch (e) {
+      print('Error handling Firebase user change: $e');
+      _status = AuthStatus.error;
+      _isLoading = false;
+    }
+  }
+
+  // Handle Firebase user sign out
+  Future<void> _onFirebaseUserSignedOut() async {
+    await _clearAuth();
+    _status = AuthStatus.unauthenticated;
+  }
+
+  // Sign in with Google
+  Future<AuthResult> signInWithGoogle() async {
+    if (_isLoading) return AuthResult.loading();
+
+    _isLoading = true;
+    _status = AuthStatus.loading;
+
+    try {
+      final result = await _firebaseAuth.signInWithGoogle();
+      
+      if (result['success'] == true) {
+        final userData = result['user'];
+        _currentUser = User.fromJson(userData);
+        _isAuthenticated = true;
         _status = AuthStatus.authenticated;
+        
+        await _saveUserData();
         _isLoading = false;
-        return AuthResult.success(_currentUser!);
+        
+        return AuthResult.success(_currentUser!, isNewUser: result['isNewUser'] ?? false);
       } else {
         _isLoading = false;
-        return AuthResult.error('Guest login failed');
+        _status = AuthStatus.error;
+        return AuthResult.error(result['message'] ?? 'Google sign-in failed');
       }
     } catch (e) {
       _isLoading = false;
       _status = AuthStatus.error;
-      throw AuthException('Guest login failed: $e');
+      return AuthResult.error(_getErrorMessage(e));
+    }
+  }
+
+  // Sign in with Apple
+  Future<AuthResult> signInWithApple() async {
+    if (_isLoading) return AuthResult.loading();
+
+    _isLoading = true;
+    _status = AuthStatus.loading;
+
+    try {
+      final result = await _firebaseAuth.signInWithApple();
+      
+      if (result['success'] == true) {
+        final userData = result['user'];
+        _currentUser = User.fromJson(userData);
+        _isAuthenticated = true;
+        _status = AuthStatus.authenticated;
+        
+        await _saveUserData();
+        _isLoading = false;
+        
+        return AuthResult.success(_currentUser!, isNewUser: result['isNewUser'] ?? false);
+      } else {
+        _isLoading = false;
+        _status = AuthStatus.error;
+        return AuthResult.error(result['message'] ?? 'Apple sign-in failed');
+      }
+    } catch (e) {
+      _isLoading = false;
+      _status = AuthStatus.error;
+      return AuthResult.error(_getErrorMessage(e));
+    }
+  }
+
+  // Sign in as guest
+  Future<AuthResult> signInAsGuest() async {
+    if (_isLoading) return AuthResult.loading();
+
+    _isLoading = true;
+    _status = AuthStatus.loading;
+
+    try {
+      final result = await _firebaseAuth.signInAsGuest();
+      
+      if (result['success'] == true) {
+        final userData = result['user'];
+        _currentUser = User.fromJson(userData);
+        _isAuthenticated = true;
+        _status = AuthStatus.authenticated;
+        
+        await _saveUserData();
+        _isLoading = false;
+        
+        return AuthResult.success(_currentUser!, isNewUser: result['isNewUser'] ?? false);
+      } else {
+        _isLoading = false;
+        _status = AuthStatus.error;
+        return AuthResult.error(result['message'] ?? 'Guest sign-in failed');
+      }
+    } catch (e) {
+      _isLoading = false;
+      _status = AuthStatus.error;
+      return AuthResult.error(_getErrorMessage(e));
     }
   }
 
   // Logout
   Future<void> logout() async {
     try {
+      // Logout from backend
       await _apiService.logout();
     } catch (e) {
-      // Ignore logout errors
-    } finally {
-      await _clearAuth();
-      _status = AuthStatus.unauthenticated;
+      print('Backend logout error: $e');
+      // Continue with logout even if backend fails
     }
+    
+    try {
+      // Sign out from Firebase
+      await _firebaseAuth.signOut();
+    } catch (e) {
+      print('Firebase logout error: $e');
+    }
+    
+    await _clearAuth();
+    _status = AuthStatus.unauthenticated;
   }
 
   // Update user profile
@@ -169,289 +221,120 @@ class AuthService {
     }
 
     try {
-      final updatedUser = await _apiService.updateProfile(updates);
-      await updateCurrentUser(updatedUser);
-      return AuthResult.success(updatedUser);
+      final updatedData = await _apiService.updateProfile(updates);
+      await updateCurrentUser(User.fromJson(updatedData['user']));
+      return AuthResult.success(_currentUser!);
     } catch (e) {
       return AuthResult.error(_getErrorMessage(e));
     }
   }
 
-  // Refresh authentication token
-  Future<void> refreshToken() async {
-    if (_refreshToken == null) {
-      throw AuthException('No refresh token available');
-    }
+  // Update current user data
+  Future<void> updateCurrentUser(User user) async {
+    _currentUser = user;
+    await _saveUserData();
+  }
 
-    try {
-      final response = await _apiService.refreshToken(_refreshToken!);
-      await _saveAuthData(response);
-    } catch (e) {
-      // If refresh fails, logout the user
-      await logout();
-      throw AuthException('Token refresh failed: $e');
+  // Save user data to local storage
+  Future<void> _saveUserData() async {
+    if (_currentUser != null) {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('user_data', jsonEncode(_currentUser!.toJson()));
     }
+  }
+
+  // Clear authentication data
+  Future<void> _clearAuth() async {
+    _currentUser = null;
+    _isAuthenticated = false;
+    _isLoading = false;
+    
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('user_data');
+  }
+
+  // Get device ID
+  Future<void> _getDeviceId() async {
+    if (_deviceId != null) return;
+    
+    try {
+      if (Platform.isAndroid) {
+        final androidInfo = await _deviceInfo.androidInfo;
+        _deviceId = androidInfo.id;
+      } else if (Platform.isIOS) {
+        final iosInfo = await _deviceInfo.iosInfo;
+        _deviceId = iosInfo.identifierForVendor;
+      } else {
+        _deviceId = 'unknown_device';
+      }
+    } catch (e) {
+      _deviceId = 'device_error_${DateTime.now().millisecondsSinceEpoch}';
+    }
+  }
+
+  // Get error message
+  String _getErrorMessage(dynamic error) {
+    if (error is Exception) {
+      return error.toString().replaceAll('Exception: ', '');
+    }
+    return error.toString();
   }
 
   // Check if user is premium
   bool get isPremium => _currentUser?.isPremium ?? false;
 
   // Check if user is guest
-  bool get isGuest => _currentUser?.email == null;
+  bool get isGuest => _currentUser?.email == null || _currentUser?.email?.isEmpty == true;
 
-  // Get user's preferred language
-  String get preferredLanguage => _currentUser?.preferredLanguage ?? 'en';
+  // Check if Firebase is available
+  bool get isFirebaseAvailable => _firebaseAuth.isFirebaseAvailable;
 
-  // Save authentication data
-  Future<void> _saveAuthData(Map<String, dynamic> data) async {
-    final prefs = await SharedPreferences.getInstance();
-    
-    _authToken = data['token'];
-    _refreshToken = data['refreshToken'];
-    _currentUser = User.fromJson(data['user']);
-    
-    await prefs.setString('auth_token', _authToken!);
-    await prefs.setString('refresh_token', _refreshToken!);
-    await prefs.setString('user_data', json.encode(_currentUser!.toJson()));
-    await prefs.setString('device_id', _deviceId ?? '');
-  }
-
-  // Load stored authentication data
-  Future<void> _loadStoredAuth() async {
-    final prefs = await SharedPreferences.getInstance();
-    
-    _authToken = prefs.getString('auth_token');
-    _refreshToken = prefs.getString('refresh_token');
-    _deviceId = prefs.getString('device_id');
-    
-    final userData = prefs.getString('user_data');
-    if (userData != null) {
-      try {
-        _currentUser = User.fromJson(json.decode(userData));
-      } catch (e) {
-        // Invalid user data, clear it
-        await prefs.remove('user_data');
-      }
-    }
-  }
-
-  // Save current user data
-  Future<void> _saveCurrentUser(User user) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('user_data', json.encode(user.toJson()));
-  }
-
-  // Clear authentication data
-  Future<void> _clearAuth() async {
-    final prefs = await SharedPreferences.getInstance();
-    
-    await prefs.remove('auth_token');
-    await prefs.remove('refresh_token');
-    await prefs.remove('user_data');
-    
-    _authToken = null;
-    _refreshToken = null;
-    _currentUser = null;
-    _deviceId = null;
-    _isAuthenticated = false;
-  }
-
-  // Validate authentication token
-  Future<void> _validateToken() async {
+  // Test backend connection
+  Future<bool> testBackendConnection() async {
     try {
-      final user = await _apiService.getCurrentUser();
-      _currentUser = user;
-      await _saveCurrentUser(user);
+      print('🔍 DEBUG: Testing backend connection from AuthService...');
+      final result = await _firebaseAuth.testBackendConnection();
+      print('🔍 DEBUG: Backend connection test result: ${result['success']}');
+      return result['success'] == true;
     } catch (e) {
-      // Token is invalid, clear auth data
-      await _clearAuth();
-      throw AuthException('Invalid token');
+      print('🔍 DEBUG: Backend connection test failed: $e');
+      return false;
     }
   }
 
-  // Get or generate device ID
-  Future<void> _getDeviceId() async {
-    if (_deviceId != null) return;
-
-    final prefs = await SharedPreferences.getInstance();
-    _deviceId = prefs.getString('device_id');
-
-    if (_deviceId == null) {
-      try {
-        if (Platform.isAndroid) {
-          final androidInfo = await _deviceInfo.androidInfo;
-          _deviceId = androidInfo.id;
-        } else if (Platform.isIOS) {
-          final iosInfo = await _deviceInfo.iosInfo;
-          _deviceId = iosInfo.identifierForVendor;
-        } else {
-          // Generate a random device ID for other platforms
-          _deviceId = DateTime.now().millisecondsSinceEpoch.toString();
-        }
-        
-        await prefs.setString('device_id', _deviceId!);
-      } catch (e) {
-        // Fallback to timestamp-based ID
-        _deviceId = DateTime.now().millisecondsSinceEpoch.toString();
-        await prefs.setString('device_id', _deviceId!);
-      }
-    }
-  }
-
-  // Check if user can perform premium actions
-  bool canPerformPremiumAction(String action) {
-    if (isPremium) return true;
-    
-    // Define which actions require premium
-    const premiumActions = {
-      'advanced_filters',
-      'unlimited_chats',
-      'priority_matching',
-      'video_calls',
-      'location_sharing',
-      'file_sharing',
-    };
-    
-    return !premiumActions.contains(action);
-  }
-
-  // Get user's subscription status
-  Map<String, dynamic> getSubscriptionStatus() {
-    return {
-      'isPremium': isPremium,
-      'isGuest': isGuest,
-      'canUseAdvancedFilters': canPerformPremiumAction('advanced_filters'),
-      'canUseUnlimitedChats': canPerformPremiumAction('unlimited_chats'),
-      'canUsePriorityMatching': canPerformPremiumAction('priority_matching'),
-      'canUseVideoCalls': canPerformPremiumAction('video_calls'),
-      'canUseLocationSharing': canPerformPremiumAction('location_sharing'),
-      'canUseFileSharing': canPerformPremiumAction('file_sharing'),
-    };
-  }
-
-  // Check if user can connect with another user
-  bool canConnectWithUser(User otherUser) {
-    if (_currentUser == null) return false;
-    
-    // Check if either user is blocked
-    if (_currentUser!.isBlocked || otherUser.isBlocked) return false;
-    
-    // Check if either user is reported
-    if (_currentUser!.isReported || otherUser.isReported) return false;
-    
-    // Check if both users are online (for random connections)
-    if (!_currentUser!.isOnline || !otherUser.isOnline) return false;
-    
-    return true;
-  }
-
-  // Get user's connection limits
-  Map<String, int> getConnectionLimits() {
-    if (isPremium) {
-      return {
-        'maxConnectionsPerHour': 50,
-        'maxMessagesPerMinute': 100,
-        'maxFriendRequestsPerDay': 200,
-      };
-    } else {
-      return {
-        'maxConnectionsPerHour': 10,
-        'maxMessagesPerMinute': 20,
-        'maxFriendRequestsPerDay': 50,
-      };
-    }
-  }
-
-  // Check if user has reached connection limits
-  bool hasReachedLimit(String limitType) {
-    // This would typically check against stored usage data
-    // For now, return false (no limits reached)
-    return false;
-  }
-
-  // Get user's privacy settings
-  Map<String, bool> getPrivacySettings() {
-    // This would typically load from stored preferences
-    return {
-      'showOnlineStatus': true,
-      'showLastSeen': true,
-      'showLocation': false,
-      'allowFriendRequests': true,
-      'allowRandomConnections': true,
-      'showProfileToEveryone': true,
-    };
-  }
-
-  // Update privacy settings
-  Future<void> updatePrivacySettings(Map<String, bool> settings) async {
+  // Test POST request
+  Future<bool> testPostRequest() async {
     try {
-      await updateProfile({'privacySettings': settings});
+      print('🔍 DEBUG: Testing POST request from AuthService...');
+      final result = await _firebaseAuth.testPostRequest();
+      print('🔍 DEBUG: POST request test result: ${result['success']}');
+      return result['success'] == true;
     } catch (e) {
-      throw AuthException('Failed to update privacy settings: $e');
+      print('🔍 DEBUG: POST request test failed: $e');
+      return false;
     }
   }
 
-  // Get user's notification settings
-  Map<String, bool> getNotificationSettings() {
-    // This would typically load from stored preferences
-    return {
-      'newMessages': true,
-      'friendRequests': true,
-      'randomConnections': true,
-      'videoCalls': true,
-      'systemUpdates': true,
-    };
+  // Legacy methods - now throw exceptions since we only use Firebase
+  @deprecated
+  Future<AuthResult> login(String email, String password) async {
+    throw Exception('Use Firebase authentication methods instead');
   }
 
-  // Update notification settings
-  Future<void> updateNotificationSettings(Map<String, bool> settings) async {
-    try {
-      await updateProfile({'notificationSettings': settings});
-    } catch (e) {
-      throw AuthException('Failed to update notification settings: $e');
-    }
+  @deprecated
+  Future<AuthResult> register(String email, String password, String username) async {
+    throw Exception('Use Firebase authentication methods instead');
   }
 
-  // Update current user
-  Future<void> updateCurrentUser(User user) async {
-    _currentUser = user;
-    await _saveCurrentUser(user);
+  @deprecated
+  Future<AuthResult> loginAsGuest() async {
+    return await signInAsGuest();
   }
 
-  // Get error message
-  String _getErrorMessage(dynamic error) {
-    if (error is Exception) {
-      final message = error.toString().replaceAll('Exception: ', '');
-      
-      if (message.contains('401')) {
-        return 'Invalid credentials';
-      } else if (message.contains('403')) {
-        return 'Access denied';
-      } else if (message.contains('404')) {
-        return 'User not found';
-      } else if (message.contains('409')) {
-        return 'User already exists';
-      } else if (message.contains('422')) {
-        return 'Invalid input data';
-      } else if (message.contains('500')) {
-        return AppStrings.serverError;
-      } else if (message.contains('Network error')) {
-        return AppStrings.networkError;
-      }
-      
-      return message;
-    }
-    
-    return AppStrings.unknownError;
+  @deprecated
+  Future<void> refreshToken() async {
+    throw Exception('Firebase handles token refresh automatically');
   }
-}
-
-class AuthException implements Exception {
-  final String message;
-  AuthException(this.message);
-
-  @override
-  String toString() => message;
 }
 
 // Auth result class
@@ -460,23 +343,45 @@ class AuthResult {
   final User? user;
   final String? error;
   final bool isLoading;
+  final bool isNewUser;
 
   AuthResult._({
     required this.success,
     this.user,
     this.error,
     this.isLoading = false,
+    this.isNewUser = false,
   });
 
-  factory AuthResult.success(User user) {
-    return AuthResult._(success: true, user: user);
+  factory AuthResult.success(User user, {bool isNewUser = false}) {
+    return AuthResult._(
+      success: true,
+      user: user,
+      isNewUser: isNewUser,
+    );
   }
 
   factory AuthResult.error(String error) {
-    return AuthResult._(success: false, error: error);
+    return AuthResult._(
+      success: false,
+      error: error,
+    );
   }
 
   factory AuthResult.loading() {
-    return AuthResult._(success: false, isLoading: true);
+    return AuthResult._(
+      success: false,
+      isLoading: true,
+    );
   }
+}
+
+// Auth exception class
+class AuthException implements Exception {
+  final String message;
+  
+  AuthException(this.message);
+  
+  @override
+  String toString() => 'AuthException: $message';
 } 

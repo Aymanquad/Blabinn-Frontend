@@ -1,4 +1,3 @@
-
 class User {
   final String id;
   final String username;
@@ -106,28 +105,124 @@ class User {
   }
 
   factory User.fromJson(Map<String, dynamic> json) {
-    return User(
-      id: json['id'] as String,
-      username: json['username'] as String,
-      email: json['email'] as String?,
-      bio: json['bio'] as String?,
-      profileImage: json['profileImage'] as String?,
-      interests: List<String>.from(json['interests'] ?? []),
-      language: json['language'] as String? ?? 'en',
-      location: json['location'] as String?,
-      latitude: json['latitude'] as double?,
-      longitude: json['longitude'] as double?,
-      isOnline: json['isOnline'] as bool? ?? false,
-      lastSeen: json['lastSeen'] != null 
-          ? DateTime.parse(json['lastSeen'] as String)
-          : null,
-      isPremium: json['isPremium'] as bool? ?? false,
-      createdAt: DateTime.parse(json['createdAt'] as String),
-      updatedAt: DateTime.parse(json['updatedAt'] as String),
-      isBlocked: json['isBlocked'] as bool? ?? false,
-      isFriend: json['isFriend'] as bool? ?? false,
-      deviceId: json['deviceId'] as String?,
-    );
+    // Add debugging to see what data we're receiving
+    print('🔍 DEBUG: User.fromJson called with: $json');
+    
+    // Handle backend response format (uid, displayName, photoURL)
+    // vs the expected model format (id, username, profileImage)
+    
+    try {
+      final String? userIdRaw = json['uid'] ?? json['id'];
+      if (userIdRaw == null || userIdRaw.isEmpty) {
+        throw Exception('User ID is required but not provided in JSON: $json');
+      }
+      final String userId = userIdRaw;
+      
+      // Safely extract string values with fallbacks
+      String userName = 'Anonymous User';
+      if (json['displayName'] != null && json['displayName'] is String) {
+        userName = json['displayName'] as String;
+      } else if (json['username'] != null && json['username'] is String) {
+        userName = json['username'] as String;
+      }
+      
+      String? userEmail;
+      if (json['email'] != null && json['email'] is String) {
+        userEmail = json['email'] as String;
+      }
+      
+      String? userProfileImage;
+      if (json['photoURL'] != null && json['photoURL'] is String) {
+        userProfileImage = json['photoURL'] as String;
+      } else if (json['profileImage'] != null && json['profileImage'] is String) {
+        userProfileImage = json['profileImage'] as String;
+      }
+      
+      final bool isAnonymousUser = json['isAnonymous'] as bool? ?? false;
+      
+      print('🔍 DEBUG: Extracted user data - ID: $userId, Name: $userName, Email: $userEmail');
+      
+      // Handle DateTime fields that might be Firestore timestamps
+      DateTime createdAtDate = DateTime.now();
+      if (json['createdAt'] != null) {
+        print('🔍 DEBUG: createdAt type: ${json['createdAt'].runtimeType}, value: ${json['createdAt']}');
+        if (json['createdAt'] is String) {
+          createdAtDate = DateTime.parse(json['createdAt'] as String);
+        } else if (json['createdAt'] is Map) {
+          // Handle Firestore timestamp format
+          final timestamp = json['createdAt'] as Map<String, dynamic>;
+          final seconds = timestamp['_seconds'] as int?;
+          if (seconds != null) {
+            createdAtDate = DateTime.fromMillisecondsSinceEpoch(seconds * 1000);
+            print('🔍 DEBUG: Converted createdAt timestamp: $createdAtDate');
+          }
+        }
+      }
+      
+      DateTime updatedAtDate = DateTime.now();
+      if (json['updatedAt'] != null) {
+        print('🔍 DEBUG: updatedAt type: ${json['updatedAt'].runtimeType}, value: ${json['updatedAt']}');
+        if (json['updatedAt'] is String) {
+          updatedAtDate = DateTime.parse(json['updatedAt'] as String);
+        } else if (json['updatedAt'] is Map) {
+          // Handle Firestore timestamp format
+          final timestamp = json['updatedAt'] as Map<String, dynamic>;
+          final seconds = timestamp['_seconds'] as int?;
+          if (seconds != null) {
+            updatedAtDate = DateTime.fromMillisecondsSinceEpoch(seconds * 1000);
+            print('🔍 DEBUG: Converted updatedAt timestamp: $updatedAtDate');
+          }
+        }
+      }
+      
+      // Handle lastSeen which might also be a timestamp
+      DateTime? lastSeenDate;
+      if (json['lastSeen'] != null) {
+        print('🔍 DEBUG: lastSeen type: ${json['lastSeen'].runtimeType}, value: ${json['lastSeen']}');
+        if (json['lastSeen'] is String) {
+          lastSeenDate = DateTime.parse(json['lastSeen'] as String);
+        } else if (json['lastSeen'] is Map) {
+          // Handle Firestore timestamp format
+          final timestamp = json['lastSeen'] as Map<String, dynamic>;
+          final seconds = timestamp['_seconds'] as int?;
+          if (seconds != null) {
+            lastSeenDate = DateTime.fromMillisecondsSinceEpoch(seconds * 1000);
+            print('🔍 DEBUG: Converted lastSeen timestamp: $lastSeenDate');
+          }
+        }
+      }
+      
+      // Handle lastLoginAt which might also be a timestamp
+      if (json['lastLoginAt'] != null) {
+        print('🔍 DEBUG: lastLoginAt type: ${json['lastLoginAt'].runtimeType}, value: ${json['lastLoginAt']}');
+        // We don't store lastLoginAt in the User model, but we should handle it gracefully
+      }
+      
+      return User(
+        id: userId,
+        username: userName,
+        email: userEmail,
+        bio: json['bio'] as String?,
+        profileImage: userProfileImage,
+        interests: List<String>.from(json['interests'] ?? []),
+        language: json['language'] as String? ?? 'en',
+        location: json['location'] as String?,
+        latitude: json['latitude'] as double?,
+        longitude: json['longitude'] as double?,
+        isOnline: json['isOnline'] as bool? ?? false,
+        lastSeen: lastSeenDate,
+        isPremium: json['isPremium'] as bool? ?? false,
+        createdAt: createdAtDate,
+        updatedAt: updatedAtDate,
+        isBlocked: json['isBlocked'] as bool? ?? false,
+        isFriend: json['isFriend'] as bool? ?? false,
+        deviceId: json['deviceId'] as String?,
+      );
+    } catch (e) {
+      print('❌ ERROR: User.fromJson failed - $e');
+      print('🔍 DEBUG: JSON data was: $json');
+      rethrow;
+    }
   }
 
   @override

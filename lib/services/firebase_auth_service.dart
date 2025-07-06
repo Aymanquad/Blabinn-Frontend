@@ -5,6 +5,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'package:http/http.dart' as http;
 import '../core/constants.dart';
+import '../core/config.dart';
 
 class FirebaseAuthService {
   static final FirebaseAuthService _instance = FirebaseAuthService._internal();
@@ -14,8 +15,84 @@ class FirebaseAuthService {
   FirebaseAuth? _auth;
   final GoogleSignIn _googleSignIn = GoogleSignIn();
   
-  // Your backend URL
-  final String _backendUrl = 'http://localhost:3000/api/auth/login';
+  // Backend URL from config
+  String get _backendUrl => '${AppConfig.apiUrl}/auth/login';
+
+  // Test backend connectivity
+  Future<Map<String, dynamic>> testBackendConnection() async {
+    print('🔍 DEBUG: Testing backend connection...');
+    print('🔍 DEBUG: Backend URL: ${AppConfig.apiUrl}');
+    
+    try {
+      final testUrl = '${AppConfig.apiUrl}/auth/test-connection';
+      print('🔍 DEBUG: Test URL: $testUrl');
+      
+      final response = await http.get(
+        Uri.parse(testUrl),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+      ).timeout(Duration(seconds: 10));
+      
+      print('🔍 DEBUG: Test response status: ${response.statusCode}');
+      print('🔍 DEBUG: Test response body: ${response.body}');
+      
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return {
+          'success': true,
+          'message': 'Backend connection successful',
+          'data': data,
+        };
+      } else {
+        throw Exception('HTTP ${response.statusCode}: ${response.body}');
+      }
+    } catch (e) {
+      print('🔍 DEBUG: Backend connection test failed: $e');
+      throw Exception('Backend connection failed: $e');
+    }
+  }
+
+  // Test POST request
+  Future<Map<String, dynamic>> testPostRequest() async {
+    print('🔍 DEBUG: Testing POST request...');
+    
+    try {
+      final testUrl = '${AppConfig.apiUrl}/auth/test-post';
+      print('🔍 DEBUG: POST Test URL: $testUrl');
+      
+      final response = await http.post(
+        Uri.parse(testUrl),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: jsonEncode({
+          'test': 'data',
+          'from': 'flutter',
+          'timestamp': DateTime.now().toIso8601String(),
+        }),
+      ).timeout(Duration(seconds: 10));
+      
+      print('🔍 DEBUG: POST response status: ${response.statusCode}');
+      print('🔍 DEBUG: POST response body: ${response.body}');
+      
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return {
+          'success': true,
+          'message': 'POST request successful',
+          'data': data,
+        };
+      } else {
+        throw Exception('HTTP ${response.statusCode}: ${response.body}');
+      }
+    } catch (e) {
+      print('🔍 DEBUG: POST request test failed: $e');
+      throw Exception('POST request failed: $e');
+    }
+  }
 
   // Check if Firebase is available
   bool get isFirebaseAvailable {
@@ -41,37 +118,57 @@ class FirebaseAuthService {
           'For now, you can use "Continue as Guest" to test the app.');
     }
 
+    print('🚀 Starting Google Sign-In...');
+
     try {
       // Trigger the authentication flow
+      print('📱 Opening Google Sign-In popup...');
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
       
       if (googleUser == null) {
+        print('❌ Google sign-in cancelled by user');
         throw Exception('Google sign-in cancelled');
       }
 
+      print('✅ Google user selected: ${googleUser.email}');
+
       // Obtain the auth details from the request
+      print('🔑 Getting Google authentication details...');
       final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
 
+      print('🎫 Creating Firebase credential...');
       // Create a new credential
       final credential = GoogleAuthProvider.credential(
         accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
       );
 
+      print('🔥 Signing in to Firebase...');
       // Sign in to Firebase
       final UserCredential userCredential = await _auth!.signInWithCredential(credential);
       
+      print('✅ Firebase sign-in successful: ${userCredential.user?.email}');
+      
       // Get the Firebase ID token
+      print('🎟️ Getting Firebase ID token...');
       final String? idToken = await userCredential.user?.getIdToken();
       
       if (idToken == null) {
+        print('❌ Failed to get Firebase ID token');
         throw Exception('Failed to get Firebase ID token');
       }
 
-      // Send token to your backend
-      return await _sendTokenToBackend(idToken, 'google');
+      print('✅ Firebase ID token obtained');
+
+      // Send token to your backend with user data
+      return await _sendTokenToBackend(idToken, 'google', {
+        'displayName': userCredential.user?.displayName,
+        'photoURL': userCredential.user?.photoURL,
+        'email': userCredential.user?.email,
+      });
       
     } catch (e) {
+      print('🚨 Google sign-in error: $e');
       throw Exception('Google sign-in failed: $e');
     }
   }
@@ -111,8 +208,12 @@ class FirebaseAuthService {
         throw Exception('Failed to get Firebase ID token');
       }
 
-      // Send token to your backend
-      return await _sendTokenToBackend(idToken, 'apple');
+      // Send token to your backend with user data
+      return await _sendTokenToBackend(idToken, 'apple', {
+        'displayName': userCredential.user?.displayName,
+        'photoURL': userCredential.user?.photoURL,
+        'email': userCredential.user?.email,
+      });
       
     } catch (e) {
       throw Exception('Apple sign-in failed: $e');
@@ -147,8 +248,10 @@ class FirebaseAuthService {
         throw Exception('Failed to get Firebase ID token');
       }
 
-      // Send token to your backend
-      return await _sendTokenToBackend(idToken, 'guest');
+      // Send token to your backend with device ID
+      return await _sendTokenToBackend(idToken, 'anonymous', {
+        'deviceId': 'flutter-device-${DateTime.now().millisecondsSinceEpoch}',
+      });
       
     } catch (e) {
       throw Exception('Guest sign-in failed: $e');
@@ -156,54 +259,93 @@ class FirebaseAuthService {
   }
 
   // Send Firebase ID token to your backend
-  Future<Map<String, dynamic>> _sendTokenToBackend(String idToken, String provider) async {
+  Future<Map<String, dynamic>> _sendTokenToBackend(String idToken, String provider, Map<String, dynamic> userData) async {
+    print('🔐 Sending token to backend...');
+    print('📍 URL: $_backendUrl');
+    print('🔑 Provider: $provider');
+    print('📱 Token length: ${idToken.length}');
+    
     try {
+      // Build request body based on provider
+      final Map<String, dynamic> requestBody = {
+        'signInProvider': provider,
+      };
+      
+      // Add displayName if available
+      if (userData['displayName'] != null) {
+        requestBody['displayName'] = userData['displayName'];
+      }
+      
+      // Add photoURL if available
+      if (userData['photoURL'] != null) {
+        requestBody['photoURL'] = userData['photoURL'];
+      }
+      
+      // Only add deviceId for anonymous users
+      if (provider == 'anonymous' && userData['deviceId'] != null) {
+        requestBody['deviceId'] = userData['deviceId'];
+      }
+      
+      print('🔍 DEBUG: Request body: $requestBody');
+      
       final response = await http.post(
         Uri.parse(_backendUrl),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $idToken',
         },
-        body: jsonEncode({
-          'idToken': idToken,
-          'provider': provider,
-        }),
-      );
+        body: jsonEncode(requestBody),
+      ).timeout(AppConfig.apiTimeout);
 
-      if (response.statusCode == 200) {
+      print('📡 Response status: ${response.statusCode}');
+      print('📨 Response body: ${response.body}');
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
         final data = jsonDecode(response.body);
-        return data;
+        print('✅ Backend response successful');
+        print('🔍 DEBUG: Parsed response data: $data');
+        
+        // Extract user data from the correct location
+        final userData = data['data']['user'];
+        print('🔍 DEBUG: User data: $userData');
+        
+        return {
+          'success': true,
+          'user': userData,
+          'isNewUser': userData['isNewUser'] ?? false,
+          'message': data['message'],
+        };
       } else {
-        throw Exception('Backend responded with status: ${response.statusCode}');
+        print('❌ Backend error: ${response.statusCode} - ${response.body}');
+        throw Exception('Backend authentication failed: ${response.statusCode}');
       }
     } catch (e) {
+      print('🚨 Backend request failed: $e');
       throw Exception('Failed to authenticate with backend: $e');
     }
   }
 
   // Sign out
   Future<void> signOut() async {
-    if (!isFirebaseAvailable) {
-      return; // Nothing to sign out from
+    if (isFirebaseAvailable) {
+      await _auth?.signOut();
     }
-
-    try {
-      await _auth!.signOut();
-      await _googleSignIn.signOut();
-    } catch (e) {
-      throw Exception('Sign out failed: $e');
-    }
+    await _googleSignIn.signOut();
   }
 
-  // Check if user is signed in
-  bool get isSignedIn => isFirebaseAvailable ? (_auth?.currentUser != null) : false;
+  // Get current Firebase ID token
+  Future<String?> getIdToken() async {
+    if (!isFirebaseAvailable || currentUser == null) {
+      return null;
+    }
+    return await currentUser!.getIdToken();
+  }
 
-  // Get user display name
-  String? get userDisplayName => isFirebaseAvailable ? _auth?.currentUser?.displayName : null;
-
-  // Get user email
-  String? get userEmail => isFirebaseAvailable ? _auth?.currentUser?.email : null;
-
-  // Get user photo URL
-  String? get userPhotoURL => isFirebaseAvailable ? _auth?.currentUser?.photoURL : null;
+  // Listen to auth state changes
+  Stream<User?> get authStateChanges {
+    if (!isFirebaseAvailable) {
+      return Stream.value(null);
+    }
+    return _auth!.authStateChanges();
+  }
 } 

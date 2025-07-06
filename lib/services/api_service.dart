@@ -7,6 +7,7 @@ import '../core/config.dart';
 import '../models/user.dart';
 import '../models/chat.dart';
 import '../models/message.dart';
+import 'firebase_auth_service.dart';
 
 class ApiService {
   static final ApiService _instance = ApiService._internal();
@@ -14,41 +15,41 @@ class ApiService {
   ApiService._internal();
 
   final String _baseUrl = AppConfig.apiUrl;
-  final String _apiVersion = AppConfig.apiVersion;
   final Duration _timeout = AppConfig.apiTimeout;
+  final FirebaseAuthService _firebaseAuth = FirebaseAuthService();
 
-  String? _authToken;
-  String? _userId;
+  String? _firebaseToken;
 
   // Initialize the service
   Future<void> initialize() async {
-    final prefs = await SharedPreferences.getInstance();
-    _authToken = prefs.getString('auth_token');
-    _userId = prefs.getString('user_id');
+    await _refreshFirebaseToken();
   }
 
-  // Headers
-  Map<String, String> get _headers {
+  // Refresh Firebase token
+  Future<void> _refreshFirebaseToken() async {
+    try {
+      _firebaseToken = await _firebaseAuth.getIdToken();
+    } catch (e) {
+      print('Failed to get Firebase token: $e');
+      _firebaseToken = null;
+    }
+  }
+
+  // Headers with Firebase authentication
+  Future<Map<String, String>> get _headers async {
+    // Always try to get fresh token
+    await _refreshFirebaseToken();
+    
     final headers = {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
     };
     
-    if (_authToken != null) {
-      headers['Authorization'] = 'Bearer $_authToken';
+    if (_firebaseToken != null) {
+      headers['Authorization'] = 'Bearer $_firebaseToken';
     }
     
     return headers;
-  }
-
-  // Set auth token
-  void setAuthToken(String token) {
-    _authToken = token;
-  }
-
-  // Clear auth token
-  void clearAuthToken() {
-    _authToken = null;
   }
 
   // Generic HTTP methods
@@ -56,8 +57,8 @@ class ApiService {
     try {
       final response = await http.get(
         Uri.parse('$_baseUrl$endpoint'),
-        headers: _headers,
-      ).timeout(AppConstants.connectionTimeout);
+        headers: await _headers,
+      ).timeout(_timeout);
       
       return response;
     } catch (e) {
@@ -69,9 +70,9 @@ class ApiService {
     try {
       final response = await http.post(
         Uri.parse('$_baseUrl$endpoint'),
-        headers: _headers,
+        headers: await _headers,
         body: jsonEncode(data),
-      ).timeout(AppConstants.connectionTimeout);
+      ).timeout(_timeout);
       
       return response;
     } catch (e) {
@@ -83,9 +84,9 @@ class ApiService {
     try {
       final response = await http.put(
         Uri.parse('$_baseUrl$endpoint'),
-        headers: _headers,
+        headers: await _headers,
         body: jsonEncode(data),
-      ).timeout(AppConstants.connectionTimeout);
+      ).timeout(_timeout);
       
       return response;
     } catch (e) {
@@ -97,8 +98,8 @@ class ApiService {
     try {
       final response = await http.delete(
         Uri.parse('$_baseUrl$endpoint'),
-        headers: _headers,
-      ).timeout(AppConstants.connectionTimeout);
+        headers: await _headers,
+      ).timeout(_timeout);
       
       return response;
     } catch (e) {
@@ -109,296 +110,212 @@ class ApiService {
   // Handle response
   Map<String, dynamic> _handleResponse(http.Response response) {
     if (response.statusCode >= 200 && response.statusCode < 300) {
-      return jsonDecode(response.body);
-    } else {
-      throw Exception('HTTP ${response.statusCode}: ${response.body}');
-    }
-  }
-
-  // Authentication methods
-  Future<Map<String, dynamic>> login(String email, String password) async {
-    final response = await _post('/auth/login', {
-      'email': email,
-      'password': password,
-    });
-    
-    final data = _handleResponse(response);
-    if (data['token'] != null) {
-      setAuthToken(data['token']);
-    }
-    
-    return data;
-  }
-
-  Future<Map<String, dynamic>> register(String username, String email, String password) async {
-    final response = await _post('/auth/register', {
-      'username': username,
-      'email': email,
-      'password': password,
-    });
-    
-    final data = _handleResponse(response);
-    if (data['token'] != null) {
-      setAuthToken(data['token']);
-    }
-    
-    return data;
-  }
-
-  Future<Map<String, dynamic>> loginAsGuest(String deviceId) async {
-    final response = await _post('/auth/guest', {
-      'deviceId': deviceId,
-    });
-    
-    final data = _handleResponse(response);
-    if (data['token'] != null) {
-      setAuthToken(data['token']);
-    }
-    
-    return data;
-  }
-
-  Future<Map<String, dynamic>> refreshToken(String refreshToken) async {
-    return await _post('/auth/refresh', {
-      'refreshToken': refreshToken,
-    });
-  }
-
-  Future<void> logout() async {
-    await _post('/auth/logout', {});
-    clearAuthToken();
-  }
-
-  // User methods
-  Future<User> getCurrentUser() async {
-    final response = await _get('/users/me');
-    final data = _handleResponse(response);
-    return User.fromJson(data);
-  }
-
-  Future<User> updateProfile(Map<String, dynamic> updates) async {
-    final response = await _put('/users/me', updates);
-    final data = _handleResponse(response);
-    return User.fromJson(data);
-  }
-
-  Future<User> getUserById(String userId) async {
-    final response = await _get('/users/$userId');
-    final data = _handleResponse(response);
-    return User.fromJson(data);
-  }
-
-  Future<List<User>> getFriends() async {
-    final response = await _get('/users/friends');
-    final data = _handleResponse(response);
-    return (data['friends'] as List)
-        .map((user) => User.fromJson(user))
-        .toList();
-  }
-
-  Future<void> addFriend(String userId) async {
-    await _post('/users/friends', {'userId': userId});
-  }
-
-  Future<void> removeFriend(String userId) async {
-    await _delete('/users/friends/$userId');
-  }
-
-  Future<void> blockUser(String userId) async {
-    await _post('/users/block', {'userId': userId});
-  }
-
-  Future<void> unblockUser(String userId) async {
-    await _delete('/users/block/$userId');
-  }
-
-  Future<List<User>> getBlockedUsers() async {
-    final response = await _get('/users/blocked');
-    final data = _handleResponse(response);
-    return (data['blocked'] as List)
-        .map((user) => User.fromJson(user))
-        .toList();
-  }
-
-  Future<void> reportUser(String userId, String reason) async {
-    try {
-      final response = await http.post(
-        Uri.parse('$_baseUrl/$_apiVersion/users/report'),
-        headers: _headers,
-        body: json.encode({
-          'userId': userId,
-          'reason': reason,
-        }),
-      ).timeout(_timeout);
-
-      if (response.statusCode != 200) {
-        throw _handleError(response);
+      final data = jsonDecode(response.body);
+      // Handle both direct data and wrapped data responses
+      if (data is Map<String, dynamic> && data.containsKey('data')) {
+        return data['data'];
       }
-    } catch (e) {
-      throw ApiException('Failed to report user: $e');
+      return data;
+    } else {
+      final errorData = jsonDecode(response.body);
+      throw Exception(errorData['message'] ?? 'HTTP ${response.statusCode}');
     }
   }
 
-  // Chat methods
-  Future<List<Chat>> getChats() async {
-    final response = await _get('/chats');
-    final data = _handleResponse(response);
-    return (data['chats'] as List)
-        .map((chat) => Chat.fromJson(chat))
-        .toList();
-  }
-
-  Future<Chat> getChat(String chatId) async {
-    final response = await _get('/chats/$chatId');
-    final data = _handleResponse(response);
-    return Chat.fromJson(data);
-  }
-
-  Future<List<Message>> getChatMessages(String chatId, {int? limit, String? before}) async {
-    final queryParams = <String, String>{};
-    if (limit != null) queryParams['limit'] = limit.toString();
-    if (before != null) queryParams['before'] = before;
-    
-    final uri = Uri.parse('$_baseUrl/chats/$chatId/messages').replace(queryParameters: queryParams);
-    final response = await http.get(uri, headers: _headers);
-    
-    final data = _handleResponse(response);
-    return (data['messages'] as List)
-        .map((message) => Message.fromJson(message))
-        .toList();
-  }
-
-  Future<Message> sendMessage(String chatId, String content, {MessageType type = MessageType.text}) async {
-    final response = await _post('/chats/$chatId/messages', {
-      'content': content,
-      'type': type.name,
-    });
-    
-    final data = _handleResponse(response);
-    return Message.fromJson(data);
-  }
-
-  Future<void> markChatAsRead(String chatId) async {
-    await _post('/chats/$chatId/read', {});
-  }
-
-  Future<void> deleteChat(String chatId) async {
-    await _delete('/chats/$chatId');
-  }
-
-  // Connect methods
-  Future<Map<String, dynamic>> startMatching(Map<String, dynamic> filters) async {
-    final response = await _post('/connect/start', filters);
+  // Authentication methods (these are handled by Firebase now)
+  Future<Map<String, dynamic>> verifyAuth() async {
+    final response = await _get('/auth/verify');
     return _handleResponse(response);
   }
 
-  Future<void> stopMatching() async {
-    await _post('/connect/stop', {});
-  }
-
-  Future<Map<String, dynamic>> getMatch() async {
-    return await _get('/connect/match');
-  }
-
-  Future<Map<String, dynamic>> acceptMatch(String matchId) async {
-    final response = await _post('/connect/accept', {'matchId': matchId});
+  Future<Map<String, dynamic>> logout() async {
+    final response = await _post('/auth/logout', {});
     return _handleResponse(response);
   }
 
-  Future<void> rejectMatch(String matchId) async {
-    await _post('/connect/reject', {'matchId': matchId});
+  // Profile methods - Updated to match backend endpoints
+  Future<Map<String, dynamic>> getMyProfile() async {
+    final response = await _get('/auth/profile');
+    return _handleResponse(response);
   }
 
-  // File upload methods
-  Future<String> uploadImage(List<int> imageBytes, String fileName) async {
+  Future<Map<String, dynamic>> updateProfile(Map<String, dynamic> updates) async {
+    final response = await _put('/auth/profile', updates);
+    return _handleResponse(response);
+  }
+
+  Future<Map<String, dynamic>> deleteAccount() async {
+    final response = await _delete('/auth/account');
+    return _handleResponse(response);
+  }
+
+  // Profile-specific endpoints
+  Future<Map<String, dynamic>> checkUsernameAvailability(String username) async {
+    final response = await _post('/profiles/check-username', {'username': username});
+    return _handleResponse(response);
+  }
+
+  Future<Map<String, dynamic>> createProfile(Map<String, dynamic> profileData) async {
+    final response = await _post('/profiles', profileData);
+    return _handleResponse(response);
+  }
+
+  Future<Map<String, dynamic>> getProfileStats() async {
+    final response = await _get('/profiles/me/stats');
+    return _handleResponse(response);
+  }
+
+  Future<List<Map<String, dynamic>>> searchProfiles(Map<String, dynamic> searchParams) async {
+    final response = await _post('/profiles/search', searchParams);
+    final data = _handleResponse(response);
+    return List<Map<String, dynamic>>.from(data['profiles'] ?? []);
+  }
+
+  Future<List<String>> getTrendingInterests() async {
+    final response = await _get('/profiles/trending-interests');
+    final data = _handleResponse(response);
+    return List<String>.from(data['interests'] ?? []);
+  }
+
+  // Upload methods
+  Future<Map<String, dynamic>> uploadProfilePicture(File imageFile) async {
     try {
+      final headers = await _headers;
+      headers.remove('Content-Type'); // Let http handle multipart content-type
+      
       final request = http.MultipartRequest(
         'POST',
-        Uri.parse('$_baseUrl/media/upload'),
+        Uri.parse('$_baseUrl/profiles/me/picture'),
       );
       
-      request.headers.addAll(_headers);
-      request.files.add(
-        http.MultipartFile.fromBytes(
-          'image',
-          imageBytes,
-          filename: fileName,
-        ),
-      );
+      request.headers.addAll(headers);
+      request.files.add(await http.MultipartFile.fromPath('profilePicture', imageFile.path));
       
-      final response = await request.send();
+      final response = await request.send().timeout(_timeout);
       final responseData = await response.stream.bytesToString();
       
       if (response.statusCode >= 200 && response.statusCode < 300) {
-        final data = jsonDecode(responseData);
-        return data['url'] as String;
+        return jsonDecode(responseData);
       } else {
-        throw Exception('Upload failed: ${response.statusCode}');
+        final errorData = jsonDecode(responseData);
+        throw Exception(errorData['message'] ?? 'Upload failed');
       }
     } catch (e) {
-      throw Exception('Upload error: $e');
+      throw Exception('Upload failed: $e');
     }
   }
 
-  // Location methods
-  Future<void> updateLocation(double latitude, double longitude) async {
-    await _put('/users/location', {
-      'latitude': latitude,
-      'longitude': longitude,
-    });
-  }
-
-  Future<List<User>> getNearbyUsers(double radius) async {
-    final response = await _get('/users/nearby?radius=$radius');
-    final data = _handleResponse(response);
-    return (data['users'] as List)
-        .map((user) => User.fromJson(user))
-        .toList();
-  }
-
-  // Premium methods
-  Future<Map<String, dynamic>> getPremiumFeatures() async {
-    final response = await _get('/premium/features');
-    return _handleResponse(response);
-  }
-
-  Future<Map<String, dynamic>> upgradeToPremium(String paymentMethod) async {
-    final response = await _post('/premium/upgrade', {
-      'paymentMethod': paymentMethod,
-    });
-    return _handleResponse(response);
-  }
-
-  // Settings
-  Future<Map<String, dynamic>> getSettings() async {
-    return await _get('/users/settings');
-  }
-
-  Future<void> updateSettings(Map<String, dynamic> settings) async {
-    await _put('/users/settings', settings);
-  }
-
-  ApiException _handleError(http.Response response) {
+  Future<Map<String, dynamic>> addGalleryPicture(File imageFile) async {
     try {
-      final data = json.decode(response.body);
-      return ApiException(data['message'] ?? 'Request failed with status ${response.statusCode}');
+      final headers = await _headers;
+      headers.remove('Content-Type');
+      
+      final request = http.MultipartRequest(
+        'POST',
+        Uri.parse('$_baseUrl/profiles/me/gallery'),
+      );
+      
+      request.headers.addAll(headers);
+      request.files.add(await http.MultipartFile.fromPath('galleryPicture', imageFile.path));
+      
+      final response = await request.send().timeout(_timeout);
+      final responseData = await response.stream.bytesToString();
+      
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        return jsonDecode(responseData);
+      } else {
+        final errorData = jsonDecode(responseData);
+        throw Exception(errorData['message'] ?? 'Upload failed');
+      }
     } catch (e) {
-      return ApiException('Request failed with status ${response.statusCode}');
+      throw Exception('Upload failed: $e');
     }
   }
 
-  bool get isAuthenticated => _authToken != null;
-  String? get authToken => _authToken;
-  String? get userId => _userId;
-}
+  Future<Map<String, dynamic>> loadGallery() async {
+    final response = await _get('/profiles/me/gallery');
+    return _handleResponse(response);
+  }
 
-class ApiException implements Exception {
-  final String message;
-  final int? statusCode;
+  Future<Map<String, dynamic>> setMainPicture(String filename) async {
+    final response = await _put('/profiles/me/gallery/main', {'filename': filename});
+    return _handleResponse(response);
+  }
 
-  ApiException(this.message, {this.statusCode});
+  Future<Map<String, dynamic>> removeGalleryPicture(String filename) async {
+    final response = await _delete('/profiles/me/gallery/$filename');
+    return _handleResponse(response);
+  }
 
-  @override
-  String toString() => 'ApiException: $message';
-} 
+  // Chat methods (if needed)
+  Future<Map<String, dynamic>> getChatRooms() async {
+    final response = await _get('/chat/rooms');
+    return _handleResponse(response);
+  }
+
+  Future<Map<String, dynamic>> createChatRoom(Map<String, dynamic> roomData) async {
+    final response = await _post('/chat/rooms', roomData);
+    return _handleResponse(response);
+  }
+
+  Future<Map<String, dynamic>> getChatMessages(String roomId) async {
+    final response = await _get('/chat/rooms/$roomId/messages');
+    return _handleResponse(response);
+  }
+
+  Future<Map<String, dynamic>> sendMessage(String roomId, Map<String, dynamic> messageData) async {
+    final response = await _post('/chat/rooms/$roomId/messages', messageData);
+    return _handleResponse(response);
+  }
+
+  // Legacy methods - kept for backward compatibility but not used with Firebase auth
+  @deprecated
+  Future<Map<String, dynamic>> login(String email, String password) async {
+    throw Exception('Use Firebase authentication instead');
+  }
+
+  @deprecated
+  Future<Map<String, dynamic>> register(String username, String email, String password) async {
+    throw Exception('Use Firebase authentication instead');
+  }
+
+  @deprecated
+  Future<Map<String, dynamic>> loginAsGuest(String deviceId) async {
+    throw Exception('Use Firebase authentication instead');
+  }
+
+  @deprecated
+  Future<Map<String, dynamic>> refreshToken(String refreshToken) async {
+    throw Exception('Use Firebase authentication instead');
+  }
+
+  @deprecated
+  void setAuthToken(String token) {
+    throw Exception('Use Firebase authentication instead');
+  }
+
+  @deprecated
+  void clearAuthToken() {
+    throw Exception('Use Firebase authentication instead');
+  }
+
+  @deprecated
+  Future<User> getCurrentUser() async {
+    throw Exception('Use Firebase authentication instead');
+  }
+
+  @deprecated
+  Future<User> getUserById(String userId) async {
+    throw Exception('Use Firebase authentication instead');
+  }
+
+  @deprecated
+  Future<List<User>> getFriends() async {
+    throw Exception('Use Firebase authentication instead');
+  }
+
+  @deprecated
+  Future<void> addFriend(String userId) async {
+    throw Exception('Use Firebase authentication instead');
+  }
 } 

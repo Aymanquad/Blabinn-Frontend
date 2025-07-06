@@ -1,8 +1,12 @@
-import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
+import 'dart:convert';
 import 'dart:io';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:http/http.dart' as http;
 import '../core/constants.dart';
+import '../core/config.dart';
 import '../services/firebase_auth_service.dart';
+import '../services/auth_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -32,6 +36,37 @@ class _LoginScreenState extends State<LoginScreen> {
               // Firebase status indicator
               _buildFirebaseStatus(),
               const SizedBox(height: 24),
+              
+              // Test connection button
+              ElevatedButton(
+                onPressed: _testConnection,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.orange,
+                ),
+                child: Text('🔍 Test Backend Connection'),
+              ),
+              
+              SizedBox(height: 8),
+              
+              // Debug info button
+              ElevatedButton(
+                onPressed: _showDebugInfo,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.purple,
+                ),
+                child: Text('🔍 Show Debug Info'),
+              ),
+              
+              SizedBox(height: 8),
+              
+              // Test physical device IP button
+              ElevatedButton(
+                onPressed: _testPhysicalDeviceConnection,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.teal,
+                ),
+                child: Text('📱 Test Physical Device IP'),
+              ),
               
               // Sign in buttons
               _buildSignInButtons(),
@@ -316,5 +351,134 @@ class _LoginScreenState extends State<LoginScreen> {
         duration: const Duration(seconds: 4),
       ),
     );
+  }
+
+  void _testConnection() async {
+    print('🔍 DEBUG: Starting connection test...');
+    print('🔍 DEBUG: Platform config: ${AppConfig.debugInfo}');
+    
+    final authService = AuthService();
+    
+    // Test basic connectivity
+    final canConnect = await authService.testBackendConnection();
+    print('🔍 DEBUG: Can connect to backend: $canConnect');
+    
+    if (canConnect) {
+      // Test POST requests
+      final canPost = await authService.testPostRequest();
+      print('🔍 DEBUG: Can make POST requests: $canPost');
+      
+      // Show success message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('✅ Backend connection successful!\nUsing: ${AppConfig.apiUrl}'),
+          backgroundColor: Colors.green,
+          duration: Duration(seconds: 4),
+        ),
+      );
+    } else {
+      // Show error message with suggestions
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('❌ Cannot connect to backend\nTrying: ${AppConfig.apiUrl}\nTap "Show Debug Info" for help'),
+          backgroundColor: Colors.red,
+          duration: Duration(seconds: 6),
+        ),
+      );
+    }
+  }
+
+  void _showDebugInfo() {
+    final config = AppConfig.debugInfo;
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('🔍 Debug Information'),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('Platform: ${config['platform']}'),
+              SizedBox(height: 8),
+              Text('Current API URL:'),
+              SelectableText(
+                config['apiUrl'],
+                style: TextStyle(fontFamily: 'monospace', color: Colors.blue),
+              ),
+              SizedBox(height: 12),
+              Text('Troubleshooting:'),
+              SizedBox(height: 4),
+              Text('• Make sure backend is running on port 3000'),
+              Text('• For physical device, use your computer\'s IP'),
+              Text('• For emulator, 10.0.2.2 should work'),
+              SizedBox(height: 8),
+              Text('Alternative URL for physical device:'),
+              SelectableText(
+                config['physicalDeviceApiUrl'],
+                style: TextStyle(fontFamily: 'monospace', color: Colors.orange),
+              ),
+              SizedBox(height: 8),
+              Text('To find your IP:'),
+              Text('Windows: ipconfig'),
+              Text('Mac/Linux: ifconfig'),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Clipboard.setData(ClipboardData(text: config['apiUrl']));
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('API URL copied to clipboard')),
+              );
+            },
+            child: Text('Copy URL'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _testPhysicalDeviceConnection() async {
+    print('🔍 DEBUG: Testing with physical device IP...');
+    
+    // Temporarily override the API URL for testing
+    final testUrl = AppConfig.physicalDeviceApiUrl;
+    print('🔍 DEBUG: Testing URL: $testUrl');
+    
+    try {
+      final response = await http.get(
+        Uri.parse('$testUrl/api/auth/test-connection'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+      ).timeout(Duration(seconds: 10));
+      
+      if (response.statusCode == 200) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('✅ Physical device IP works!\nUpdate your config with this IP'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 4),
+          ),
+        );
+      } else {
+        throw Exception('HTTP ${response.statusCode}');
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('❌ Physical device IP failed: $e'),
+          backgroundColor: Colors.red,
+          duration: Duration(seconds: 4),
+        ),
+      );
+    }
   }
 } 
