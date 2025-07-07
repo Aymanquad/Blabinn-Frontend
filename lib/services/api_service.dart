@@ -28,9 +28,15 @@ class ApiService {
   // Refresh Firebase token
   Future<void> _refreshFirebaseToken() async {
     try {
+      print('🔍 DEBUG: Refreshing Firebase token...');
       _firebaseToken = await _firebaseAuth.getIdToken();
+      if (_firebaseToken != null) {
+        print('✅ DEBUG: Firebase token refreshed successfully');
+      } else {
+        print('❌ DEBUG: Firebase token is null');
+      }
     } catch (e) {
-      print('Failed to get Firebase token: $e');
+      print('🚨 DEBUG: Failed to get Firebase token: $e');
       _firebaseToken = null;
     }
   }
@@ -47,6 +53,9 @@ class ApiService {
 
     if (_firebaseToken != null) {
       headers['Authorization'] = 'Bearer $_firebaseToken';
+      print('🔍 DEBUG: Added Authorization header with token length: ${_firebaseToken!.length}');
+    } else {
+      print('❌ DEBUG: No Firebase token available for authorization');
     }
 
     return headers;
@@ -331,7 +340,106 @@ class ApiService {
     return data['profile'] ?? data;
   }
 
-  // Chat methods (if needed)
+  // Chat methods - Direct friend messaging
+  Future<Map<String, dynamic>> sendDirectMessage(String receiverId, String content) async {
+    try {
+      print('🔍 DEBUG: sendDirectMessage() called');
+      print('🔍 DEBUG: receiverId: $receiverId');
+      print('🔍 DEBUG: content: $content');
+      
+      // Check authentication first
+      final currentUserId = await getCurrentUserId();
+      print('🔍 DEBUG: currentUserId: $currentUserId');
+      
+      if (currentUserId == null) {
+        print('❌ DEBUG: User not authenticated');
+        throw Exception('User not logged in. Please sign in to send messages.');
+      }
+      
+      final data = {
+        'receiverId': receiverId,
+        'content': content,
+        'messageType': 'text',
+      };
+      
+      print('🔍 DEBUG: Sending POST request to /chat/messages');
+      print('🔍 DEBUG: Request data: $data');
+      
+      final response = await _post('/chat/messages', data);
+      print('🔍 DEBUG: Response status: ${response.statusCode}');
+      print('🔍 DEBUG: Response body: ${response.body}');
+      
+      return _handleResponse(response);
+    } catch (e) {
+      print('🚨 DEBUG: sendDirectMessage error: $e');
+      rethrow;
+    }
+  }
+
+  Future<Map<String, dynamic>> getChatHistoryWithUser(String userId, {int limit = 50, int offset = 0}) async {
+    try {
+      print('🔍 DEBUG: getChatHistoryWithUser() called with userId: $userId');
+      final response = await _get('/chat/history/$userId?limit=$limit&offset=$offset');
+      print('🔍 DEBUG: Chat history response status: ${response.statusCode}');
+      print('🔍 DEBUG: Chat history response body: ${response.body}');
+      
+      final result = _handleResponse(response);
+      print('🔍 DEBUG: Processed chat history result: $result');
+      return result;
+    } catch (e) {
+      print('🚨 DEBUG: getChatHistoryWithUser error: $e');
+      rethrow;
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getFriendChatRooms() async {
+    final response = await _get('/chat/rooms');
+    final data = _handleResponse(response);
+    return List<Map<String, dynamic>>.from(data['rooms'] ?? []);
+  }
+
+  Future<Map<String, dynamic>> getUnreadMessageCount() async {
+    final response = await _get('/chat/unread');
+    return _handleResponse(response);
+  }
+
+  Future<Map<String, dynamic>> markMessageAsRead(String messageId) async {
+    final response = await _put('/chat/messages/$messageId/read', {});
+    return _handleResponse(response);
+  }
+
+  Future<Map<String, dynamic>> markAllMessagesAsRead(String userId) async {
+    final response = await _put('/chat/messages/read', {'senderId': userId});
+    return _handleResponse(response);
+  }
+
+  // Get current user ID from Firebase
+  Future<String?> getCurrentUserId() async {
+    try {
+      final userId = _firebaseAuth.currentUser?.uid;
+      print('🔍 DEBUG: getCurrentUserId() - User ID: $userId');
+      
+      if (userId == null) {
+        print('🚨 DEBUG: No Firebase user found. User might be signed in as guest.');
+        // Check if user is signed in as guest
+        final user = _firebaseAuth.currentUser;
+        if (user != null && user.isAnonymous) {
+          print('🎭 DEBUG: User is anonymous (guest)');
+          return user.uid; // Return anonymous user ID
+        }
+        print('❌ DEBUG: User is not signed in at all');
+        return null;
+      }
+      
+      print('✅ DEBUG: Firebase user authenticated');
+      return userId;
+    } catch (e) {
+      print('🚨 DEBUG: Error getting current user ID: $e');
+      return null;
+    }
+  }
+
+  // Legacy chat methods (kept for backward compatibility)
   Future<Map<String, dynamic>> getChatRooms() async {
     final response = await _get('/chat/rooms');
     return _handleResponse(response);

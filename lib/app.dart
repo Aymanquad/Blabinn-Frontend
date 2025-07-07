@@ -10,6 +10,8 @@ import 'screens/search_screen.dart';
 import 'screens/friend_requests_screen.dart';
 import 'screens/friends_screen.dart';
 import 'screens/user_profile_screen.dart';
+import 'screens/chat_list_screen.dart';
+import 'screens/friends_list_screen.dart';
 
 class ChatApp extends StatelessWidget {
   const ChatApp({super.key});
@@ -68,6 +70,8 @@ class ChatApp extends StatelessWidget {
         '/search': (context) => const SearchScreen(),
         '/friend-requests': (context) => const FriendRequestsScreen(),
         '/friends': (context) => const FriendsScreen(),
+        '/chat-list': (context) => const ChatListScreen(),
+        '/friends-list': (context) => const FriendsListScreen(),
         '/user-profile': (context) {
           final args = ModalRoute.of(context)?.settings.arguments;
           if (args is String) {
@@ -195,39 +199,4 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   }
 }
 
-class ChatListScreen extends StatelessWidget {
-  const ChatListScreen({super.key});
 
-  @override
-  Widget build(BuildContext context) {
-    return const Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            AppIcons.chat,
-            size: 64,
-            color: AppColors.primary,
-          ),
-          SizedBox(height: 16),
-          Text(
-            AppStrings.chats,
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: AppColors.text,
-            ),
-          ),
-          SizedBox(height: 8),
-          Text(
-            'Your conversations will appear here',
-            style: TextStyle(
-              fontSize: 16,
-              color: Colors.grey,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}

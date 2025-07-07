@@ -2,6 +2,10 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import '../core/constants.dart';
 import '../models/chat.dart';
+import '../models/message.dart';
+import '../services/api_service.dart';
+import '../services/realtime_chat_service.dart';
+import '../widgets/chat_bubble.dart';
 
 class ChatScreen extends StatefulWidget {
   final Chat chat;
@@ -15,25 +19,252 @@ class ChatScreen extends StatefulWidget {
 class _ChatScreenState extends State<ChatScreen> {
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
+  final ApiService _apiService = ApiService();
+  final RealtimeChatService _realtimeChatService = RealtimeChatService();
+  
+  List<Message> _messages = [];
   bool _isTyping = false;
+  bool _isLoading = false;
+  bool _isSending = false;
   Timer? _typingTimer;
+  String? _errorMessage;
+  String? _currentUserId;
+  String? _friendId;
+  
+  // Stream subscriptions for real-time events
+  StreamSubscription<Message>? _messageSubscription;
+  StreamSubscription<Message>? _messageSentSubscription;
+  StreamSubscription<Map<String, dynamic>>? _errorSubscription;
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeAndLoadHistory();
+    _setupRealtimeListeners();
+  }
+
+  Future<void> _initializeAndLoadHistory() async {
+    await _initializeCurrentUser();
+    await _loadChatHistory();
+    await _connectToRealtimeChat();
+  }
+
+  Future<void> _initializeCurrentUser() async {
+    _currentUserId = await _apiService.getCurrentUserId();
+    print('🔍 DEBUG: Current user ID set to: $_currentUserId');
+    
+    // Get friend ID for this chat
+    if (widget.chat.isFriendChat) {
+      try {
+        _friendId = widget.chat.participantIds
+            .firstWhere((id) => id != _currentUserId);
+      } catch (e) {
+        _friendId = widget.chat.id;
+      }
+    }
+    print('🔍 DEBUG: Friend ID set to: $_friendId');
+  }
+
+  Future<void> _connectToRealtimeChat() async {
+    print('🔌 DEBUG: Connecting to real-time chat...');
+    await _realtimeChatService.connect();
+  }
+
+  void _setupRealtimeListeners() {
+    // Listen for incoming messages
+    _messageSubscription = _realtimeChatService.messageStream.listen((message) {
+      print('💬 DEBUG: Received real-time message: ${message.content}');
+      
+      // Only add the message if it's for this chat
+      if (widget.chat.isFriendChat && message.senderId == _friendId) {
+        setState(() {
+          _messages.add(message);
+          _messages.sort((a, b) => a.timestamp.compareTo(b.timestamp));
+        });
+        _scrollToBottom();
+      }
+    });
+
+    // Listen for message sent confirmations
+    _messageSentSubscription = _realtimeChatService.messageSentStream.listen((message) {
+      print('✅ DEBUG: Message sent confirmation: ${message.content}');
+      
+      // Update the message in the list if it exists (replace temporary ID with real ID)
+      setState(() {
+        final index = _messages.indexWhere((m) => m.content == message.content && m.senderId == _currentUserId);
+        if (index != -1) {
+          _messages[index] = message;
+        } else {
+          _messages.add(message);
+          _messages.sort((a, b) => a.timestamp.compareTo(b.timestamp));
+        }
+      });
+      _scrollToBottom();
+    });
+
+    // Listen for errors
+    _errorSubscription = _realtimeChatService.errorStream.listen((error) {
+      print('🚨 DEBUG: Real-time chat error: $error');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Chat error: ${error['error']}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    });
+  }
 
   @override
   void dispose() {
     _messageController.dispose();
     _scrollController.dispose();
     _typingTimer?.cancel();
+    
+    // Cancel real-time subscriptions
+    _messageSubscription?.cancel();
+    _messageSentSubscription?.cancel();
+    _errorSubscription?.cancel();
+    
     super.dispose();
   }
 
-  void _sendMessage() {
-    final message = _messageController.text.trim();
-    if (message.isEmpty) return;
+  Future<void> _loadChatHistory() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
 
-    // TODO: Implement actual message sending
-    _messageController.clear();
-    _stopTyping();
-    _scrollToBottom();
+    try {
+      print('🔍 DEBUG: _loadChatHistory() called');
+      Map<String, dynamic> response;
+      
+      // Check if this is a friend chat (direct messaging)
+      if (widget.chat.isFriendChat) {
+        // Use direct friend messaging API
+        final currentUserId = await _apiService.getCurrentUserId();
+        print('🔍 DEBUG: Current user ID: $currentUserId');
+        
+        if (currentUserId == null) {
+          throw Exception('User not logged in');
+        }
+        
+        String? friendId;
+        try {
+          friendId = widget.chat.participantIds
+              .firstWhere((id) => id != currentUserId);
+        } catch (e) {
+          friendId = widget.chat.id;
+        }
+        
+        print('🔍 DEBUG: Friend ID: $friendId');
+        
+        if (friendId == null || friendId.isEmpty) {
+          throw Exception('Invalid friend ID');
+        }
+        
+        print('🔍 DEBUG: Calling getChatHistoryWithUser with friendId: $friendId');
+        response = await _apiService.getChatHistoryWithUser(friendId!);
+        print('🔍 DEBUG: Chat history response: $response');
+      } else {
+        // Use room-based messaging (legacy)
+        response = await _apiService.getChatMessages(widget.chat.id);
+      }
+      
+      final messagesData = response['messages'] as List;
+      print('🔍 DEBUG: Found ${messagesData.length} messages in history');
+      
+      setState(() {
+        try {
+          // Sort messages by timestamp (oldest first for chat display)
+          print('🔍 DEBUG: Parsing ${messagesData.length} messages...');
+          final messages = <Message>[];
+          
+          for (int i = 0; i < messagesData.length; i++) {
+            try {
+              final message = Message.fromJson(messagesData[i]);
+              messages.add(message);
+              print('🔍 DEBUG: Parsed message ${i + 1}: ${message.content}');
+            } catch (e) {
+              print('🚨 DEBUG: Error parsing message ${i + 1}: $e');
+              print('🚨 DEBUG: Message data: ${messagesData[i]}');
+            }
+          }
+          
+          messages.sort((a, b) => a.timestamp.compareTo(b.timestamp));
+          _messages = messages;
+          _isLoading = false;
+          print('🔍 DEBUG: Successfully parsed ${messages.length} messages');
+        } catch (e) {
+          print('🚨 DEBUG: Error in message parsing: $e');
+          _isLoading = false;
+        }
+      });
+      
+      print('🔍 DEBUG: Set ${_messages.length} messages in state');
+      _scrollToBottom();
+    } catch (e) {
+      print('🚨 DEBUG: _loadChatHistory error: $e');
+      setState(() {
+        _errorMessage = 'Failed to load chat history: ${e.toString()}';
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _sendMessage() async {
+    final messageContent = _messageController.text.trim();
+    if (messageContent.isEmpty || _isSending) return;
+    
+    if (_friendId == null) {
+      print('❌ DEBUG: Cannot send message - friendId is null');
+      return;
+    }
+
+    setState(() {
+      _isSending = true;
+    });
+
+    try {
+      print('📤 DEBUG: Sending message via real-time service');
+      print('📤 DEBUG: Friend ID: $_friendId');
+      print('📤 DEBUG: Message content: $messageContent');
+      
+      // Send message via real-time service (Socket.IO)
+      _realtimeChatService.sendMessage(_friendId!, messageContent);
+      
+      // Add temporary message to UI immediately for better UX
+      final tempMessage = Message(
+        id: 'temp_${DateTime.now().millisecondsSinceEpoch}',
+        chatId: widget.chat.id,
+        senderId: _currentUserId!,
+        receiverId: _friendId!,
+        content: messageContent,
+        type: MessageType.text,
+        timestamp: DateTime.now(),
+        status: MessageStatus.sending,
+      );
+      
+      setState(() {
+        _messages.add(tempMessage);
+        _isSending = false;
+      });
+
+      _messageController.clear();
+      _stopTyping();
+      _scrollToBottom();
+    } catch (e) {
+      print('🚨 DEBUG: Error sending message: $e');
+      setState(() {
+        _isSending = false;
+      });
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to send message: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   void _onMessageChanged(String text) {
@@ -49,7 +280,10 @@ class _ChatScreenState extends State<ChatScreen> {
       _isTyping = true;
     });
     
-    // TODO: Send typing indicator to other user
+    // Send typing indicator via real-time service
+    if (_friendId != null) {
+      _realtimeChatService.sendTypingIndicator(_friendId!);
+    }
   }
 
   void _stopTyping() {
@@ -59,7 +293,10 @@ class _ChatScreenState extends State<ChatScreen> {
     
     _typingTimer?.cancel();
     _typingTimer = Timer(const Duration(seconds: 2), () {
-      // TODO: Stop typing indicator
+      // Stop typing indicator via real-time service
+      if (_friendId != null) {
+        _realtimeChatService.stopTypingIndicator(_friendId!);
+      }
     });
   }
 
@@ -102,15 +339,39 @@ class _ChatScreenState extends State<ChatScreen> {
                       fontWeight: FontWeight.w600,
                     ),
                   ),
-                  if (_isTyping)
-                    Text(
-                      'typing...',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: AppColors.primary,
-                        fontStyle: FontStyle.italic,
+                  Row(
+                    children: [
+                      if (_realtimeChatService.isConnected)
+                        Container(
+                          width: 8,
+                          height: 8,
+                          decoration: const BoxDecoration(
+                            color: Colors.green,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                      if (_realtimeChatService.isConnected)
+                        const SizedBox(width: 4),
+                      Text(
+                        _realtimeChatService.isConnected ? 'Online' : 'Offline',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: _realtimeChatService.isConnected ? Colors.green : Colors.grey,
+                        ),
                       ),
-                    ),
+                      if (_isTyping) ...[
+                        const SizedBox(width: 8),
+                        Text(
+                          'typing...',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: AppColors.primary,
+                            fontStyle: FontStyle.italic,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
                 ],
               ),
             ),
@@ -181,7 +442,9 @@ class _ChatScreenState extends State<ChatScreen> {
       body: Column(
         children: [
           Expanded(
-            child: _buildEmptyState(),
+            child: _isLoading 
+              ? const Center(child: CircularProgressIndicator())
+              : (_messages.isEmpty ? _buildEmptyState() : _buildMessageList()),
           ),
           _buildMessageInput(),
         ],
@@ -220,6 +483,67 @@ class _ChatScreenState extends State<ChatScreen> {
         ],
       ),
     );
+  }
+
+  Widget _buildMessageList() {
+    return ListView.builder(
+      controller: _scrollController,
+      padding: const EdgeInsets.all(16),
+      itemCount: _messages.length,
+      itemBuilder: (context, index) {
+        final message = _messages[index];
+        final isMe = message.senderId == _currentUserId;
+        
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: Column(
+            crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+            children: [
+              Container(
+                constraints: BoxConstraints(
+                  maxWidth: MediaQuery.of(context).size.width * 0.7,
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                decoration: BoxDecoration(
+                  color: isMe ? AppColors.primary : Colors.grey[300],
+                  borderRadius: BorderRadius.circular(18),
+                ),
+                child: Text(
+                  message.content,
+                  style: TextStyle(
+                    color: isMe ? Colors.white : Colors.black87,
+                    fontSize: 16,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                _formatMessageTime(message.timestamp),
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey[600],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  String _formatMessageTime(DateTime timestamp) {
+    final now = DateTime.now();
+    final difference = now.difference(timestamp);
+    
+    if (difference.inMinutes < 1) {
+      return 'Just now';
+    } else if (difference.inHours < 1) {
+      return '${difference.inMinutes}m ago';
+    } else if (difference.inDays < 1) {
+      return '${timestamp.hour.toString().padLeft(2, '0')}:${timestamp.minute.toString().padLeft(2, '0')}';
+    } else {
+      return '${timestamp.day}/${timestamp.month} ${timestamp.hour.toString().padLeft(2, '0')}:${timestamp.minute.toString().padLeft(2, '0')}';
+    }
   }
 
   Widget _buildMessageInput() {

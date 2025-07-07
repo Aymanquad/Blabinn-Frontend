@@ -305,9 +305,9 @@ class HomeScreen extends StatelessWidget {
         ),
         const SizedBox(height: 16),
         GestureDetector(
-          onTap: () {
-            Navigator.pushNamed(context, '/friends');
-          },
+                                  onTap: () {
+                          Navigator.pushNamed(context, '/friends-list');
+                        },
           child: Container(
             width: double.infinity,
             padding: const EdgeInsets.all(20),

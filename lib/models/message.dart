@@ -132,22 +132,48 @@ class Message {
     };
   }
 
+  static DateTime _parseTimestamp(dynamic timestamp) {
+    if (timestamp == null) {
+      return DateTime.now();
+    }
+    
+    // Handle Firebase Timestamp objects
+    if (timestamp is Map<String, dynamic> && timestamp.containsKey('_seconds')) {
+      final seconds = timestamp['_seconds'] as int;
+      final nanoseconds = timestamp['_nanoseconds'] as int? ?? 0;
+      return DateTime.fromMillisecondsSinceEpoch(seconds * 1000 + nanoseconds ~/ 1000000);
+    }
+    
+    // Handle string timestamps
+    if (timestamp is String) {
+      return DateTime.parse(timestamp);
+    }
+    
+    // Handle DateTime objects (just in case)
+    if (timestamp is DateTime) {
+      return timestamp;
+    }
+    
+    // Fallback
+    return DateTime.now();
+  }
+
   factory Message.fromJson(Map<String, dynamic> json) {
     return Message(
       id: json['id'] as String,
-      chatId: json['chatId'] as String,
+      chatId: json['chatId'] as String? ?? json['receiverId'] as String? ?? '', // Use receiverId as fallback for chatId
       senderId: json['senderId'] as String,
       receiverId: json['receiverId'] as String,
       content: json['content'] as String,
       type: MessageType.values.firstWhere(
-        (e) => e.name == json['type'],
+        (e) => e.name == (json['type'] ?? json['messageType']),
         orElse: () => MessageType.text,
       ),
       status: MessageStatus.values.firstWhere(
         (e) => e.name == json['status'],
         orElse: () => MessageStatus.sent,
       ),
-      timestamp: DateTime.parse(json['timestamp'] as String),
+      timestamp: _parseTimestamp(json['timestamp'] ?? json['createdAt']),
       translatedContent: json['translatedContent'] as String?,
       originalLanguage: json['originalLanguage'] as String?,
       translatedLanguage: json['translatedLanguage'] as String?,
@@ -157,7 +183,7 @@ class Message {
       locationName: json['locationName'] as String?,
       isEdited: json['isEdited'] as bool? ?? false,
       editedAt: json['editedAt'] != null
-          ? DateTime.parse(json['editedAt'] as String)
+          ? _parseTimestamp(json['editedAt'])
           : null,
       readBy: List<String>.from(json['readBy'] ?? []),
       metadata: json['metadata'] as Map<String, dynamic>?,
