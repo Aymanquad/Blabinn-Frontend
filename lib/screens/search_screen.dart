@@ -42,18 +42,45 @@ class _SearchScreenState extends State<SearchScreen> {
     });
 
     try {
+      // Get current user ID to filter out from results
+      final currentUserId = await _apiService.getCurrentUserId();
+      
       final results = await _apiService.searchProfiles({
         'searchTerm': _searchController.text.trim(),
         'limit': 20,
       });
 
       print('🔍 DEBUG: Search results received: ${results.length} users');
-      for (int i = 0; i < results.length; i++) {
-        print('🔍 DEBUG: User $i: ${results[i]}');
+      print('🔍 DEBUG: Current user ID: $currentUserId');
+      
+      // Filter out current user from results
+      final filteredResults = results.where((user) {
+        final userId = user['uid'] ?? user['id'];
+        return userId != currentUserId;
+      }).toList();
+
+      print('🔍 DEBUG: Filtered results: ${filteredResults.length} users (removed current user)');
+      
+      // Check connection status for each user
+      final resultsWithStatus = <Map<String, dynamic>>[];
+      for (final user in filteredResults) {
+        final userId = user['uid'] ?? user['id'];
+        try {
+          final connectionStatus = await _apiService.getConnectionStatus(userId);
+          user['connectionStatus'] = connectionStatus['status'] ?? 'none';
+          user['connectionType'] = connectionStatus['type'] ?? 'none';
+          print('🔍 DEBUG: User ${user['username']} - Connection status: ${user['connectionStatus']}');
+        } catch (e) {
+          // If connection status check fails, assume no connection
+          user['connectionStatus'] = 'none';
+          user['connectionType'] = 'none';
+          print('🔍 DEBUG: Failed to get connection status for ${user['username']}: $e');
+        }
+        resultsWithStatus.add(user);
       }
 
       setState(() {
-        _searchResults = results;
+        _searchResults = resultsWithStatus;
         _isLoading = false;
         _hasSearched = true;
       });
@@ -360,34 +387,64 @@ class _SearchScreenState extends State<SearchScreen> {
             ),
             const SizedBox(width: 12),
             // Action Button
-            ElevatedButton(
-              onPressed: () {
-                final userId = user['uid'] ?? user['id'];
-                if (userId != null) {
-                  _sendFriendRequest(userId);
-                } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Cannot connect: User ID not found'),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
-                }
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: Colors.white,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20),
-                ),
-              ),
-              child: const Text('Connect'),
-            ),
+            _buildActionButton(user),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildActionButton(Map<String, dynamic> user) {
+    final connectionStatus = user['connectionStatus'] ?? 'none';
+    final isAlreadyFriend = connectionStatus == 'accepted' || connectionStatus == 'friends';
+    final isPending = connectionStatus == 'pending';
+    
+    String buttonText;
+    Color buttonColor;
+    Color textColor;
+    bool isEnabled;
+    
+    if (isAlreadyFriend) {
+      buttonText = 'Already Friends';
+      buttonColor = Colors.grey[300]!;
+      textColor = Colors.grey[600]!;
+      isEnabled = false;
+    } else if (isPending) {
+      buttonText = 'Request Sent';
+      buttonColor = Colors.orange[100]!;
+      textColor = Colors.orange[700]!;
+      isEnabled = false;
+    } else {
+      buttonText = 'Connect';
+      buttonColor = AppColors.primary;
+      textColor = Colors.white;
+      isEnabled = true;
+    }
+
+    return ElevatedButton(
+      onPressed: isEnabled ? () {
+        final userId = user['uid'] ?? user['id'];
+        if (userId != null) {
+          _sendFriendRequest(userId);
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Cannot connect: User ID not found'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      } : null,
+      style: ElevatedButton.styleFrom(
+        backgroundColor: buttonColor,
+        foregroundColor: textColor,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        elevation: isEnabled ? 2 : 0,
+      ),
+      child: Text(buttonText),
     );
   }
 

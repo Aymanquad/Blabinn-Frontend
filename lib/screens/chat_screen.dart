@@ -341,26 +341,8 @@ class _ChatScreenState extends State<ChatScreen> {
                   ),
                   Row(
                     children: [
-                      if (_realtimeChatService.isConnected)
-                        Container(
-                          width: 8,
-                          height: 8,
-                          decoration: const BoxDecoration(
-                            color: Colors.green,
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                      if (_realtimeChatService.isConnected)
-                        const SizedBox(width: 4),
-                      Text(
-                        _realtimeChatService.isConnected ? 'Online' : 'Offline',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: _realtimeChatService.isConnected ? Colors.green : Colors.grey,
-                        ),
-                      ),
+                      // Removed the online status display completely
                       if (_isTyping) ...[
-                        const SizedBox(width: 8),
                         Text(
                           'typing...',
                           style: TextStyle(
