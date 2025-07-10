@@ -1,5 +1,11 @@
 import 'package:flutter/material.dart';
 import '../core/constants.dart';
+import '../services/api_service.dart';
+import '../services/socket_service.dart';
+import '../models/user.dart';
+import 'dart:async';
+import 'dart:convert';
+import 'random_chat_screen.dart';
 
 class ConnectScreen extends StatefulWidget {
   const ConnectScreen({super.key});
@@ -10,43 +16,388 @@ class ConnectScreen extends StatefulWidget {
 
 class _ConnectScreenState extends State<ConnectScreen> {
   bool _isMatching = false;
+  bool _isConnected = false;
   Map<String, dynamic> _filters = {};
-  bool _isPremium = false; // Simulated premium status - would come from user provider
+  bool _isPremium = false;
+  String? _currentSessionId;
+  String? _matchMessage;
+  int _queueTime = 0;
+  late ApiService _apiService;
+  late SocketService _socketService;
+  late StreamSubscription _matchSubscription;
+  late StreamSubscription _errorSubscription;
 
   @override
   void initState() {
     super.initState();
     _initializeFilters();
+    _initializeServices();
+    _setupSocketListeners();
+  }
+
+  @override
+  void dispose() {
+    _cleanupSocketListeners();
+    _stopMatching();
+    super.dispose();
+  }
+
+  void _initializeServices() {
+    _apiService = ApiService();
+    _socketService = SocketService();
   }
 
   void _initializeFilters() {
     _filters = {
-      'distance': '1-5', // Default to closest range
+      'distance': '1-5',
       'language': 'any',
-      // Premium features - only available for premium users
       'ageRange': 'all',
       'interests': [],
     };
   }
 
-  void _startMatching() {
-    if (_isMatching) return;
-
-    setState(() {
-      _isMatching = true;
+  void _setupSocketListeners() {
+    // Listen for match events using the stream approach
+    _matchSubscription = _socketService.matchStream.listen(_handleMatchEvent);
+    _errorSubscription = _socketService.errorStream.listen(_handleErrorEvent);
+    
+    // Listen for random chat events
+    _socketService.eventStream.listen((event) {
+      if (event == SocketEvent.randomChatEvent) {
+        print('🎯 [CONNECT DEBUG] randomChatEvent detected, getting latest data...');
+        final data = _socketService.latestRandomChatData;
+        if (data != null) {
+          print('🎯 [CONNECT DEBUG] Got latest random chat data: $data');
+          _handleRandomChatEvent(data);
+        } else {
+          print('❌ [CONNECT DEBUG] No latest random chat data available');
+        }
+      } else if (event == SocketEvent.randomChatTimeout) {
+        _handleRandomChatTimeout();
+      }
     });
-
-    // TODO: Implement actual matching logic
   }
 
-  void _stopMatching() {
-    if (!_isMatching) return;
+  void _cleanupSocketListeners() {
+    _matchSubscription.cancel();
+    _errorSubscription.cancel();
+  }
+
+  void _handleMatchEvent(Map<String, dynamic> data) {
+    if (!mounted) return;
+
+    final event = data['event'];
+    
+    if (event == 'match_found') {
+      final sessionId = data['sessionId'];
+      final chatRoomId = data['chatRoomId'];
+
+      setState(() {
+        _currentSessionId = sessionId;
+        _isMatching = false;
+        _isConnected = true;
+        _matchMessage = 'Match found! Starting chat...';
+      });
+
+      // Navigate to random chat screen
+      _navigateToRandomChat(sessionId, chatRoomId);
+    } else if (event == 'match_timeout') {
+      setState(() {
+        _isMatching = false;
+        _isConnected = false;
+        _currentSessionId = null;
+        _matchMessage = data['message'] ?? 'No match found. Please try again later.';
+      });
+
+      _showTimeoutDialog();
+    }
+  }
+
+  void _handleErrorEvent(String error) {
+    print('🎯 [CONNECT DEBUG] _handleErrorEvent called with: $error');
+    if (!mounted) return;
+
+    // Handle specific error codes
+    if (error.contains('ALREADY_IN_SESSION')) {
+      print('🟡 [CONNECT DEBUG] Handling ALREADY_IN_SESSION error');
+      setState(() {
+        _isMatching = false;
+        _isConnected = false;
+        _currentSessionId = null;
+        _matchMessage = 'You already have an active chat session.';
+      });
+      _showWarningSnackBar('You already have an active chat session.', Colors.orange);
+      return;
+    } else if (error.contains('ALREADY_IN_QUEUE')) {
+      print('🟡 [CONNECT DEBUG] Handling ALREADY_IN_QUEUE error');
+      setState(() {
+        _isMatching = true; // Keep matching state since user is in queue
+        _isConnected = false;
+        _currentSessionId = null;
+        _matchMessage = 'You are already in the matching queue. Please wait...';
+      });
+      _showWarningSnackBar('You are already in the matching queue. Please wait...', Colors.blue);
+      return;
+    }
+
+    // Handle general errors
+    print('🔴 [CONNECT DEBUG] Handling general error: $error');
+    setState(() {
+      _isMatching = false;
+      _isConnected = false;
+      _currentSessionId = null;
+      _matchMessage = 'Error: $error';
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Connection error: $error'),
+        backgroundColor: Colors.red,
+      ),
+    );
+  }
+
+  void _handleRandomChatEvent(Map<String, dynamic> data) {
+    print('🎯 [CONNECT DEBUG] _handleRandomChatEvent called with mounted: $mounted');
+    if (!mounted) {
+      print('❌ [CONNECT DEBUG] Widget not mounted, aborting navigation');
+      return;
+    }
+
+    print('🎯 [CONNECT DEBUG] Random chat event received with data: $data');
+
+    // Extract session data directly from the event
+    final event = data['event'];
+    final sessionId = data['sessionId'];
+    final chatRoomId = data['chatRoomId'];
+
+    print('🎯 [CONNECT DEBUG] Event type: $event');
+    print('🎯 [CONNECT DEBUG] Session ID: $sessionId');
+    print('🎯 [CONNECT DEBUG] Chat Room ID: $chatRoomId');
+
+    if (event == 'session_started' && sessionId != null && chatRoomId != null) {
+      print('✅ [CONNECT DEBUG] Session started! About to navigate to chat...');
+      print('   📱 Session ID: $sessionId');
+      print('   💬 Chat Room ID: $chatRoomId');
+
+      setState(() {
+        _currentSessionId = sessionId;
+        _isMatching = false;
+        _isConnected = true;
+        _matchMessage = 'Match found! Starting chat...';
+      });
+
+      print('🔄 [CONNECT DEBUG] State updated, calling _navigateToRandomChat...');
+      // Navigate to random chat screen
+      _navigateToRandomChat(sessionId, chatRoomId);
+    } else {
+      print('⚠️ [CONNECT DEBUG] Unexpected event type or missing data');
+      print('   🎭 Event: $event');
+      print('   📱 Session ID: $sessionId');
+      print('   💬 Chat Room ID: $chatRoomId');
+      print('   📦 Full data: $data');
+      
+      // Handle other event types or show error
+      setState(() {
+        _isMatching = false;
+        _matchMessage = 'Unexpected event: $event';
+      });
+    }
+  }
+
+  void _handleRandomChatTimeout() {
+    if (!mounted) return;
 
     setState(() {
       _isMatching = false;
+      _isConnected = false;
+      _currentSessionId = null;
+      _matchMessage = 'No match found. Please try again later.';
     });
 
-    // TODO: Stop matching logic
+    _showTimeoutDialog();
+  }
+
+  void _navigateToRandomChat(String sessionId, String chatRoomId) {
+    print('🚀 [CONNECT DEBUG] _navigateToRandomChat called');
+    print('   📱 Session ID: $sessionId');
+    print('   💬 Chat Room ID: $chatRoomId');
+    print('   🎯 Context available: ${context != null}');
+    
+    try {
+      print('🔄 [CONNECT DEBUG] About to call Navigator.push...');
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) {
+            print('🏗️ [CONNECT DEBUG] Building RandomChatScreen...');
+            return RandomChatScreen(
+              sessionId: sessionId,
+              chatRoomId: chatRoomId,
+            );
+          },
+        ),
+      ).then((_) {
+        print('🔙 [CONNECT DEBUG] Returned from RandomChatScreen, resetting state');
+        // When returning from random chat, reset state
+        setState(() {
+          _isMatching = false;
+          _isConnected = false;
+          _currentSessionId = null;
+          _matchMessage = null;
+        });
+      });
+      print('✅ [CONNECT DEBUG] Navigator.push called successfully');
+    } catch (e) {
+      print('❌ [CONNECT DEBUG] Error during navigation: $e');
+    }
+  }
+
+  void _showTimeoutDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.timer_off, color: Colors.orange),
+            SizedBox(width: 8),
+            Text('No Match Found'),
+          ],
+        ),
+        content: Text(_matchMessage ?? 'No match found after 5 minutes. Please try again later.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('OK'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _startMatching();
+            },
+            child: const Text('Try Again'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showWarningSnackBar(String message, Color color) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            Icon(Icons.warning, color: Colors.white),
+            const SizedBox(width: 8),
+            Expanded(child: Text(message)),
+          ],
+        ),
+        backgroundColor: color,
+        duration: const Duration(seconds: 4),
+      ),
+    );
+  }
+
+  Future<void> _startMatching() async {
+    print('🎯 [CONNECT DEBUG] _startMatching called');
+    print('   🔄 _isMatching: $_isMatching');
+    print('   🔗 _isConnected: $_isConnected');
+    print('   📱 _currentSessionId: $_currentSessionId');
+    
+    if (_isMatching || _isConnected) {
+      print('⚠️ [CONNECT DEBUG] Already matching or connected, ignoring duplicate call');
+      return;
+    }
+
+    try {
+      setState(() {
+        _isMatching = true;
+        _matchMessage = null;
+        _queueTime = 0;
+      });
+
+      print('🔄 [CONNECT DEBUG] Starting random connection via socket');
+      // Start random connection via socket
+      await _socketService.startRandomConnection(
+        country: _filters['region'],
+        language: _filters['language'],
+        interests: _filters['interests']?.cast<String>(),
+      );
+
+      print('✅ [CONNECT DEBUG] Random connection started successfully');
+      // Start queue timer
+      _startQueueTimer();
+
+      // Show connecting message
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Looking for a random chat partner...'),
+          backgroundColor: Colors.blue,
+          duration: Duration(seconds: 2),
+        ),
+      );
+
+    } catch (e) {
+      print('❌ [CONNECT DEBUG] Failed to start matching: $e');
+      setState(() {
+        _isMatching = false;
+        _matchMessage = 'Error: ${e.toString()}';
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to start matching: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  void _handleImmediateMatch(Map<String, dynamic> connection) {
+    setState(() {
+      _isMatching = false;
+      _isConnected = true;
+      _matchMessage = 'Match found immediately!';
+    });
+
+    // Navigate to chat (you'll need to extract room ID from connection)
+    // This depends on your connection data structure
+  }
+
+  void _startQueueTimer() {
+    if (!_isMatching) return;
+
+    Future.delayed(const Duration(seconds: 1), () {
+      if (_isMatching && mounted) {
+        setState(() {
+          _queueTime++;
+        });
+        _startQueueTimer();
+      }
+    });
+  }
+
+  Future<void> _stopMatching() async {
+    if (!_isMatching && !_isConnected) return;
+
+    try {
+      setState(() {
+        _isMatching = false;
+        _isConnected = false;
+        _queueTime = 0;
+      });
+
+      // Stop random connection via socket
+      await _socketService.stopRandomConnection();
+
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error stopping: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   void _showFilterDialog() {

@@ -41,18 +41,22 @@ class _ChatListScreenState extends State<ChatListScreen> {
         _apiService.getUnreadMessageCount(),
       ]);
 
-      setState(() {
-        _friends = results[0] as List<Map<String, dynamic>>;
-        _chatRooms = results[1] as List<Map<String, dynamic>>;
-        final unreadResponse = results[2] as Map<String, dynamic>;
-        _unreadCounts = Map<String, int>.from(unreadResponse['unreadCounts'] ?? {});
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _friends = results[0] as List<Map<String, dynamic>>;
+          _chatRooms = results[1] as List<Map<String, dynamic>>;
+          final unreadResponse = results[2] as Map<String, dynamic>;
+          _unreadCounts = Map<String, int>.from(unreadResponse['unreadCounts'] ?? {});
+          _isLoading = false;
+        });
+      }
     } catch (e) {
-      setState(() {
-        _errorMessage = 'Failed to load chats: ${e.toString()}';
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _errorMessage = 'Failed to load chats: ${e.toString()}';
+          _isLoading = false;
+        });
+      }
     }
   }
 

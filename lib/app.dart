@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'core/constants.dart';
 import 'screens/splash_screen.dart';
 import 'screens/home_screen.dart';
@@ -12,6 +13,7 @@ import 'screens/friends_screen.dart';
 import 'screens/user_profile_screen.dart';
 import 'screens/chat_list_screen.dart';
 import 'screens/friends_list_screen.dart';
+import 'services/socket_service.dart';
 
 class ChatApp extends StatelessWidget {
   const ChatApp({super.key});
@@ -99,6 +101,7 @@ class MainNavigationScreen extends StatefulWidget {
 class _MainNavigationScreenState extends State<MainNavigationScreen> {
   int _currentIndex = 0;
   final PageController _pageController = PageController();
+  final SocketService _socketService = SocketService();
 
   final List<Widget> _screens = [
     const HomeScreen(),
@@ -107,8 +110,38 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    _initializeSocketConnection();
+  }
+
+  Future<void> _initializeSocketConnection() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        final token = await user.getIdToken();
+        if (token != null && token.isNotEmpty) {
+          print('🚀 [APP DEBUG] Initializing socket connection with Firebase token');
+          await _socketService.connect(token);
+          
+          // Send join event after connection  
+          await Future.delayed(const Duration(seconds: 1));
+          print('✅ [APP DEBUG] Socket connection completed');
+        } else {
+          print('❌ [APP DEBUG] Failed to get Firebase token');
+        }
+      } else {
+        print('❌ [APP DEBUG] No Firebase user found, cannot connect socket');
+      }
+    } catch (e) {
+      print('❌ [APP DEBUG] Socket connection failed: $e');
+    }
+  }
+
+  @override
   void dispose() {
     _pageController.dispose();
+    _socketService.disconnect();
     super.dispose();
   }
 

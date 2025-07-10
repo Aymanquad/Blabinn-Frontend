@@ -43,7 +43,7 @@ class _SearchScreenState extends State<SearchScreen> {
 
     try {
       // Get current user ID to filter out from results
-      final currentUserId = await _apiService.getCurrentUserId();
+      final currentUserId = await _apiService.getCurrentUserId(); 
       
       final results = await _apiService.searchProfiles({
         'searchTerm': _searchController.text.trim(),
