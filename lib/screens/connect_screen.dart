@@ -60,11 +60,12 @@ class _ConnectScreenState extends State<ConnectScreen> {
     // Listen for match events using the stream approach
     _matchSubscription = _socketService.matchStream.listen(_handleMatchEvent);
     _errorSubscription = _socketService.errorStream.listen(_handleErrorEvent);
-    
+
     // Listen for random chat events
     _socketService.eventStream.listen((event) {
       if (event == SocketEvent.randomChatEvent) {
-        print('🎯 [CONNECT DEBUG] randomChatEvent detected, getting latest data...');
+        print(
+            '🎯 [CONNECT DEBUG] randomChatEvent detected, getting latest data...');
         final data = _socketService.latestRandomChatData;
         if (data != null) {
           print('🎯 [CONNECT DEBUG] Got latest random chat data: $data');
@@ -87,7 +88,7 @@ class _ConnectScreenState extends State<ConnectScreen> {
     if (!mounted) return;
 
     final event = data['event'];
-    
+
     if (event == 'match_found') {
       final sessionId = data['sessionId'];
       final chatRoomId = data['chatRoomId'];
@@ -106,7 +107,8 @@ class _ConnectScreenState extends State<ConnectScreen> {
         _isMatching = false;
         _isConnected = false;
         _currentSessionId = null;
-        _matchMessage = data['message'] ?? 'No match found. Please try again later.';
+        _matchMessage =
+            data['message'] ?? 'No match found. Please try again later.';
       });
 
       _showTimeoutDialog();
@@ -117,18 +119,43 @@ class _ConnectScreenState extends State<ConnectScreen> {
     print('🎯 [CONNECT DEBUG] _handleErrorEvent called with: $error');
     if (!mounted) return;
 
+    // Parse structured error data (format: message|code|sessionId|chatRoomId)
+    String errorMessage = error;
+    String errorCode = '';
+    String sessionId = '';
+    String chatRoomId = '';
+
+    if (error.contains('|')) {
+      final parts = error.split('|');
+      if (parts.length >= 4) {
+        errorMessage = parts[0];
+        errorCode = parts[1];
+        sessionId = parts[2];
+        chatRoomId = parts[3];
+        print('🔍 [CONNECT DEBUG] Parsed error data:');
+        print('   📝 Message: $errorMessage');
+        print('   🏷️ Code: $errorCode');
+        print('   🆔 SessionId: $sessionId');
+        print('   💬 ChatRoomId: $chatRoomId');
+      }
+    }
+
     // Handle specific error codes
-    if (error.contains('ALREADY_IN_SESSION')) {
+    if (errorCode == 'ALREADY_IN_SESSION' ||
+        errorMessage.contains('ALREADY_IN_SESSION')) {
       print('🟡 [CONNECT DEBUG] Handling ALREADY_IN_SESSION error');
       setState(() {
         _isMatching = false;
         _isConnected = false;
-        _currentSessionId = null;
+        _currentSessionId = sessionId.isNotEmpty ? sessionId : null;
         _matchMessage = 'You already have an active chat session.';
       });
-      _showWarningSnackBar('You already have an active chat session.', Colors.orange);
+      _showWarningSnackBar(
+          'You already have an active chat session.', Colors.orange);
+      _showClearSessionDialog();
       return;
-    } else if (error.contains('ALREADY_IN_QUEUE')) {
+    } else if (errorCode == 'ALREADY_IN_QUEUE' ||
+        errorMessage.contains('ALREADY_IN_QUEUE')) {
       print('🟡 [CONNECT DEBUG] Handling ALREADY_IN_QUEUE error');
       setState(() {
         _isMatching = true; // Keep matching state since user is in queue
@@ -136,29 +163,92 @@ class _ConnectScreenState extends State<ConnectScreen> {
         _currentSessionId = null;
         _matchMessage = 'You are already in the matching queue. Please wait...';
       });
-      _showWarningSnackBar('You are already in the matching queue. Please wait...', Colors.blue);
+      _showWarningSnackBar(
+          'You are already in the matching queue. Please wait...', Colors.blue);
       return;
     }
 
     // Handle general errors
-    print('🔴 [CONNECT DEBUG] Handling general error: $error');
+    print('🔴 [CONNECT DEBUG] Handling general error: $errorMessage');
     setState(() {
       _isMatching = false;
       _isConnected = false;
       _currentSessionId = null;
-      _matchMessage = 'Error: $error';
+      _matchMessage = 'Error: $errorMessage';
     });
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Connection error: $error'),
+        content: Text('Connection error: $errorMessage'),
         backgroundColor: Colors.red,
       ),
     );
   }
 
+  Future<void> _clearActiveSession() async {
+    try {
+      print('🧹 [CONNECT DEBUG] Clearing active session...');
+      final result = await _apiService.forceClearActiveSession();
+      print('✅ [CONNECT DEBUG] Session cleared: $result');
+
+      setState(() {
+        _isMatching = false;
+        _isConnected = false;
+        _currentSessionId = null;
+        _matchMessage = null;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content:
+              Text('Active session cleared. You can now start a new chat.'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } catch (e) {
+      print('❌ [CONNECT DEBUG] Failed to clear session: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to clear session: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  void _showClearSessionDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.warning, color: Colors.orange),
+            SizedBox(width: 8),
+            Text('Active Session Found'),
+          ],
+        ),
+        content: const Text(
+            'You have an active chat session. Would you like to clear it and start a new one?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _clearActiveSession();
+            },
+            child: const Text('Clear Session'),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _handleRandomChatEvent(Map<String, dynamic> data) {
-    print('🎯 [CONNECT DEBUG] _handleRandomChatEvent called with mounted: $mounted');
+    print(
+        '🎯 [CONNECT DEBUG] _handleRandomChatEvent called with mounted: $mounted');
     if (!mounted) {
       print('❌ [CONNECT DEBUG] Widget not mounted, aborting navigation');
       return;
@@ -187,7 +277,8 @@ class _ConnectScreenState extends State<ConnectScreen> {
         _matchMessage = 'Match found! Starting chat...';
       });
 
-      print('🔄 [CONNECT DEBUG] State updated, calling _navigateToRandomChat...');
+      print(
+          '🔄 [CONNECT DEBUG] State updated, calling _navigateToRandomChat...');
       // Navigate to random chat screen
       _navigateToRandomChat(sessionId, chatRoomId);
     } else {
@@ -196,7 +287,7 @@ class _ConnectScreenState extends State<ConnectScreen> {
       print('   📱 Session ID: $sessionId');
       print('   💬 Chat Room ID: $chatRoomId');
       print('   📦 Full data: $data');
-      
+
       // Handle other event types or show error
       setState(() {
         _isMatching = false;
@@ -223,7 +314,7 @@ class _ConnectScreenState extends State<ConnectScreen> {
     print('   📱 Session ID: $sessionId');
     print('   💬 Chat Room ID: $chatRoomId');
     print('   🎯 Context available: ${context != null}');
-    
+
     try {
       print('🔄 [CONNECT DEBUG] About to call Navigator.push...');
       Navigator.push(
@@ -238,7 +329,8 @@ class _ConnectScreenState extends State<ConnectScreen> {
           },
         ),
       ).then((_) {
-        print('🔙 [CONNECT DEBUG] Returned from RandomChatScreen, resetting state');
+        print(
+            '🔙 [CONNECT DEBUG] Returned from RandomChatScreen, resetting state');
         // When returning from random chat, reset state
         setState(() {
           _isMatching = false;
@@ -264,7 +356,8 @@ class _ConnectScreenState extends State<ConnectScreen> {
             Text('No Match Found'),
           ],
         ),
-        content: Text(_matchMessage ?? 'No match found after 5 minutes. Please try again later.'),
+        content: Text(_matchMessage ??
+            'No match found after 5 minutes. Please try again later.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -303,9 +396,10 @@ class _ConnectScreenState extends State<ConnectScreen> {
     print('   🔄 _isMatching: $_isMatching');
     print('   🔗 _isConnected: $_isConnected');
     print('   📱 _currentSessionId: $_currentSessionId');
-    
+
     if (_isMatching || _isConnected) {
-      print('⚠️ [CONNECT DEBUG] Already matching or connected, ignoring duplicate call');
+      print(
+          '⚠️ [CONNECT DEBUG] Already matching or connected, ignoring duplicate call');
       return;
     }
 
@@ -336,7 +430,6 @@ class _ConnectScreenState extends State<ConnectScreen> {
           duration: Duration(seconds: 2),
         ),
       );
-
     } catch (e) {
       print('❌ [CONNECT DEBUG] Failed to start matching: $e');
       setState(() {
@@ -389,7 +482,6 @@ class _ConnectScreenState extends State<ConnectScreen> {
 
       // Stop random connection via socket
       await _socketService.stopRandomConnection();
-
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -426,15 +518,16 @@ class _ConnectScreenState extends State<ConnectScreen> {
             const Text('Upgrade to Premium to access:'),
             const SizedBox(height: 16),
             ...AppConstants.premiumFeatures.map((feature) => Padding(
-              padding: const EdgeInsets.symmetric(vertical: 4),
-              child: Row(
-                children: [
-                  const Icon(Icons.check, color: AppColors.success, size: 16),
-                  const SizedBox(width: 8),
-                  Expanded(child: Text(feature)),
-                ],
-              ),
-            )),
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.check,
+                          color: AppColors.success, size: 16),
+                      const SizedBox(width: 8),
+                      Expanded(child: Text(feature)),
+                    ],
+                  ),
+                )),
             const SizedBox(height: 16),
             const Text(
               'Premium features include advanced age filters and interest matching for better connections.',
@@ -521,8 +614,8 @@ class _ConnectScreenState extends State<ConnectScreen> {
             Text(
               'Find New People',
               style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+                    fontWeight: FontWeight.bold,
+                  ),
             ),
             const SizedBox(height: 8),
             Padding(
@@ -530,8 +623,8 @@ class _ConnectScreenState extends State<ConnectScreen> {
               child: Text(
                 'Connect with people within your preferred distance range',
                 style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  color: Colors.grey[600],
-                ),
+                      color: Colors.grey[600],
+                    ),
                 textAlign: TextAlign.center,
               ),
             ),
@@ -563,7 +656,8 @@ class _ConnectScreenState extends State<ConnectScreen> {
                 const Spacer(),
                 if (!_isPremium)
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
                       color: AppColors.warning.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(12),
@@ -582,12 +676,13 @@ class _ConnectScreenState extends State<ConnectScreen> {
             const SizedBox(height: 12),
             _buildFilterItem('Distance', selectedRange['label']),
             _buildFilterItem('Language', _filters['language'] ?? 'Any'),
-            
+
             // Premium features
             if (_isPremium) ...[
               _buildFilterItem('Age Range', _filters['ageRange'] ?? 'All'),
               if (_filters['interests']?.isNotEmpty == true)
-                _buildFilterItem('Interests', '${_filters['interests'].length} selected'),
+                _buildFilterItem(
+                    'Interests', '${_filters['interests'].length} selected'),
             ] else ...[
               _buildPremiumFilterItem('Age Range', 'Premium Only'),
               _buildPremiumFilterItem('Interests', 'Premium Only'),
@@ -671,15 +766,15 @@ class _ConnectScreenState extends State<ConnectScreen> {
           Text(
             'Finding People...',
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
+                  fontWeight: FontWeight.bold,
+                ),
           ),
           const SizedBox(height: 8),
           Text(
             'Looking for people within your selected distance range',
             style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-              color: Colors.grey[600],
-            ),
+                  color: Colors.grey[600],
+                ),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 32),
@@ -744,7 +839,7 @@ class _ConnectScreenState extends State<ConnectScreen> {
                   _buildDistanceFilter(),
                   const SizedBox(height: 16),
                   _buildLanguageFilter(),
-                  
+
                   // Premium features
                   if (_isPremium) ...[
                     const SizedBox(height: 16),
@@ -794,7 +889,8 @@ class _ConnectScreenState extends State<ConnectScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Distance Range', style: TextStyle(fontWeight: FontWeight.w600)),
+        const Text('Distance Range',
+            style: TextStyle(fontWeight: FontWeight.w600)),
         const SizedBox(height: 8),
         DropdownButtonFormField<String>(
           value: _filters['distance'] ?? '1-5',
@@ -914,7 +1010,8 @@ class _ConnectScreenState extends State<ConnectScreen> {
       children: [
         Row(
           children: [
-            const Text('Age Range', style: TextStyle(fontWeight: FontWeight.w600)),
+            const Text('Age Range',
+                style: TextStyle(fontWeight: FontWeight.w600)),
             const SizedBox(width: 4),
             Icon(Icons.star, color: AppColors.warning, size: 16),
           ],
@@ -950,7 +1047,8 @@ class _ConnectScreenState extends State<ConnectScreen> {
       children: [
         Row(
           children: [
-            const Text('Interests', style: TextStyle(fontWeight: FontWeight.w600)),
+            const Text('Interests',
+                style: TextStyle(fontWeight: FontWeight.w600)),
             const SizedBox(width: 4),
             Icon(Icons.star, color: AppColors.warning, size: 16),
           ],
@@ -960,11 +1058,24 @@ class _ConnectScreenState extends State<ConnectScreen> {
           spacing: 8,
           runSpacing: 4,
           children: [
-            'Music', 'Sports', 'Travel', 'Food', 'Technology',
-            'Art', 'Books', 'Movies', 'Gaming', 'Fitness',
-            'Photography', 'Cooking', 'Dancing', 'Writing', 'Nature'
+            'Music',
+            'Sports',
+            'Travel',
+            'Food',
+            'Technology',
+            'Art',
+            'Books',
+            'Movies',
+            'Gaming',
+            'Fitness',
+            'Photography',
+            'Cooking',
+            'Dancing',
+            'Writing',
+            'Nature'
           ].map((interest) {
-            final isSelected = (_filters['interests'] as List?)?.contains(interest) ?? false;
+            final isSelected =
+                (_filters['interests'] as List?)?.contains(interest) ?? false;
             return FilterChip(
               label: Text(interest),
               selected: isSelected,
@@ -986,4 +1097,4 @@ class _ConnectScreenState extends State<ConnectScreen> {
       ],
     );
   }
-} 
+}

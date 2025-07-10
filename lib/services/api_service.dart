@@ -53,7 +53,8 @@ class ApiService {
 
     if (_firebaseToken != null) {
       headers['Authorization'] = 'Bearer $_firebaseToken';
-      print('🔍 DEBUG: Added Authorization header with token length: ${_firebaseToken!.length}');
+      print(
+          '🔍 DEBUG: Added Authorization header with token length: ${_firebaseToken!.length}');
     } else {
       print('❌ DEBUG: No Firebase token available for authorization');
     }
@@ -341,34 +342,35 @@ class ApiService {
   }
 
   // Chat methods - Direct friend messaging
-  Future<Map<String, dynamic>> sendDirectMessage(String receiverId, String content) async {
+  Future<Map<String, dynamic>> sendDirectMessage(
+      String receiverId, String content) async {
     try {
       print('🔍 DEBUG: sendDirectMessage() called');
       print('🔍 DEBUG: receiverId: $receiverId');
       print('🔍 DEBUG: content: $content');
-      
+
       // Check authentication first
       final currentUserId = await getCurrentUserId();
       print('🔍 DEBUG: currentUserId: $currentUserId');
-      
+
       if (currentUserId == null) {
         print('❌ DEBUG: User not authenticated');
         throw Exception('User not logged in. Please sign in to send messages.');
       }
-      
+
       final data = {
         'receiverId': receiverId,
         'content': content,
         'messageType': 'text',
       };
-      
+
       print('🔍 DEBUG: Sending POST request to /chat/messages');
       print('🔍 DEBUG: Request data: $data');
-      
+
       final response = await _post('/chat/messages', data);
       print('🔍 DEBUG: Response status: ${response.statusCode}');
       print('🔍 DEBUG: Response body: ${response.body}');
-      
+
       return _handleResponse(response);
     } catch (e) {
       print('🚨 DEBUG: sendDirectMessage error: $e');
@@ -376,13 +378,15 @@ class ApiService {
     }
   }
 
-  Future<Map<String, dynamic>> getChatHistoryWithUser(String userId, {int limit = 50, int offset = 0}) async {
+  Future<Map<String, dynamic>> getChatHistoryWithUser(String userId,
+      {int limit = 50, int offset = 0}) async {
     try {
       print('🔍 DEBUG: getChatHistoryWithUser() called with userId: $userId');
-      final response = await _get('/chat/history/$userId?limit=$limit&offset=$offset');
+      final response =
+          await _get('/chat/history/$userId?limit=$limit&offset=$offset');
       print('🔍 DEBUG: Chat history response status: ${response.statusCode}');
       print('🔍 DEBUG: Chat history response body: ${response.body}');
-      
+
       final result = _handleResponse(response);
       print('🔍 DEBUG: Processed chat history result: $result');
       return result;
@@ -418,9 +422,10 @@ class ApiService {
     try {
       final userId = _firebaseAuth.currentUser?.uid;
       print('🔍 DEBUG: getCurrentUserId() - User ID: $userId');
-      
+
       if (userId == null) {
-        print('🚨 DEBUG: No Firebase user found. User might be signed in as guest.');
+        print(
+            '🚨 DEBUG: No Firebase user found. User might be signed in as guest.');
         // Check if user is signed in as guest
         final user = _firebaseAuth.currentUser;
         if (user != null && user.isAnonymous) {
@@ -430,7 +435,7 @@ class ApiService {
         print('❌ DEBUG: User is not signed in at all');
         return null;
       }
-      
+
       print('✅ DEBUG: Firebase user authenticated');
       return userId;
     } catch (e) {
@@ -507,5 +512,26 @@ class ApiService {
   @deprecated
   Future<void> addFriend(String userId) async {
     throw Exception('Use Firebase authentication instead');
+  }
+
+  // Random chat methods
+  Future<Map<String, dynamic>> getActiveRandomChatSession() async {
+    final response = await _get('/connections/random/session/active');
+    return _handleResponse(response);
+  }
+
+  Future<Map<String, dynamic>> forceClearActiveSession() async {
+    final response = await _post('/connections/random/session/clear', {});
+    return _handleResponse(response);
+  }
+
+  Future<Map<String, dynamic>> endRandomChatSession(String sessionId,
+      {String? reason}) async {
+    final data = {
+      'sessionId': sessionId,
+      if (reason != null) 'reason': reason,
+    };
+    final response = await _post('/connections/random/session/end', data);
+    return _handleResponse(response);
   }
 }

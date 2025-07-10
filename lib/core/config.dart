@@ -21,7 +21,8 @@ class AppConfig {
       // For physical devices, use the computer's IP address
       return const String.fromEnvironment(
         'API_BASE_URL',
-        defaultValue: 'http://192.168.1.7:3000', // Use your computer's IP
+
+        defaultValue: 'http://192.168.0.105:3000', // Updated to your current IP
       );
     } else if (Platform.isIOS) {
       // iOS simulator can use localhost
@@ -55,7 +56,7 @@ class AppConfig {
     if (Platform.isAndroid) {
       return const String.fromEnvironment(
         'WS_URL',
-        defaultValue: 'ws://192.168.1.7:3000',
+        defaultValue: 'ws://192.168.0.105:3000',
       );
     } else if (Platform.isIOS) {
       return const String.fromEnvironment(
@@ -74,7 +75,7 @@ class AppConfig {
   // To find your IP: ipconfig (Windows) or ifconfig (Mac/Linux)
   static const String _physicalDeviceIP = String.fromEnvironment(
     'PHYSICAL_DEVICE_IP',
-    defaultValue: '192.168.1.7', // Your computer's actual IP address
+    defaultValue: '192.168.0.105', // Updated to your current IP address
   );
 
   static String get physicalDeviceApiUrl => 'http://$_physicalDeviceIP:3000';

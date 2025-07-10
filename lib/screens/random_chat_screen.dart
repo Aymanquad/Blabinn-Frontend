@@ -3,6 +3,7 @@ import '../core/constants.dart';
 import '../services/socket_service.dart';
 import '../services/api_service.dart';
 import 'dart:async';
+import 'package:firebase_auth/firebase_auth.dart' as FirebaseAuth;
 
 class RandomChatScreen extends StatefulWidget {
   final String sessionId;
@@ -34,6 +35,7 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
     super.initState();
     _initializeServices();
     _setupSocketListeners();
+    _joinChatRoom();
     _startSessionTimer();
     _startHeartbeat();
   }
@@ -42,6 +44,7 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
   void dispose() {
     _cleanupListeners();
     _stopHeartbeat();
+    _leaveChatRoom();
     _messageController.dispose();
     super.dispose();
   }
@@ -52,8 +55,27 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
   }
 
   void _setupSocketListeners() {
-    _messageSubscription = _socketService.messageStream.listen(_handleNewMessage);
+    _messageSubscription =
+        _socketService.messageStream.listen(_handleNewMessage);
     _errorSubscription = _socketService.errorStream.listen(_handleError);
+  }
+
+  void _joinChatRoom() {
+    try {
+      _socketService.joinChat(widget.chatRoomId);
+      print('🔌 [RANDOM CHAT DEBUG] Joined chat room: ${widget.chatRoomId}');
+    } catch (e) {
+      print('❌ [RANDOM CHAT DEBUG] Failed to join chat room: $e');
+    }
+  }
+
+  void _leaveChatRoom() {
+    try {
+      _socketService.leaveChat(widget.chatRoomId);
+      print('🚪 [RANDOM CHAT DEBUG] Left chat room: ${widget.chatRoomId}');
+    } catch (e) {
+      print('❌ [RANDOM CHAT DEBUG] Failed to leave chat room: $e');
+    }
   }
 
   void _cleanupListeners() {
@@ -61,18 +83,75 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
     _errorSubscription.cancel();
   }
 
-  void _handleNewMessage(dynamic message) {
+  void _handleNewMessage(dynamic message) async {
     if (!mounted) return;
 
-    setState(() {
-      _messages.add({
-        'id': message.id ?? DateTime.now().millisecondsSinceEpoch.toString(),
-        'content': message.content ?? '',
-        'senderId': message.senderId ?? '',
-        'timestamp': message.timestamp ?? DateTime.now(),
-        'isFromCurrentUser': false, // This should be determined by actual user comparison
+    final messageId =
+        message.id ?? DateTime.now().millisecondsSinceEpoch.toString();
+    final messageContent = message.content ?? '';
+    final messageSenderId = message.senderId ?? '';
+
+    // Get current user ID from Firebase Auth
+    String? currentUserId;
+    try {
+      final user = FirebaseAuth.FirebaseAuth.instance.currentUser;
+      currentUserId = user?.uid;
+      print('🔍 [RANDOM CHAT DEBUG] Current user ID: $currentUserId');
+      print('🔍 [RANDOM CHAT DEBUG] Message sender ID: $messageSenderId');
+    } catch (e) {
+      print('❌ [RANDOM CHAT DEBUG] Error getting current user: $e');
+    }
+
+    // Check if this is a message from the current user
+    final isFromCurrentUser =
+        currentUserId != null && messageSenderId == currentUserId;
+
+    print('🔍 [RANDOM CHAT DEBUG] Is from current user: $isFromCurrentUser');
+
+    // Check if we have a temporary message with the same content from current user
+    final tempMessageIndex = _messages.indexWhere((msg) =>
+        msg['content'] == messageContent &&
+        msg['isFromCurrentUser'] == true &&
+        msg['id'].toString().startsWith('temp_'));
+
+    if (tempMessageIndex != -1 && isFromCurrentUser) {
+      // Replace temporary message with real message
+      print(
+          '🔄 [RANDOM CHAT DEBUG] Replacing temp message with real message: $messageId');
+      setState(() {
+        _messages[tempMessageIndex] = {
+          'id': messageId,
+          'content': messageContent,
+          'senderId': messageSenderId,
+          'timestamp': message.timestamp ?? DateTime.now(),
+          'isFromCurrentUser': true,
+        };
       });
-    });
+    } else {
+      // Check if this message is already in the UI
+      final existingMessageIndex =
+          _messages.indexWhere((msg) => msg['id'] == messageId);
+
+      if (existingMessageIndex != -1) {
+        print(
+            '⏭️ [RANDOM CHAT DEBUG] Message already in UI, skipping: $messageId');
+        return;
+      }
+
+      // Add new message
+      setState(() {
+        _messages.add({
+          'id': messageId,
+          'content': messageContent,
+          'senderId': messageSenderId,
+          'timestamp': message.timestamp ?? DateTime.now(),
+          'isFromCurrentUser': isFromCurrentUser,
+        });
+      });
+
+      print(
+          '✅ [RANDOM CHAT DEBUG] Added new message to UI: $messageContent (from current user: $isFromCurrentUser)');
+    }
   }
 
   void _handleError(String error) {
@@ -130,16 +209,20 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
     if (content.isEmpty || !_isSessionActive) return;
 
     try {
-      // Add message to UI immediately
+      // Add message to UI immediately (optimistic update)
+      final tempMessageId = 'temp_${DateTime.now().millisecondsSinceEpoch}';
       setState(() {
         _messages.add({
-          'id': DateTime.now().millisecondsSinceEpoch.toString(),
+          'id': tempMessageId,
           'content': content,
-          'senderId': 'current_user', // Replace with actual user ID
+          'senderId':
+              'current_user', // Will be updated when we get the real message
           'timestamp': DateTime.now(),
           'isFromCurrentUser': true,
         });
       });
+
+      print('📤 [RANDOM CHAT DEBUG] Added optimistic message to UI: $content');
 
       _messageController.clear();
 
@@ -148,7 +231,6 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
         widget.chatRoomId,
         content,
       );
-
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -169,12 +251,11 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
     try {
       // End session via API
       // await _apiService.endRandomChatSession(widget.sessionId, reason);
-      
+
       _stopHeartbeat();
-      
+
       // Show end session dialog
       _showSessionEndDialog(reason);
-      
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -252,7 +333,8 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
             padding: const EdgeInsets.all(8),
             child: Center(
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                 decoration: BoxDecoration(
                   color: _timeRemaining <= 30 ? Colors.red : Colors.orange,
                   borderRadius: BorderRadius.circular(12),
@@ -324,8 +406,9 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
                     itemCount: _messages.length,
                     itemBuilder: (context, index) {
                       final message = _messages[index];
-                      final isFromCurrentUser = message['isFromCurrentUser'] as bool;
-                      
+                      final isFromCurrentUser =
+                          message['isFromCurrentUser'] as bool;
+
                       return Align(
                         alignment: isFromCurrentUser
                             ? Alignment.centerRight
@@ -414,4 +497,4 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
       ),
     );
   }
-} 
+}

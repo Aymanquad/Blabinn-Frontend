@@ -136,58 +136,67 @@ class Message {
     if (timestamp == null) {
       return DateTime.now();
     }
-    
+
     // Handle Firebase Timestamp objects
-    if (timestamp is Map<String, dynamic> && timestamp.containsKey('_seconds')) {
+    if (timestamp is Map<String, dynamic> &&
+        timestamp.containsKey('_seconds')) {
       final seconds = timestamp['_seconds'] as int;
       final nanoseconds = timestamp['_nanoseconds'] as int? ?? 0;
-      return DateTime.fromMillisecondsSinceEpoch(seconds * 1000 + nanoseconds ~/ 1000000);
+      return DateTime.fromMillisecondsSinceEpoch(
+          seconds * 1000 + nanoseconds ~/ 1000000);
     }
-    
+
     // Handle string timestamps
     if (timestamp is String) {
       return DateTime.parse(timestamp);
     }
-    
+
     // Handle DateTime objects (just in case)
     if (timestamp is DateTime) {
       return timestamp;
     }
-    
+
     // Fallback
     return DateTime.now();
   }
 
   factory Message.fromJson(Map<String, dynamic> json) {
     return Message(
-      id: json['id'] as String,
-      chatId: json['chatId'] as String? ?? json['receiverId'] as String? ?? '', // Use receiverId as fallback for chatId
-      senderId: json['senderId'] as String,
-      receiverId: json['receiverId'] as String,
-      content: json['content'] as String,
+      id: json['id']?.toString() ?? '',
+      chatId: json['chatId']?.toString() ??
+          '', // Default to empty string for random chat
+      senderId: json['senderId']?.toString() ?? '',
+      receiverId: json['receiverId']?.toString() ?? '',
+      content: json['content']?.toString() ?? '',
       type: MessageType.values.firstWhere(
-        (e) => e.name == (json['type'] ?? json['messageType']),
+        (e) =>
+            e.name ==
+            (json['type']?.toString() ?? json['messageType']?.toString()),
         orElse: () => MessageType.text,
       ),
       status: MessageStatus.values.firstWhere(
-        (e) => e.name == json['status'],
+        (e) => e.name == json['status']?.toString(),
         orElse: () => MessageStatus.sent,
       ),
       timestamp: _parseTimestamp(json['timestamp'] ?? json['createdAt']),
-      translatedContent: json['translatedContent'] as String?,
-      originalLanguage: json['originalLanguage'] as String?,
-      translatedLanguage: json['translatedLanguage'] as String?,
-      imageUrl: json['imageUrl'] as String?,
-      latitude: json['latitude'] as double?,
-      longitude: json['longitude'] as double?,
-      locationName: json['locationName'] as String?,
-      isEdited: json['isEdited'] as bool? ?? false,
-      editedAt: json['editedAt'] != null
-          ? _parseTimestamp(json['editedAt'])
+      translatedContent: json['translatedContent']?.toString(),
+      originalLanguage: json['originalLanguage']?.toString(),
+      translatedLanguage: json['translatedLanguage']?.toString(),
+      imageUrl: json['imageUrl']?.toString(),
+      latitude:
+          json['latitude'] is num ? (json['latitude'] as num).toDouble() : null,
+      longitude: json['longitude'] is num
+          ? (json['longitude'] as num).toDouble()
           : null,
-      readBy: List<String>.from(json['readBy'] ?? []),
-      metadata: json['metadata'] as Map<String, dynamic>?,
-      formattedTime: json['formattedTime'] as String?,
+      locationName: json['locationName']?.toString(),
+      isEdited: json['isEdited'] as bool? ?? false,
+      editedAt:
+          json['editedAt'] != null ? _parseTimestamp(json['editedAt']) : null,
+      readBy: json['readBy'] is List ? List<String>.from(json['readBy']) : [],
+      metadata: json['metadata'] is Map
+          ? Map<String, dynamic>.from(json['metadata'])
+          : null,
+      formattedTime: json['formattedTime']?.toString(),
     );
   }
 
