@@ -17,10 +17,11 @@ class AppConfig {
 
     // For mobile platforms
     if (Platform.isAndroid) {
-      // Android emulator uses special IP to reach host machine
+      // Check if running on emulator or physical device
+      // For physical devices, use the computer's IP address
       return const String.fromEnvironment(
         'API_BASE_URL',
-        defaultValue: 'http://10.0.2.2:3000', // Android emulator host IP
+        defaultValue: 'http://192.168.1.7:3000', // Use your computer's IP
       );
     } else if (Platform.isIOS) {
       // iOS simulator can use localhost
@@ -54,7 +55,7 @@ class AppConfig {
     if (Platform.isAndroid) {
       return const String.fromEnvironment(
         'WS_URL',
-        defaultValue: 'ws://10.0.2.2:3000',
+        defaultValue: 'ws://192.168.1.7:3000',
       );
     } else if (Platform.isIOS) {
       return const String.fromEnvironment(

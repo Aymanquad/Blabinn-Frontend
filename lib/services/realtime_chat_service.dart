@@ -15,11 +15,16 @@ class RealtimeChatService {
   String? _currentDisplayName;
 
   // Stream controllers for real-time events
-  final StreamController<Message> _messageController = StreamController<Message>.broadcast();
-  final StreamController<Message> _messageSentController = StreamController<Message>.broadcast();
-  final StreamController<String> _userOnlineController = StreamController<String>.broadcast();
-  final StreamController<String> _userOfflineController = StreamController<String>.broadcast();
-  final StreamController<Map<String, dynamic>> _errorController = StreamController<Map<String, dynamic>>.broadcast();
+  final StreamController<Message> _messageController =
+      StreamController<Message>.broadcast();
+  final StreamController<Message> _messageSentController =
+      StreamController<Message>.broadcast();
+  final StreamController<String> _userOnlineController =
+      StreamController<String>.broadcast();
+  final StreamController<String> _userOfflineController =
+      StreamController<String>.broadcast();
+  final StreamController<Map<String, dynamic>> _errorController =
+      StreamController<Map<String, dynamic>>.broadcast();
 
   // Getters for streams
   Stream<Message> get messageStream => _messageController.stream;
@@ -35,7 +40,7 @@ class RealtimeChatService {
 
     try {
       print('🔌 DEBUG: Connecting to Socket.IO server...');
-      
+
       // Get current user info
       final authService = FirebaseAuthService();
       final user = authService.currentUser;
@@ -48,7 +53,7 @@ class RealtimeChatService {
       _currentDisplayName = user.displayName ?? 'User';
 
       // Create socket connection to the backend
-      _socket = IO.io('http://10.0.2.2:3000', <String, dynamic>{
+      _socket = IO.io(AppConfig.apiBaseUrl, <String, dynamic>{
         'transports': ['websocket', 'polling'],
         'autoConnect': false,
         'timeout': 20000,
@@ -60,10 +65,10 @@ class RealtimeChatService {
       // Connect
       _socket!.connect();
       print('🔌 DEBUG: Socket.IO connection initiated');
-
     } catch (e) {
       print('🚨 DEBUG: Socket.IO connection error: $e');
-      _errorController.add({'error': 'Connection failed', 'details': e.toString()});
+      _errorController
+          .add({'error': 'Connection failed', 'details': e.toString()});
     }
   }
 
@@ -71,7 +76,7 @@ class RealtimeChatService {
     _socket!.on('connect', (_) {
       print('✅ DEBUG: Socket.IO connected successfully');
       _isConnected = true;
-      
+
       // Join the user room for private messaging
       _socket!.emit('join', {
         'userId': _currentUserId,
@@ -133,14 +138,16 @@ class RealtimeChatService {
 
     _socket!.on('connect_error', (error) {
       print('🚨 DEBUG: Socket.IO connect error: $error');
-      _errorController.add({'error': 'Connect error', 'details': error.toString()});
+      _errorController
+          .add({'error': 'Connect error', 'details': error.toString()});
     });
   }
 
   void sendMessage(String receiverId, String content) {
     if (!_isConnected || _socket == null) {
       print('❌ DEBUG: Cannot send message - not connected');
-      _errorController.add({'error': 'Not connected', 'details': 'Socket not connected'});
+      _errorController
+          .add({'error': 'Not connected', 'details': 'Socket not connected'});
       return;
     }
 
@@ -193,4 +200,4 @@ class RealtimeChatService {
     _userOfflineController.close();
     _errorController.close();
   }
-} 
+}

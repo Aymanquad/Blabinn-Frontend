@@ -14,7 +14,7 @@ class ChatListScreen extends StatefulWidget {
 
 class _ChatListScreenState extends State<ChatListScreen> {
   final ApiService _apiService = ApiService();
-  
+
   List<Map<String, dynamic>> _friends = [];
   List<Map<String, dynamic>> _chatRooms = [];
   Map<String, int> _unreadCounts = {};
@@ -46,14 +46,21 @@ class _ChatListScreenState extends State<ChatListScreen> {
           _friends = results[0] as List<Map<String, dynamic>>;
           _chatRooms = results[1] as List<Map<String, dynamic>>;
           final unreadResponse = results[2] as Map<String, dynamic>;
-          _unreadCounts = Map<String, int>.from(unreadResponse['unreadCounts'] ?? {});
+          _unreadCounts =
+              Map<String, int>.from(unreadResponse['unreadBySender'] ?? {});
           _isLoading = false;
         });
       }
     } catch (e) {
       if (mounted) {
         setState(() {
-          _errorMessage = 'Failed to load chats: ${e.toString()}';
+          // Provide a more user-friendly error message
+          if (e.toString().contains('unread message count')) {
+            _errorMessage =
+                'Unable to load unread message counts. Your chats will still work normally.';
+          } else {
+            _errorMessage = 'Failed to load chats: ${e.toString()}';
+          }
           _isLoading = false;
         });
       }
@@ -102,7 +109,8 @@ class _ChatListScreenState extends State<ChatListScreen> {
   }
 
   Widget _buildChatItem(Map<String, dynamic> friend) {
-    final displayName = friend['displayName'] ?? friend['username'] ?? 'Unknown';
+    final displayName =
+        friend['displayName'] ?? friend['username'] ?? 'Unknown';
     final profilePicture = friend['profilePicture'] as String?;
     final unreadCount = _unreadCounts[friend['uid'] ?? friend['id']] ?? 0;
     final lastMessage = friend['lastMessage'] as String?;
@@ -116,9 +124,8 @@ class _ChatListScreenState extends State<ChatListScreen> {
             CircleAvatar(
               radius: 25,
               backgroundColor: AppColors.primary.withOpacity(0.1),
-              backgroundImage: profilePicture != null
-                  ? NetworkImage(profilePicture)
-                  : null,
+              backgroundImage:
+                  profilePicture != null ? NetworkImage(profilePicture) : null,
               child: profilePicture == null
                   ? Text(
                       displayName[0].toUpperCase(),
@@ -173,7 +180,8 @@ class _ChatListScreenState extends State<ChatListScreen> {
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   color: Colors.grey[600],
-                  fontWeight: unreadCount > 0 ? FontWeight.w500 : FontWeight.normal,
+                  fontWeight:
+                      unreadCount > 0 ? FontWeight.w500 : FontWeight.normal,
                 ),
               ),
             if (lastMessageTime != null)
@@ -291,4 +299,4 @@ class _ChatListScreenState extends State<ChatListScreen> {
                     ),
     );
   }
-} 
+}
