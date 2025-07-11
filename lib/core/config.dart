@@ -1,18 +1,16 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart';
+import 'env_config.dart';
 
 class AppConfig {
   // Environment
-  static const String environment = String.fromEnvironment(
-    'ENVIRONMENT',
-    defaultValue: 'development',
-  );
+  static const String environment = EnvConfig.environment;
 
   // Platform-specific API Configuration
   static String get _platformApiBaseUrl {
     // For web builds, use localhost
     if (kIsWeb) {
-      return 'http://localhost:3000';
+      return EnvConfig.apiBaseUrlWeb;
     }
 
     // For mobile platforms
@@ -21,20 +19,19 @@ class AppConfig {
       // For physical devices, use the computer's IP address
       return const String.fromEnvironment(
         'API_BASE_URL',
-
-        defaultValue: 'http://192.168.0.105:3000', // Updated to your current IP
+        defaultValue: EnvConfig.apiBaseUrlAndroid,
       );
     } else if (Platform.isIOS) {
       // iOS simulator can use localhost
       return const String.fromEnvironment(
         'API_BASE_URL',
-        defaultValue: 'http://localhost:3000',
+        defaultValue: EnvConfig.apiBaseUrlIos,
       );
     } else {
       // Fallback for other platforms
       return const String.fromEnvironment(
         'API_BASE_URL',
-        defaultValue: 'http://localhost:3000',
+        defaultValue: EnvConfig.apiBaseUrlDefault,
       );
     }
   }
@@ -42,108 +39,66 @@ class AppConfig {
   // API Configuration - Now uses platform-specific URL
   static String get apiBaseUrl => _platformApiBaseUrl;
 
-  static const String apiVersion = String.fromEnvironment(
-    'API_VERSION',
-    defaultValue: 'v1',
-  );
+  static const String apiVersion = EnvConfig.apiVersion;
 
   // WebSocket Configuration - Updated to match backend
   static String get wsBaseUrl {
     if (kIsWeb) {
-      return 'ws://localhost:3000';
+      return EnvConfig.wsUrlWeb;
     }
 
     if (Platform.isAndroid) {
       return const String.fromEnvironment(
         'WS_URL',
-        defaultValue: 'ws://192.168.0.105:3000',
+        defaultValue: EnvConfig.wsUrlAndroid,
       );
     } else if (Platform.isIOS) {
       return const String.fromEnvironment(
         'WS_URL',
-        defaultValue: 'ws://localhost:3000',
+        defaultValue: EnvConfig.wsUrlIos,
       );
     } else {
       return const String.fromEnvironment(
         'WS_URL',
-        defaultValue: 'ws://localhost:3000',
+        defaultValue: EnvConfig.wsUrlDefault,
       );
     }
   }
 
   // Alternative URLs for physical devices (use your computer's IP)
   // To find your IP: ipconfig (Windows) or ifconfig (Mac/Linux)
-  static const String _physicalDeviceIP = String.fromEnvironment(
-    'PHYSICAL_DEVICE_IP',
-    defaultValue: '192.168.0.105', // Updated to your current IP address
-  );
+  static const String _physicalDeviceIP = EnvConfig.physicalDeviceIp;
 
   static String get physicalDeviceApiUrl => 'http://$_physicalDeviceIP:3000';
 
   // Google Translate API
-  static const String googleTranslateApiKey = String.fromEnvironment(
-    'GOOGLE_TRANSLATE_API_KEY',
-    defaultValue: '',
-  );
+  static const String googleTranslateApiKey = EnvConfig.googleTranslateApiKey;
 
   // Cloudinary Configuration (for image uploads)
-  static const String cloudinaryCloudName = String.fromEnvironment(
-    'CLOUDINARY_CLOUD_NAME',
-    defaultValue: '',
-  );
+  static const String cloudinaryCloudName = EnvConfig.cloudinaryCloudName;
 
-  static const String cloudinaryApiKey = String.fromEnvironment(
-    'CLOUDINARY_API_KEY',
-    defaultValue: '',
-  );
+  static const String cloudinaryApiKey = EnvConfig.cloudinaryApiKey;
 
-  static const String cloudinaryApiSecret = String.fromEnvironment(
-    'CLOUDINARY_API_SECRET',
-    defaultValue: '',
-  );
+  static const String cloudinaryApiSecret = EnvConfig.cloudinaryApiSecret;
 
   // Agora Configuration (for video calls)
-  static const String agoraAppId = String.fromEnvironment(
-    'AGORA_APP_ID',
-    defaultValue: '',
-  );
+  static const String agoraAppId = EnvConfig.agoraAppId;
 
-  static const String agoraAppToken = String.fromEnvironment(
-    'AGORA_APP_TOKEN',
-    defaultValue: '',
-  );
+  static const String agoraAppToken = EnvConfig.agoraAppToken;
 
   // Feature Flags
-  static const bool enableVideoCalls = bool.fromEnvironment(
-    'ENABLE_VIDEO_CALLS',
-    defaultValue: true,
-  );
+  static const bool enableVideoCalls = EnvConfig.enableVideoCalls;
 
-  static const bool enableTranslation = bool.fromEnvironment(
-    'ENABLE_TRANSLATION',
-    defaultValue: true,
-  );
+  static const bool enableTranslation = EnvConfig.enableTranslation;
 
-  static const bool enableLocationSharing = bool.fromEnvironment(
-    'ENABLE_LOCATION_SHARING',
-    defaultValue: true,
-  );
+  static const bool enableLocationSharing = EnvConfig.enableLocationSharing;
 
-  static const bool enablePremiumFeatures = bool.fromEnvironment(
-    'ENABLE_PREMIUM_FEATURES',
-    defaultValue: true,
-  );
+  static const bool enablePremiumFeatures = EnvConfig.enablePremiumFeatures;
 
   // Debug Settings
-  static const bool enableDebugLogs = bool.fromEnvironment(
-    'ENABLE_DEBUG_LOGS',
-    defaultValue: true, // Enable for development
-  );
+  static const bool enableDebugLogs = EnvConfig.enableDebugLogs;
 
-  static const bool enableMockData = bool.fromEnvironment(
-    'ENABLE_MOCK_DATA',
-    defaultValue: false,
-  );
+  static const bool enableMockData = EnvConfig.enableMockData;
 
   // App Settings
   static const int maxRetryAttempts = 3;
