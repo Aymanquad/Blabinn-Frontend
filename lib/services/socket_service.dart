@@ -29,6 +29,7 @@ enum SocketEvent {
   randomConnectionStarted,
   randomChatEvent,
   randomChatTimeout,
+  randomChatSessionEnded,
 }
 
 class SocketService {
@@ -267,6 +268,12 @@ class SocketService {
           break;
         case 'chat_joined':
           _handleChatJoinedEvent(data);
+          break;
+        case 'random_chat_session_ended':
+          _handleRandomChatSessionEndedEvent(data);
+          break;
+        case 'random_chat_event':
+          _handleRandomChatEventReceived(data);
           break;
         default:
           print('Unknown socket event: $event');
@@ -819,6 +826,30 @@ class SocketService {
     _sendToSocket(message);
   }
 
+  // End random chat session
+  Future<void> endRandomChatSession(String sessionId, String reason) async {
+    print('🚪 [SOCKET DEBUG] endRandomChatSession called');
+    print('   📱 Session ID: $sessionId');
+    print('   💭 Reason: $reason');
+    print('   🔗 Connected: $_isConnected');
+
+    if (!_isConnected) {
+      print('❌ [SOCKET DEBUG] Cannot end session - not connected');
+      throw Exception('Socket not connected');
+    }
+
+    final message = {
+      'sessionId': sessionId,
+      'reason': reason,
+    };
+
+    print('📤 [SOCKET DEBUG] Sending end_random_chat_session event');
+    print('   📦 Message data: $message');
+    
+    // Use the Socket.IO emit method directly
+    _socket!.emit('end_random_chat_session', message);
+  }
+
   // Send to socket
   void _sendToSocket(Map<String, dynamic> message) {
     if (_socket != null && _isConnected) {
@@ -1079,6 +1110,20 @@ class SocketService {
     print('🔌 [SOCKET DEBUG] _handleChatJoinedEvent called');
     print('   📦 Data: $data');
     _eventController.add(SocketEvent.userJoined);
+  }
+
+  // Handle random chat session ended event
+  void _handleRandomChatSessionEndedEvent(dynamic data) {
+    print('🚪 [SOCKET DEBUG] Random chat session ended event received');
+    print('   📦 Data: $data');
+    _eventController.add(SocketEvent.randomChatSessionEnded);
+  }
+
+  // Handle random chat event received
+  void _handleRandomChatEventReceived(dynamic data) {
+    print('🎯 [SOCKET DEBUG] Random chat event received');
+    print('   📦 Data: $data');
+    _eventController.add(SocketEvent.randomChatEvent);
   }
 
   // Start heartbeat

@@ -58,6 +58,23 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
     _messageSubscription =
         _socketService.messageStream.listen(_handleNewMessage);
     _errorSubscription = _socketService.errorStream.listen(_handleError);
+    
+    // Listen for socket events (including session end events)
+    _socketService.eventStream.listen((event) {
+      print('📡 [RANDOM CHAT DEBUG] Socket event received: $event');
+      switch (event) {
+        case SocketEvent.randomChatSessionEnded:
+          print('🚪 [RANDOM CHAT DEBUG] Session ended by other user');
+          _handlePartnerEndedSession();
+          break;
+        case SocketEvent.randomChatEvent:
+          print('🎯 [RANDOM CHAT DEBUG] Random chat event received');
+          // Handle other random chat events if needed
+          break;
+        default:
+          break;
+      }
+    });
   }
 
   void _joinChatRoom() {
@@ -165,6 +182,22 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
     );
   }
 
+  void _handlePartnerEndedSession() {
+    if (!mounted || !_isSessionActive) return;
+
+    print('🚪 [RANDOM CHAT DEBUG] Partner ended session, handling locally');
+    
+    setState(() {
+      _isSessionActive = false;
+    });
+
+    _stopHeartbeat();
+    _leaveChatRoom();
+
+    // Show partner left dialog
+    _showSessionEndDialog('partner_left');
+  }
+
   void _startSessionTimer() {
     Timer.periodic(const Duration(seconds: 1), (timer) {
       if (!mounted || !_isSessionActive) {
@@ -249,14 +282,18 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
     });
 
     try {
-      // End session via API
-      // await _apiService.endRandomChatSession(widget.sessionId, reason);
+      print('🚪 [RANDOM CHAT DEBUG] Ending session with reason: $reason');
+      
+      // End session via socket (this will notify both users)
+      await _socketService.endRandomChatSession(widget.sessionId, reason);
 
       _stopHeartbeat();
+      _leaveChatRoom();
 
       // Show end session dialog
       _showSessionEndDialog(reason);
     } catch (e) {
+      print('❌ [RANDOM CHAT DEBUG] Error ending session: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Error ending session: ${e.toString()}'),
