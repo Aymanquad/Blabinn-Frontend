@@ -97,8 +97,9 @@ class SocketService {
       print('   🔑 Token length: ${authToken.length}');
 
       _socket = IO.io(AppConfig.wsBaseUrl, <String, dynamic>{
-        'transports': ['websocket'],
+        'transports': ['websocket', 'polling'],
         'autoConnect': false,
+        'timeout': 20000,
         'auth': {
           'token': authToken,
         },
@@ -725,6 +726,18 @@ class SocketService {
     print('   🌍 country: $country');
     print('   🗣️ language: $language');
     print('   💫 interests: $interests');
+    
+    print('🎯 [INTEREST MATCH DEBUG] ===============================================');
+    print('🎯 [INTEREST MATCH DEBUG] USER JOINING RANDOM CHAT QUEUE');
+    print('🎯 [INTEREST MATCH DEBUG] ===============================================');
+    if (interests != null && interests.isNotEmpty) {
+      print('🎯 [INTEREST MATCH DEBUG] User interests: $interests');
+      print('🎯 [INTEREST MATCH DEBUG] Total interests: ${interests.length}');
+      print('🎯 [INTEREST MATCH DEBUG] Looking for matches with similar interests...');
+    } else {
+      print('🎯 [INTEREST MATCH DEBUG] User has no interests - will match with anyone');
+    }
+    print('🎯 [INTEREST MATCH DEBUG] ===============================================');
 
     // Check both _isConnected flag AND actual socket state
     final isActuallyConnected = _isConnected && _socket?.connected == true;
@@ -866,6 +879,49 @@ class SocketService {
 
   // Handle match found event
   void _handleMatchFoundEvent(Map<String, dynamic> data) {
+    print('🎯 [INTEREST MATCH DEBUG] ===============================================');
+    print('🎯 [INTEREST MATCH DEBUG] MATCH FOUND EVENT RECEIVED!');
+    print('🎯 [INTEREST MATCH DEBUG] ===============================================');
+    print('   📦 Full data: $data');
+    
+    // Extract match information
+    final matchType = data['matchType'] ?? 'unknown';
+    final interestSimilarity = data['interestSimilarity'] ?? 0.0;
+    final user1 = data['user1'];
+    final user2 = data['user2'];
+    final user1Interests = data['user1Interests'] ?? [];
+    final user2Interests = data['user2Interests'] ?? [];
+    
+    print('🎯 [INTEREST MATCH DEBUG] Match Type: $matchType');
+    print('🎯 [INTEREST MATCH DEBUG] Interest Similarity: ${(interestSimilarity * 100).toStringAsFixed(1)}%');
+    print('🎯 [INTEREST MATCH DEBUG] User 1: ${user1?['userId'] ?? 'Unknown'}');
+    print('🎯 [INTEREST MATCH DEBUG] User 1 Interests: $user1Interests');
+    print('🎯 [INTEREST MATCH DEBUG] User 2: ${user2?['userId'] ?? 'Unknown'}');
+    print('🎯 [INTEREST MATCH DEBUG] User 2 Interests: $user2Interests');
+    
+    // Show common interests
+    if (user1Interests is List && user2Interests is List) {
+      final commonInterests = user1Interests.where((interest) => 
+        user2Interests.any((otherInterest) => 
+          interest.toString().toLowerCase() == otherInterest.toString().toLowerCase()
+        )
+      ).toList();
+      
+      if (commonInterests.isNotEmpty) {
+        print('🎯 [INTEREST MATCH DEBUG] Common Interests: $commonInterests');
+      } else {
+        print('🎯 [INTEREST MATCH DEBUG] No common interests found');
+      }
+    }
+    
+    if (matchType == 'interest-based') {
+      print('🎯 [INTEREST MATCH DEBUG] ⭐ SUCCESS: Users matched based on shared interests!');
+    } else if (matchType == 'fallback') {
+      print('🎯 [INTEREST MATCH DEBUG] ⏰ FALLBACK: Users matched after preference window expired');
+    }
+    
+    print('🎯 [INTEREST MATCH DEBUG] ===============================================');
+    
     _matchController.add(data);
     _eventController.add(SocketEvent.matchFound);
   }
@@ -910,6 +966,24 @@ class SocketService {
     print('🎉 [SOCKET DEBUG] Random chat event received!');
     print('   📦 Data type: ${data.runtimeType}');
     print('   📦 Raw data: $data');
+    
+    // Extract and display match analytics if available
+    if (data is Map<String, dynamic>) {
+      final matchType = data['matchType'];
+      final interestSimilarity = data['interestSimilarity'];
+      final user1Interests = data['user1Interests'];
+      final user2Interests = data['user2Interests'];
+      
+      if (matchType != null) {
+        print('🎯 [INTEREST MATCH DEBUG] Chat started with match type: $matchType');
+        if (interestSimilarity != null) {
+          print('🎯 [INTEREST MATCH DEBUG] Interest similarity: ${(interestSimilarity * 100).toStringAsFixed(1)}%');
+        }
+        if (user1Interests != null && user2Interests != null) {
+          print('🎯 [INTEREST MATCH DEBUG] User interests: $user1Interests vs $user2Interests');
+        }
+      }
+    }
 
     // Null safety check
     if (data == null) {

@@ -112,7 +112,7 @@ class User {
     // vs the expected model format (id, username, profileImage)
     
     try {
-      final String? userIdRaw = json['uid'] ?? json['id'];
+      final String? userIdRaw = json['uid'] ?? json['id'] ?? json['userId'];
       if (userIdRaw == null || userIdRaw.isEmpty) {
         throw Exception('User ID is required but not provided in JSON: $json');
       }

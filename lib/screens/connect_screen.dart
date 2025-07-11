@@ -33,6 +33,8 @@ class _ConnectScreenState extends State<ConnectScreen> {
     _initializeFilters();
     _initializeServices();
     _setupSocketListeners();
+    // Load user interests after services are initialized
+    _loadUserInterests();
   }
 
   @override
@@ -54,6 +56,41 @@ class _ConnectScreenState extends State<ConnectScreen> {
       'ageRange': 'all',
       'interests': [],
     };
+  }
+
+  Future<void> _loadUserInterests() async {
+    try {
+      print('🎯 [CONNECT DEBUG] Loading user interests...');
+      
+      // Get current user ID
+      final currentUserId = await _apiService.getCurrentUserId();
+      if (currentUserId == null) {
+        print('❌ [CONNECT DEBUG] No current user ID found');
+        return;
+      }
+      
+      print('🎯 [CONNECT DEBUG] Current user ID: $currentUserId');
+      
+      // Get user profile data
+      final profileData = await _apiService.getUserProfile(currentUserId);
+      print('🎯 [CONNECT DEBUG] Profile data received: $profileData');
+      
+      // Extract interests from profile
+      final userInterests = profileData['interests'];
+      print('🎯 [CONNECT DEBUG] User interests from profile: $userInterests');
+      
+      if (userInterests != null && userInterests is List) {
+        setState(() {
+          _filters['interests'] = List<String>.from(userInterests);
+        });
+        print('🎯 [CONNECT DEBUG] Updated filters with interests: ${_filters['interests']}');
+      } else {
+        print('🎯 [CONNECT DEBUG] No interests found in profile or invalid format');
+      }
+    } catch (e) {
+      print('❌ [CONNECT DEBUG] Error loading user interests: $e');
+      // Keep default empty interests array if loading fails
+    }
   }
 
   void _setupSocketListeners() {
@@ -396,6 +433,8 @@ class _ConnectScreenState extends State<ConnectScreen> {
     print('   🔄 _isMatching: $_isMatching');
     print('   🔗 _isConnected: $_isConnected');
     print('   📱 _currentSessionId: $_currentSessionId');
+    print('   🎯 Current filters: $_filters');
+    print('   💫 User interests: ${_filters['interests']}');
 
     if (_isMatching || _isConnected) {
       print(
@@ -410,12 +449,17 @@ class _ConnectScreenState extends State<ConnectScreen> {
         _queueTime = 0;
       });
 
+      final userInterests = _filters['interests']?.cast<String>() ?? [];
       print('🔄 [CONNECT DEBUG] Starting random connection via socket');
+      print('   🌍 country: ${_filters['region']}');
+      print('   🗣️ language: ${_filters['language']}');
+      print('   💫 interests: $userInterests');
+      
       // Start random connection via socket
       await _socketService.startRandomConnection(
         country: _filters['region'],
         language: _filters['language'],
-        interests: _filters['interests']?.cast<String>(),
+        interests: userInterests,
       );
 
       print('✅ [CONNECT DEBUG] Random connection started successfully');
