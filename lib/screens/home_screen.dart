@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import '../core/constants.dart';
 
 class HomeScreen extends StatelessWidget {
-  const HomeScreen({super.key});
+  final Function(int)? onNavigateToTab;
+
+  const HomeScreen({super.key, this.onNavigateToTab});
 
   @override
   Widget build(BuildContext context) {
@@ -107,7 +109,7 @@ class HomeScreen extends StatelessWidget {
                 subtitle: 'Find new people',
                 color: AppColors.primary,
                 onTap: () {
-                  // This will be handled by the bottom navigation
+                  onNavigateToTab?.call(2); // Navigate to Connect tab (index 2)
                 },
               ),
             ),
@@ -119,7 +121,7 @@ class HomeScreen extends StatelessWidget {
                 subtitle: 'View conversations',
                 color: AppColors.secondary,
                 onTap: () {
-                  // This will be handled by the bottom navigation
+                  onNavigateToTab?.call(1); // Navigate to Chats tab (index 1)
                 },
               ),
             ),
@@ -305,9 +307,9 @@ class HomeScreen extends StatelessWidget {
         ),
         const SizedBox(height: 16),
         GestureDetector(
-                                  onTap: () {
-                          Navigator.pushNamed(context, '/friends-list');
-                        },
+          onTap: () {
+            Navigator.pushNamed(context, '/friends-list');
+          },
           child: Container(
             width: double.infinity,
             padding: const EdgeInsets.all(20),

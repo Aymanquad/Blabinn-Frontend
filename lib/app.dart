@@ -103,16 +103,17 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   final PageController _pageController = PageController();
   final SocketService _socketService = SocketService();
 
-  final List<Widget> _screens = [
-    const HomeScreen(),
-    const ChatListScreen(),
-    const ConnectScreen(),
-  ];
+  late final List<Widget> _screens;
 
   @override
   void initState() {
     super.initState();
     _initializeSocketConnection();
+    _screens = [
+      HomeScreen(onNavigateToTab: _onTabTapped),
+      const ChatListScreen(),
+      const ConnectScreen(),
+    ];
   }
 
   Future<void> _initializeSocketConnection() async {
@@ -121,10 +122,11 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       if (user != null) {
         final token = await user.getIdToken();
         if (token != null && token.isNotEmpty) {
-          print('🚀 [APP DEBUG] Initializing socket connection with Firebase token');
+          print(
+              '🚀 [APP DEBUG] Initializing socket connection with Firebase token');
           await _socketService.connect(token);
-          
-          // Send join event after connection  
+
+          // Send join event after connection
           await Future.delayed(const Duration(seconds: 1));
           print('✅ [APP DEBUG] Socket connection completed');
         } else {
@@ -231,5 +233,3 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     );
   }
 }
-
-
