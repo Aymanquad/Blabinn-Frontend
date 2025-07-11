@@ -205,6 +205,12 @@ class ApiService {
     return List<String>.from(data['interests'] ?? []);
   }
 
+  // Clear invalid interests for existing users
+  Future<Map<String, dynamic>> clearInvalidInterests() async {
+    final response = await _put('/profiles/me', {'interests': []});
+    return _handleResponse(response);
+  }
+
   // Upload methods
   Future<Map<String, dynamic>> uploadProfilePicture(File imageFile) async {
     try {

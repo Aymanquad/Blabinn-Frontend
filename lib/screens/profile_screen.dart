@@ -183,27 +183,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
               child: Column(
                 children: [
-                  // Account Settings
-                  ListTile(
-                    leading: Icon(Icons.settings,
-                        color: theme.colorScheme.onSurface),
-                    title: Text('Account Settings',
-                        style: TextStyle(color: theme.colorScheme.onSurface)),
-                    trailing: Icon(Icons.arrow_forward_ios,
-                        size: 16,
-                        color: theme.colorScheme.onSurface.withOpacity(0.5)),
-                    onTap: () {
-                      // TODO: Navigate to account settings
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Coming soon!')),
-                      );
-                    },
-                  ),
-
-                  Divider(
-                      height: 1,
-                      color: theme.colorScheme.outline.withOpacity(0.2)),
-
                   // Profile Management
                   ListTile(
                     leading: Icon(Icons.person_outline,
@@ -215,6 +194,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         color: theme.colorScheme.onSurface.withOpacity(0.5)),
                     onTap: () {
                       Navigator.pushNamed(context, '/profile-management');
+                    },
+                  ),
+
+                  Divider(
+                      height: 1,
+                      color: theme.colorScheme.outline.withOpacity(0.2)),
+
+                  // Account Settings
+                  ListTile(
+                    leading: Icon(Icons.settings_rounded,
+                        color: theme.colorScheme.onSurface),
+                    title: Text('Account Settings',
+                        style: TextStyle(color: theme.colorScheme.onSurface)),
+                    trailing: Icon(Icons.arrow_forward_ios,
+                        size: 16,
+                        color: theme.colorScheme.onSurface.withOpacity(0.5)),
+                    onTap: () {
+                      Navigator.pushNamed(context, '/account-settings');
                     },
                   ),
 

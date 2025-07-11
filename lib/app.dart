@@ -15,6 +15,7 @@ import 'screens/friends_screen.dart';
 import 'screens/user_profile_screen.dart';
 import 'screens/chat_list_screen.dart';
 import 'screens/friends_list_screen.dart';
+import 'screens/account_settings_screen.dart';
 import 'services/socket_service.dart';
 
 class ChatApp extends StatelessWidget {
@@ -39,6 +40,7 @@ class ChatApp extends StatelessWidget {
               '/profile': (context) => const ProfileScreen(),
               '/profile-management': (context) =>
                   const ProfileManagementScreen(),
+              '/account-settings': (context) => const AccountSettingsScreen(),
               '/connect': (context) => const ConnectScreen(),
               '/login': (context) => const LoginScreen(),
               '/search': (context) => const SearchScreen(),

@@ -6,7 +6,7 @@ import '../core/constants.dart';
 import '../models/user.dart';
 import '../services/auth_service.dart';
 import '../services/api_service.dart';
-import '../providers/theme_provider.dart';
+
 
 class ProfileManagementScreen extends StatefulWidget {
   const ProfileManagementScreen({Key? key}) : super(key: key);
@@ -27,7 +27,7 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
   final _usernameController = TextEditingController();
   final _bioController = TextEditingController();
   final _ageController = TextEditingController();
-  final _interestController = TextEditingController();
+
 
   // Form state
   String _selectedGender = 'prefer-not-to-say';
@@ -97,7 +97,24 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
 
     setState(() {
       _selectedGender = profile['gender'] ?? 'prefer-not-to-say';
-      _interests = List<String>.from(profile['interests'] ?? []);
+      
+      // Filter interests to only include valid predefined ones
+      final existingInterests = List<String>.from(profile['interests'] ?? []);
+      print('🔍 [PROFILE DEBUG] Loading existing interests: $existingInterests');
+      print('🔍 [PROFILE DEBUG] Available predefined interests: ${AppConstants.availableInterests}');
+      
+      _interests = existingInterests
+          .where((interest) => AppConstants.availableInterests.contains(interest))
+          .toList();
+      
+      print('🔍 [PROFILE DEBUG] Filtered interests: $_interests');
+      
+      // Log if user had invalid interests that were cleared
+      if (_interests.length != existingInterests.length) {
+        print('🔄 [PROFILE DEBUG] Cleared ${existingInterests.length - _interests.length} invalid interests');
+        print('🔄 [PROFILE DEBUG] Interests that were removed: ${existingInterests.where((i) => !AppConstants.availableInterests.contains(i)).toList()}');
+        print('🔄 [PROFILE DEBUG] User will need to select new interests from predefined list');
+      }
     });
   }
 
@@ -238,9 +255,7 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
                     _buildInterestsSection(),
                     const SizedBox(height: 24),
 
-                    // Account Settings Section
-                    _buildAccountSettingsSection(),
-                    const SizedBox(height: 24),
+
 
                     // Action Buttons - Simplified for now
                     _buildActionButtons(),
@@ -404,25 +419,19 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
             ),
           ],
         ),
-        const SizedBox(height: 16),
-        SizedBox(
-          width: double.infinity,
-          child: ElevatedButton(
-            onPressed: _isLoading ? null : _deleteProfile,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 16),
-            ),
-            child: const Text('Delete Profile'),
-          ),
-        ),
       ],
     );
   }
 
   Future<void> _createProfile() async {
     if (!_formKey.currentState!.validate()) return;
+
+    // Validate interests selection
+    if (_interests.length < AppConstants.minInterestsRequired) {
+      _showError(
+          'Please select at least ${AppConstants.minInterestsRequired} interests to continue');
+      return;
+    }
 
     setState(() {
       _isLoading = true;
@@ -461,6 +470,13 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
   Future<void> _updateProfile() async {
     if (!_formKey.currentState!.validate()) return;
 
+    // Validate interests selection
+    if (_interests.length < AppConstants.minInterestsRequired) {
+      _showError(
+          'Please select at least ${AppConstants.minInterestsRequired} interests to continue');
+      return;
+    }
+
     setState(() {
       _isLoading = true;
     });
@@ -475,7 +491,12 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
         'interests': _interests,
       };
 
+      print('🔄 [PROFILE DEBUG] Updating profile with interests: $_interests');
+      print('🔄 [PROFILE DEBUG] Full profile data: $profileData');
+
       final result = await _apiService.updateProfile(profileData);
+      
+      print('✅ [PROFILE DEBUG] Profile update result: $result');
 
       // Upload profile picture if selected
       if (_profilePicture != null) {
@@ -483,6 +504,10 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
       }
 
       _showSuccess('Profile updated successfully!');
+      
+      // Reload profile to verify interests were saved correctly
+      print('🔄 [PROFILE DEBUG] Reloading profile to verify interests...');
+      await _loadExistingProfile();
     } catch (e) {
       _showError('Error updating profile: $e');
     } finally {
@@ -492,137 +517,13 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
     }
   }
 
-  Future<void> _deleteProfile() async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete Profile'),
-        content: const Text(
-            'Are you sure you want to delete your profile? This action cannot be undone.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Delete', style: TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
-    );
 
-    if (confirmed == true) {
-      setState(() {
-        _isLoading = true;
-      });
-
-      try {
-        await _apiService.deleteAccount();
-        _showSuccess('Profile deleted successfully!');
-        setState(() {
-          _hasExistingProfile = false;
-        });
-        _clearForm();
-      } catch (e) {
-        _showError('Error deleting profile: $e');
-      } finally {
-        setState(() {
-          _isLoading = false;
-        });
-      }
-    }
-
-    Widget _buildAccountSettingsSection() {
-      return Consumer<ThemeProvider>(
-        builder: (context, themeProvider, child) {
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: AppColors.primary,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Text(
-                  '⚙️ Account Settings',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-
-              // Dark Mode Toggle
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.grey.shade300),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(
-                      Icons.dark_mode,
-                      color: AppColors.primary,
-                      size: 24,
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'Dark Mode',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.text,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            themeProvider.isDarkMode
-                                ? 'Switch to light mode'
-                                : 'Switch to dark mode',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.grey[600],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Switch(
-                      value: themeProvider.isDarkMode,
-                      onChanged: (value) {
-                        themeProvider.toggleTheme();
-                      },
-                      activeColor: AppColors.primary,
-                      activeTrackColor: AppColors.primary.withOpacity(0.3),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          );
-        },
-      );
-    }
-  }
 
   void _clearForm() {
     _displayNameController.clear();
     _usernameController.clear();
     _bioController.clear();
     _ageController.clear();
-    _interestController.clear();
     setState(() {
       _selectedGender = 'prefer-not-to-say';
       _interests.clear();
@@ -826,49 +727,63 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Interests:',
-          style: TextStyle(
-            fontWeight: FontWeight.w600,
-            color: Theme.of(context).colorScheme.onSurface,
-          ),
-        ),
-        const SizedBox(height: 8),
         Row(
           children: [
-            Expanded(
-              child: TextFormField(
-                controller: _interestController,
-                decoration: const InputDecoration(
-                  hintText: 'Add interest...',
-                  border: OutlineInputBorder(),
-                ),
-                onFieldSubmitted: (_) => _addInterest(),
+            Text(
+              'Interests:',
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                color: Theme.of(context).colorScheme.onSurface,
               ),
             ),
-            const SizedBox(width: 12),
-            ElevatedButton(
-              onPressed: _addInterest,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.green,
-                foregroundColor: Colors.white,
+            const SizedBox(width: 8),
+            Text(
+              '(Select at least ${AppConstants.minInterestsRequired})',
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.grey[600],
               ),
-              child: const Text('Add'),
             ),
           ],
         ),
         const SizedBox(height: 12),
-        if (_interests.isNotEmpty)
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: _interests.map((interest) {
-              return Chip(
-                label: Text(interest),
-                onDeleted: () => _removeInterest(interest),
-                deleteIcon: const Icon(Icons.close, size: 16),
-              );
-            }).toList(),
+        // Predefined interests selection
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: AppConstants.availableInterests.map((interest) {
+            final isSelected = _interests.contains(interest);
+            return FilterChip(
+              label: Text(interest),
+              selected: isSelected,
+              onSelected: (selected) {
+                setState(() {
+                  if (selected) {
+                    _interests.add(interest);
+                  } else {
+                    _interests.remove(interest);
+                  }
+                });
+              },
+              selectedColor: AppColors.primary.withOpacity(0.2),
+              checkmarkColor: AppColors.primary,
+              labelStyle: TextStyle(
+                color: isSelected ? AppColors.primary : null,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+              ),
+            );
+          }).toList(),
+        ),
+        if (_interests.length < AppConstants.minInterestsRequired)
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Text(
+              'Please select at least ${AppConstants.minInterestsRequired} interests',
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.red[600],
+              ),
+            ),
           ),
       ],
     );
@@ -914,23 +829,7 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
     }
   }
 
-  void _addInterest() {
-    final interest = _interestController.text.trim();
-    if (interest.isNotEmpty &&
-        !_interests.contains(interest) &&
-        _interests.length < 20) {
-      setState(() {
-        _interests.add(interest);
-        _interestController.clear();
-      });
-    }
-  }
 
-  void _removeInterest(String interest) {
-    setState(() {
-      _interests.remove(interest);
-    });
-  }
 
   void _showError(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -956,95 +855,9 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
     _usernameController.dispose();
     _bioController.dispose();
     _ageController.dispose();
-    _interestController.dispose();
+
     super.dispose();
   }
 
-  Widget _buildAccountSettingsSection() {
-    return Consumer<ThemeProvider>(
-      builder: (context, themeProvider, child) {
-        final theme = Theme.of(context);
-        final isDark = theme.brightness == Brightness.dark;
 
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: theme.colorScheme.primary,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Text(
-                '⚙️ Account Settings',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            // Dark Mode Toggle
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: theme.colorScheme.surface,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                    color: theme.colorScheme.outline.withOpacity(0.3)),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.dark_mode,
-                    color: theme.colorScheme.primary,
-                    size: 24,
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Dark Mode',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            color: theme.colorScheme.onSurface,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          themeProvider.isDarkMode
-                              ? 'Switch to light mode'
-                              : 'Switch to dark mode',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: theme.colorScheme.onSurface.withOpacity(0.7),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Switch(
-                    value: themeProvider.isDarkMode,
-                    onChanged: (value) {
-                      themeProvider.toggleTheme();
-                    },
-                    activeColor: theme.colorScheme.primary,
-                    activeTrackColor:
-                        theme.colorScheme.primary.withOpacity(0.3),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        );
-      },
-    );
-  }
 }

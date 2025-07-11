@@ -97,6 +97,18 @@ class AppConstants {
     'Priority Matching',
     'Chat History',
   ];
+
+  // Predefined Interests (User must select minimum 2)
+  static const List<String> availableInterests = [
+    'Movies & TV',
+    'Gaming',
+    'Music & Arts',
+    'Fitness & Lifestyle',
+    'Books & Learning',
+  ];
+
+  // Interest constraints
+  static const int minInterestsRequired = 2;
 }
 
 // Error Messages

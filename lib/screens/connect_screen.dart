@@ -1084,23 +1084,7 @@ class _ConnectScreenState extends State<ConnectScreen> {
         Wrap(
           spacing: 8,
           runSpacing: 4,
-          children: [
-            'Music',
-            'Sports',
-            'Travel',
-            'Food',
-            'Technology',
-            'Art',
-            'Books',
-            'Movies',
-            'Gaming',
-            'Fitness',
-            'Photography',
-            'Cooking',
-            'Dancing',
-            'Writing',
-            'Nature'
-          ].map((interest) {
+          children: AppConstants.availableInterests.map((interest) {
             final isSelected =
                 (_filters['interests'] as List?)?.contains(interest) ?? false;
             return FilterChip(
