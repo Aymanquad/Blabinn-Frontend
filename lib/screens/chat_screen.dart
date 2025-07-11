@@ -4,7 +4,8 @@ import '../core/constants.dart';
 import '../models/chat.dart';
 import '../models/message.dart';
 import '../services/api_service.dart';
-import '../services/realtime_chat_service.dart';
+import '../services/socket_service.dart';
+import '../services/firebase_auth_service.dart';
 import '../widgets/chat_bubble.dart';
 
 class ChatScreen extends StatefulWidget {
@@ -20,7 +21,7 @@ class _ChatScreenState extends State<ChatScreen> {
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final ApiService _apiService = ApiService();
-  final RealtimeChatService _realtimeChatService = RealtimeChatService();
+  final SocketService _socketService = SocketService();
 
   List<Message> _messages = [];
   bool _isTyping = false;
@@ -34,7 +35,7 @@ class _ChatScreenState extends State<ChatScreen> {
   // Stream subscriptions for real-time events
   StreamSubscription<Message>? _messageSubscription;
   StreamSubscription<Message>? _messageSentSubscription;
-  StreamSubscription<Map<String, dynamic>>? _errorSubscription;
+  StreamSubscription<SocketEvent>? _errorSubscription;
 
   @override
   void initState() {
@@ -66,13 +67,20 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Future<void> _connectToRealtimeChat() async {
-    print('🔌 DEBUG: Connecting to real-time chat...');
-    await _realtimeChatService.connect();
+    print('🔌 DEBUG: Connecting to socket service...');
+    final authService = FirebaseAuthService();
+    final user = authService.currentUser;
+    if (user != null) {
+      final token = await user.getIdToken();
+      if (token != null) {
+        await _socketService.connect(token);
+      }
+    }
   }
 
   void _setupRealtimeListeners() {
     // Listen for incoming messages
-    _messageSubscription = _realtimeChatService.messageStream.listen((message) {
+    _messageSubscription = _socketService.messageStream.listen((message) {
       print('💬 DEBUG: Received real-time message: ${message.content}');
 
       // Only add the message if it's for this chat
@@ -85,34 +93,27 @@ class _ChatScreenState extends State<ChatScreen> {
       }
     });
 
-    // Listen for message sent confirmations
-    _messageSentSubscription =
-        _realtimeChatService.messageSentStream.listen((message) {
-      print('✅ DEBUG: Message sent confirmation: ${message.content}');
-
-      // Update the message in the list if it exists (replace temporary ID with real ID)
-      setState(() {
-        final index = _messages.indexWhere((m) =>
-            m.content == message.content && m.senderId == _currentUserId);
-        if (index != -1) {
-          _messages[index] = message;
-        } else {
-          _messages.add(message);
-          _messages.sort((a, b) => a.timestamp.compareTo(b.timestamp));
-        }
-      });
-      _scrollToBottom();
-    });
-
-    // Listen for errors
-    _errorSubscription = _realtimeChatService.errorStream.listen((error) {
-      print('🚨 DEBUG: Real-time chat error: $error');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Chat error: ${error['error']}'),
-          backgroundColor: Colors.red,
-        ),
-      );
+    // Listen for socket events
+    _errorSubscription = _socketService.eventStream.listen((event) {
+      switch (event) {
+        case SocketEvent.message:
+          print('📨 DEBUG: New message event received');
+          break;
+        case SocketEvent.error:
+          print('🚨 DEBUG: Socket error event');
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Connection error occurred'),
+              backgroundColor: Colors.red,
+            ),
+          );
+          break;
+        case SocketEvent.disconnect:
+          print('🔌 DEBUG: Socket disconnected');
+          break;
+        default:
+          break;
+      }
     });
   }
 
@@ -232,8 +233,8 @@ class _ChatScreenState extends State<ChatScreen> {
       print('📤 DEBUG: Friend ID: $_friendId');
       print('📤 DEBUG: Message content: $messageContent');
 
-      // Send message via real-time service (Socket.IO)
-      _realtimeChatService.sendMessage(_friendId!, messageContent);
+      // Send message via socket service
+      await _socketService.sendFriendMessage(_friendId!, messageContent);
 
       // Add temporary message to UI immediately for better UX
       final tempMessage = Message(
@@ -285,7 +286,8 @@ class _ChatScreenState extends State<ChatScreen> {
 
     // Send typing indicator via real-time service
     if (_friendId != null) {
-      _realtimeChatService.sendTypingIndicator(_friendId!);
+      // Note: Typing indicator functionality can be added to SocketService if needed
+      print('🔄 DEBUG: Typing indicator - would send to $_friendId');
     }
   }
 
@@ -298,7 +300,8 @@ class _ChatScreenState extends State<ChatScreen> {
     _typingTimer = Timer(const Duration(seconds: 2), () {
       // Stop typing indicator via real-time service
       if (_friendId != null) {
-        _realtimeChatService.stopTypingIndicator(_friendId!);
+        // Note: Stop typing indicator functionality can be added to SocketService if needed
+        print('🔄 DEBUG: Stop typing indicator - would send to $_friendId');
       }
     });
   }

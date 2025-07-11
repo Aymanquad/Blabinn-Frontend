@@ -39,7 +39,8 @@ class RealtimeChatService {
     if (_isConnected) return;
 
     try {
-      print('🔌 DEBUG: Connecting to Socket.IO server...');
+      print('🔌 DEBUG: RealtimeChatService connecting to Socket.IO server...');
+      print('🔌 DEBUG: Using WebSocket URL: ${AppConfig.wsBaseUrl}');
 
       // Get current user info
       final authService = FirebaseAuthService();
@@ -52,11 +53,17 @@ class RealtimeChatService {
       _currentUserId = user.uid;
       _currentDisplayName = user.displayName ?? 'User';
 
+      // Get auth token
+      final authToken = await user.getIdToken();
+
       // Create socket connection to the backend
-      _socket = IO.io(AppConfig.apiBaseUrl, <String, dynamic>{
+      _socket = IO.io(AppConfig.wsBaseUrl, <String, dynamic>{
         'transports': ['websocket', 'polling'],
         'autoConnect': false,
         'timeout': 20000,
+        'auth': {
+          'token': authToken,
+        },
       });
 
       // Set up event listeners
@@ -64,9 +71,9 @@ class RealtimeChatService {
 
       // Connect
       _socket!.connect();
-      print('🔌 DEBUG: Socket.IO connection initiated');
+      print('🔌 DEBUG: RealtimeChatService Socket.IO connection initiated');
     } catch (e) {
-      print('🚨 DEBUG: Socket.IO connection error: $e');
+      print('🚨 DEBUG: RealtimeChatService Socket.IO connection error: $e');
       _errorController
           .add({'error': 'Connection failed', 'details': e.toString()});
     }
@@ -74,10 +81,12 @@ class RealtimeChatService {
 
   void _setupEventListeners() {
     _socket!.on('connect', (_) {
-      print('✅ DEBUG: Socket.IO connected successfully');
+      print('✅ DEBUG: RealtimeChatService Socket.IO connected successfully');
+      print('✅ DEBUG: RealtimeChatService Socket ID: ${_socket!.id}');
       _isConnected = true;
 
       // Join the user room for private messaging
+      print('📤 DEBUG: RealtimeChatService sending join event');
       _socket!.emit('join', {
         'userId': _currentUserId,
         'displayName': _currentDisplayName,
@@ -85,7 +94,7 @@ class RealtimeChatService {
     });
 
     _socket!.on('disconnect', (_) {
-      print('❌ DEBUG: Socket.IO disconnected');
+      print('❌ DEBUG: RealtimeChatService Socket.IO disconnected');
       _isConnected = false;
     });
 

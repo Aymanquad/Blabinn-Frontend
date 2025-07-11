@@ -6,21 +6,38 @@ class EnvConfig {
   // Environment
   static const String environment = 'development';
 
+  // ===== HISHAM PC CONFIG (COMMENTED OUT) =====
   // API Configuration
-  static const String apiBaseUrlAndroid = 'http://192.168.0.105:3000';
+  // static const String apiBaseUrlAndroid = 'http://192.168.0.105:3000';
+  // static const String apiBaseUrlIos = 'http://localhost:3000';
+  // static const String apiBaseUrlWeb = 'http://localhost:3000';
+  // static const String apiBaseUrlDefault = 'http://localhost:3000';
+  
+  // WebSocket Configuration
+  // static const String wsUrlAndroid = 'ws://192.168.0.105:3000';
+  // static const String wsUrlIos = 'ws://localhost:3000';
+  // static const String wsUrlWeb = 'ws://localhost:3000';
+  // static const String wsUrlDefault = 'ws://localhost:3000';
+  
+  // Physical Device IP (for Android physical devices)
+  // static const String physicalDeviceIp = '192.168.0.105';
+
+  // ===== AYMAN PC CONFIG =====
+  // API Configuration
+  static const String apiBaseUrlAndroid = 'http://192.168.1.5:3000';  // Replace with your PC's IP
   static const String apiBaseUrlIos = 'http://localhost:3000';
   static const String apiBaseUrlWeb = 'http://localhost:3000';
   static const String apiBaseUrlDefault = 'http://localhost:3000';
   static const String apiVersion = 'v1';
 
   // WebSocket Configuration
-  static const String wsUrlAndroid = 'ws://192.168.0.105:3000';
+  static const String wsUrlAndroid = 'ws://192.168.1.5:3000';  // Replace with your PC's IP
   static const String wsUrlIos = 'ws://localhost:3000';
   static const String wsUrlWeb = 'ws://localhost:3000';
   static const String wsUrlDefault = 'ws://localhost:3000';
 
   // Physical Device IP (for Android physical devices)
-  static const String physicalDeviceIp = '192.168.0.105';
+  static const String physicalDeviceIp = '192.168.1.5';  // Replace with your PC's IP
 
   // Third-party API Keys
   static const String googleTranslateApiKey = '';

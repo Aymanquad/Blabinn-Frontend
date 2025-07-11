@@ -92,10 +92,10 @@ class SocketService {
       _authToken = authToken;
 
       print('🔍 [SOCKET DEBUG] Attempting to connect to Socket.IO server');
-      print('   🌐 URL: ${AppConfig.apiBaseUrl}');
+      print('   🌐 URL: ${AppConfig.wsBaseUrl}');
       print('   🔑 Token length: ${authToken.length}');
 
-      _socket = IO.io(AppConfig.apiBaseUrl, <String, dynamic>{
+      _socket = IO.io(AppConfig.wsBaseUrl, <String, dynamic>{
         'transports': ['websocket'],
         'autoConnect': false,
         'auth': {
@@ -593,7 +593,7 @@ class SocketService {
     _reconnectTimer = null;
   }
 
-  // Send message through socket
+  // Send message through socket (for random chat)
   Future<void> sendMessage(String chatId, String content,
       {MessageType type = MessageType.text}) async {
     if (!_isConnected) {
@@ -611,6 +611,33 @@ class SocketService {
     };
 
     _sendToSocket(message);
+  }
+
+  // Send message to friend (for friend chat)
+  Future<void> sendFriendMessage(String receiverId, String content,
+      {MessageType type = MessageType.text}) async {
+    print('📤 [SOCKET DEBUG] sendFriendMessage called');
+    print('   🎯 Receiver ID: $receiverId');
+    print('   💬 Content: $content');
+    print('   🔗 Connected: $_isConnected');
+
+    if (!_isConnected) {
+      print('❌ [SOCKET DEBUG] Cannot send friend message - not connected');
+      throw Exception('WebSocket not connected');
+    }
+
+    final message = {
+      'receiverId': receiverId,
+      'content': content,
+      'messageType': type.toString().split('.').last,
+      'timestamp': DateTime.now().toIso8601String(),
+    };
+
+    print('📤 [SOCKET DEBUG] Sending friend message via socket');
+    print('   📦 Message data: $message');
+    
+    // Use the Socket.IO emit method directly for friend messages
+    _socket!.emit('message', message);
   }
 
   // Send typing indicator
