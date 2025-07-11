@@ -109,6 +109,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
   }
 
   Widget _buildChatItem(Map<String, dynamic> friend) {
+    final theme = Theme.of(context);
     final displayName =
         friend['displayName'] ?? friend['username'] ?? 'Unknown';
     final profilePicture = friend['profilePicture'] as String?;
@@ -123,16 +124,16 @@ class _ChatListScreenState extends State<ChatListScreen> {
           children: [
             CircleAvatar(
               radius: 25,
-              backgroundColor: AppColors.primary.withOpacity(0.1),
+              backgroundColor: theme.colorScheme.primary.withOpacity(0.1),
               backgroundImage:
                   profilePicture != null ? NetworkImage(profilePicture) : null,
               child: profilePicture == null
                   ? Text(
                       displayName[0].toUpperCase(),
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
-                        color: AppColors.primary,
+                        color: theme.colorScheme.primary,
                       ),
                     )
                   : null,
@@ -143,7 +144,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
                 right: 0,
                 child: Container(
                   padding: const EdgeInsets.all(4),
-                  decoration: const BoxDecoration(
+                  decoration: BoxDecoration(
                     color: AppColors.error,
                     shape: BoxShape.circle,
                   ),
@@ -179,7 +180,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  color: Colors.grey[600],
+                  color: theme.colorScheme.onSurface.withOpacity(0.7),
                   fontWeight:
                       unreadCount > 0 ? FontWeight.w500 : FontWeight.normal,
                 ),
@@ -188,7 +189,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
               Text(
                 lastMessageTime,
                 style: TextStyle(
-                  color: Colors.grey[500],
+                  color: theme.colorScheme.onSurface.withOpacity(0.5),
                   fontSize: 12,
                 ),
               ),
@@ -198,7 +199,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
             ? Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: AppColors.primary,
+                  color: theme.colorScheme.primary,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
@@ -210,7 +211,8 @@ class _ChatListScreenState extends State<ChatListScreen> {
                   ),
                 ),
               )
-            : const Icon(Icons.chevron_right, color: Colors.grey),
+            : Icon(Icons.chevron_right,
+                color: theme.colorScheme.onSurface.withOpacity(0.5)),
         onTap: () => _openChatWithFriend(friend),
       ),
     );
@@ -233,60 +235,74 @@ class _ChatListScreenState extends State<ChatListScreen> {
               child: CircularProgressIndicator(),
             )
           : _errorMessage != null
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.error_outline,
-                        size: 64,
-                        color: Colors.grey[400],
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        _errorMessage!,
-                        style: TextStyle(
-                          color: Colors.grey[600],
-                          fontSize: 16,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 16),
-                      ElevatedButton(
-                        onPressed: _loadChatsData,
-                        child: const Text('Retry'),
-                      ),
-                    ],
-                  ),
-                )
-              : _friends.isEmpty
-                  ? Center(
+              ? Builder(
+                  builder: (context) {
+                    final theme = Theme.of(context);
+                    return Center(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Icon(
-                            Icons.chat_bubble_outline,
+                            Icons.error_outline,
                             size: 64,
-                            color: Colors.grey[400],
+                            color: theme.colorScheme.onSurface.withOpacity(0.4),
                           ),
                           const SizedBox(height: 16),
                           Text(
-                            'No friends to chat with yet',
+                            _errorMessage!,
                             style: TextStyle(
-                              color: Colors.grey[600],
+                              color:
+                                  theme.colorScheme.onSurface.withOpacity(0.7),
                               fontSize: 16,
                             ),
+                            textAlign: TextAlign.center,
                           ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Add friends to start chatting!',
-                            style: TextStyle(
-                              color: Colors.grey[500],
-                              fontSize: 14,
-                            ),
+                          const SizedBox(height: 16),
+                          ElevatedButton(
+                            onPressed: _loadChatsData,
+                            child: const Text('Retry'),
                           ),
                         ],
                       ),
+                    );
+                  },
+                )
+              : _friends.isEmpty
+                  ? Builder(
+                      builder: (context) {
+                        final theme = Theme.of(context);
+                        return Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.chat_bubble_outline,
+                                size: 64,
+                                color: theme.colorScheme.onSurface
+                                    .withOpacity(0.4),
+                              ),
+                              const SizedBox(height: 16),
+                              Text(
+                                'No friends to chat with yet',
+                                style: TextStyle(
+                                  color: theme.colorScheme.onSurface
+                                      .withOpacity(0.7),
+                                  fontSize: 16,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                'Add friends to start chatting!',
+                                style: TextStyle(
+                                  color: theme.colorScheme.onSurface
+                                      .withOpacity(0.5),
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
                     )
                   : RefreshIndicator(
                       onRefresh: _loadChatsData,

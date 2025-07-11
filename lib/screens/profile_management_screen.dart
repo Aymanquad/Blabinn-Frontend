@@ -1,16 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:provider/provider.dart';
 import 'dart:io';
 import '../core/constants.dart';
 import '../models/user.dart';
 import '../services/auth_service.dart';
 import '../services/api_service.dart';
+import '../providers/theme_provider.dart';
 
 class ProfileManagementScreen extends StatefulWidget {
   const ProfileManagementScreen({Key? key}) : super(key: key);
 
   @override
-  State<ProfileManagementScreen> createState() => _ProfileManagementScreenState();
+  State<ProfileManagementScreen> createState() =>
+      _ProfileManagementScreenState();
 }
 
 class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
@@ -58,7 +61,7 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
         _currentUser = user;
         _populateFormFromUser(user);
       });
-      
+
       // Try to load existing profile
       await _loadExistingProfile();
     }
@@ -91,7 +94,7 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
     _usernameController.text = profile['username'] ?? '';
     _bioController.text = profile['bio'] ?? '';
     _ageController.text = profile['age']?.toString() ?? '';
-    
+
     setState(() {
       _selectedGender = profile['gender'] ?? 'prefer-not-to-say';
       _interests = List<String>.from(profile['interests'] ?? []);
@@ -117,7 +120,8 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
       final result = await _apiService.checkUsernameAvailability(username);
       setState(() {
         _isUsernameAvailable = result['available'] ?? false;
-        _usernameError = _isUsernameAvailable ? null : 'Username is already taken';
+        _usernameError =
+            _isUsernameAvailable ? null : 'Username is already taken';
       });
     } catch (e) {
       setState(() {
@@ -136,7 +140,7 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Profile Management'),
-        backgroundColor: AppColors.primary,
+        backgroundColor: Theme.of(context).colorScheme.primary,
         foregroundColor: Colors.white,
       ),
       body: _currentUser == null
@@ -153,7 +157,7 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
                       width: double.infinity,
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: AppColors.primary,
+                        color: Theme.of(context).colorScheme.primary,
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: const Text(
@@ -168,12 +172,12 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
                     const SizedBox(height: 24),
 
                     // Create/Update Profile Section
-                    const Text(
+                    Text(
                       'Create/Update Profile',
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
-                        color: AppColors.text,
+                        color: Theme.of(context).colorScheme.onSurface,
                       ),
                     ),
                     const SizedBox(height: 16),
@@ -234,6 +238,10 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
                     _buildInterestsSection(),
                     const SizedBox(height: 24),
 
+                    // Account Settings Section
+                    _buildAccountSettingsSection(),
+                    const SizedBox(height: 24),
+
                     // Action Buttons - Simplified for now
                     _buildActionButtons(),
                   ],
@@ -257,9 +265,9 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
       children: [
         Text(
           '$label:',
-          style: const TextStyle(
+          style: TextStyle(
             fontWeight: FontWeight.w600,
-            color: AppColors.text,
+            color: Theme.of(context).colorScheme.onSurface,
           ),
         ),
         const SizedBox(height: 8),
@@ -283,11 +291,11 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'Username:',
           style: TextStyle(
             fontWeight: FontWeight.w600,
-            color: AppColors.text,
+            color: Theme.of(context).colorScheme.onSurface,
           ),
         ),
         const SizedBox(height: 8),
@@ -326,7 +334,8 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
             ),
             const SizedBox(width: 12),
             ElevatedButton(
-              onPressed: _isCheckingUsername ? null : _checkUsernameAvailability,
+              onPressed:
+                  _isCheckingUsername ? null : _checkUsernameAvailability,
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.grey[700],
                 foregroundColor: Colors.white,
@@ -430,7 +439,7 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
       };
 
       final result = await _apiService.createProfile(profileData);
-      
+
       // Upload profile picture if selected
       if (_profilePicture != null) {
         await _apiService.uploadProfilePicture(_profilePicture!);
@@ -467,7 +476,7 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
       };
 
       final result = await _apiService.updateProfile(profileData);
-      
+
       // Upload profile picture if selected
       if (_profilePicture != null) {
         await _apiService.uploadProfilePicture(_profilePicture!);
@@ -488,7 +497,8 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Delete Profile'),
-        content: const Text('Are you sure you want to delete your profile? This action cannot be undone.'),
+        content: const Text(
+            'Are you sure you want to delete your profile? This action cannot be undone.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -522,6 +532,89 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
         });
       }
     }
+
+    Widget _buildAccountSettingsSection() {
+      return Consumer<ThemeProvider>(
+        builder: (context, themeProvider, child) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppColors.primary,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Text(
+                  '⚙️ Account Settings',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // Dark Mode Toggle
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.grey.shade300),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.dark_mode,
+                      color: AppColors.primary,
+                      size: 24,
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Dark Mode',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.text,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            themeProvider.isDarkMode
+                                ? 'Switch to light mode'
+                                : 'Switch to dark mode',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Switch(
+                      value: themeProvider.isDarkMode,
+                      onChanged: (value) {
+                        themeProvider.toggleTheme();
+                      },
+                      activeColor: AppColors.primary,
+                      activeTrackColor: AppColors.primary.withOpacity(0.3),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          );
+        },
+      );
+    }
   }
 
   void _clearForm() {
@@ -542,11 +635,11 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'Profile Picture:',
           style: TextStyle(
             fontWeight: FontWeight.w600,
-            color: AppColors.text,
+            color: Theme.of(context).colorScheme.onSurface,
           ),
         ),
         const SizedBox(height: 8),
@@ -561,7 +654,9 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
                 ),
                 child: Center(
                   child: Text(
-                    _profilePicture != null ? 'Image selected' : 'No file chosen',
+                    _profilePicture != null
+                        ? 'Image selected'
+                        : 'No file chosen',
                     style: const TextStyle(color: Colors.grey),
                   ),
                 ),
@@ -601,11 +696,11 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'Photo Gallery (Up to 5 pictures):',
           style: TextStyle(
             fontWeight: FontWeight.w600,
-            color: AppColors.text,
+            color: Theme.of(context).colorScheme.onSurface,
           ),
         ),
         const SizedBox(height: 8),
@@ -620,7 +715,7 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
                 ),
                 child: Center(
                   child: Text(
-                    _galleryImages.isNotEmpty 
+                    _galleryImages.isNotEmpty
                         ? '${_galleryImages.length} images selected'
                         : 'No file chosen',
                     style: const TextStyle(color: Colors.grey),
@@ -664,7 +759,8 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
                           top: 4,
                           right: 4,
                           child: GestureDetector(
-                            onTap: () => setState(() => _galleryImages.removeAt(index)),
+                            onTap: () =>
+                                setState(() => _galleryImages.removeAt(index)),
                             child: Container(
                               width: 20,
                               height: 20,
@@ -696,11 +792,11 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'Gender:',
           style: TextStyle(
             fontWeight: FontWeight.w600,
-            color: AppColors.text,
+            color: Theme.of(context).colorScheme.onSurface,
           ),
         ),
         const SizedBox(height: 8),
@@ -713,7 +809,8 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
             DropdownMenuItem(value: 'male', child: Text('Male')),
             DropdownMenuItem(value: 'female', child: Text('Female')),
             DropdownMenuItem(value: 'other', child: Text('Other')),
-            DropdownMenuItem(value: 'prefer-not-to-say', child: Text('Prefer not to say')),
+            DropdownMenuItem(
+                value: 'prefer-not-to-say', child: Text('Prefer not to say')),
           ],
           onChanged: (value) {
             setState(() {
@@ -729,11 +826,11 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'Interests:',
           style: TextStyle(
             fontWeight: FontWeight.w600,
-            color: AppColors.text,
+            color: Theme.of(context).colorScheme.onSurface,
           ),
         ),
         const SizedBox(height: 8),
@@ -785,7 +882,7 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
         maxHeight: 1024,
         imageQuality: 80,
       );
-      
+
       if (image != null) {
         setState(() {
           _profilePicture = File(image.path);
@@ -803,11 +900,12 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
         maxHeight: 1024,
         imageQuality: 80,
       );
-      
+
       // Limit to 5 images total
       final availableSlots = 5 - _galleryImages.length;
-      final imagesToAdd = images.take(availableSlots).map((xfile) => File(xfile.path)).toList();
-      
+      final imagesToAdd =
+          images.take(availableSlots).map((xfile) => File(xfile.path)).toList();
+
       setState(() {
         _galleryImages.addAll(imagesToAdd);
       });
@@ -818,7 +916,9 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
 
   void _addInterest() {
     final interest = _interestController.text.trim();
-    if (interest.isNotEmpty && !_interests.contains(interest) && _interests.length < 20) {
+    if (interest.isNotEmpty &&
+        !_interests.contains(interest) &&
+        _interests.length < 20) {
       setState(() {
         _interests.add(interest);
         _interestController.clear();
@@ -859,4 +959,92 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
     _interestController.dispose();
     super.dispose();
   }
-} 
+
+  Widget _buildAccountSettingsSection() {
+    return Consumer<ThemeProvider>(
+      builder: (context, themeProvider, child) {
+        final theme = Theme.of(context);
+        final isDark = theme.brightness == Brightness.dark;
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.primary,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Text(
+                '⚙️ Account Settings',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // Dark Mode Toggle
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surface,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                    color: theme.colorScheme.outline.withOpacity(0.3)),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.dark_mode,
+                    color: theme.colorScheme.primary,
+                    size: 24,
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Dark Mode',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: theme.colorScheme.onSurface,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          themeProvider.isDarkMode
+                              ? 'Switch to light mode'
+                              : 'Switch to dark mode',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: theme.colorScheme.onSurface.withOpacity(0.7),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Switch(
+                    value: themeProvider.isDarkMode,
+                    onChanged: (value) {
+                      themeProvider.toggleTheme();
+                    },
+                    activeColor: theme.colorScheme.primary,
+                    activeTrackColor:
+                        theme.colorScheme.primary.withOpacity(0.3),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}

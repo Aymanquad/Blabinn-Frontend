@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:provider/provider.dart';
 import 'core/constants.dart';
+import 'providers/theme_provider.dart';
 import 'screens/splash_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/profile_screen.dart';
@@ -20,75 +22,149 @@ class ChatApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: AppConstants.appName,
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: AppColors.primary,
-          brightness: Brightness.light,
-        ),
-        scaffoldBackgroundColor: AppColors.background,
-        appBarTheme: const AppBarTheme(
-          backgroundColor: AppColors.background,
-          foregroundColor: AppColors.text,
-          elevation: 0,
-        ),
-        elevatedButtonTheme: ElevatedButtonThemeData(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.primary,
-            foregroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-          ),
-        ),
-        cardTheme: const CardThemeData(
-          color: AppColors.cardBackground,
-          elevation: 2,
-        ),
-        inputDecorationTheme: InputDecorationTheme(
-          filled: true,
-          fillColor: AppColors.inputBackground,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide.none,
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: AppColors.primary, width: 2),
-          ),
-        ),
-      ),
-      home: const SplashScreen(),
-      routes: {
-        '/home': (context) => const MainNavigationScreen(),
-        '/profile': (context) => const ProfileScreen(),
-        '/profile-management': (context) => const ProfileManagementScreen(),
-        '/connect': (context) => const ConnectScreen(),
-        '/login': (context) => const LoginScreen(),
-        '/search': (context) => const SearchScreen(),
-        '/friend-requests': (context) => const FriendRequestsScreen(),
-        '/friends': (context) => const FriendsScreen(),
-        '/chat-list': (context) => const ChatListScreen(),
-        '/friends-list': (context) => const FriendsListScreen(),
-        '/user-profile': (context) {
-          final args = ModalRoute.of(context)?.settings.arguments;
-          if (args is String) {
-            return UserProfileScreen(userId: args);
-          }
-          // Fallback for debugging
-          return const Scaffold(
-            body: Center(
-              child: Text('Invalid user ID provided'),
-            ),
+    return ChangeNotifierProvider(
+      create: (_) => ThemeProvider(),
+      child: Consumer<ThemeProvider>(
+        builder: (context, themeProvider, child) {
+          return MaterialApp(
+            title: AppConstants.appName,
+            debugShowCheckedModeBanner: false,
+            theme: _buildLightTheme(),
+            darkTheme: _buildDarkTheme(),
+            themeMode:
+                themeProvider.isDarkMode ? ThemeMode.dark : ThemeMode.light,
+            home: const SplashScreen(),
+            routes: {
+              '/home': (context) => const MainNavigationScreen(),
+              '/profile': (context) => const ProfileScreen(),
+              '/profile-management': (context) =>
+                  const ProfileManagementScreen(),
+              '/connect': (context) => const ConnectScreen(),
+              '/login': (context) => const LoginScreen(),
+              '/search': (context) => const SearchScreen(),
+              '/friend-requests': (context) => const FriendRequestsScreen(),
+              '/friends': (context) => const FriendsScreen(),
+              '/chat-list': (context) => const ChatListScreen(),
+              '/friends-list': (context) => const FriendsListScreen(),
+              '/user-profile': (context) {
+                final args = ModalRoute.of(context)?.settings.arguments;
+                if (args is String) {
+                  return UserProfileScreen(userId: args);
+                }
+                // Fallback for debugging
+                return const Scaffold(
+                  body: Center(
+                    child: Text('Invalid user ID provided'),
+                  ),
+                );
+              },
+            },
           );
         },
-      },
+      ),
     );
   }
+}
+
+// Theme building methods
+ThemeData _buildLightTheme() {
+  return ThemeData(
+    useMaterial3: true,
+    colorScheme: ColorScheme.fromSeed(
+      seedColor: AppColors.primary,
+      brightness: Brightness.light,
+    ).copyWith(
+      primary: AppColors.primary,
+      secondary: AppColors.secondary,
+      tertiary: AppColors.accent,
+      surface: AppColors.cardBackground,
+      background: AppColors.background,
+      onSurface: AppColors.text,
+      onBackground: AppColors.text,
+    ),
+    scaffoldBackgroundColor: AppColors.background,
+    appBarTheme: const AppBarTheme(
+      backgroundColor: AppColors.background,
+      foregroundColor: AppColors.text,
+      elevation: 0,
+    ),
+    elevatedButtonTheme: ElevatedButtonThemeData(
+      style: ElevatedButton.styleFrom(
+        backgroundColor: AppColors.primary,
+        foregroundColor: Colors.white,
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+      ),
+    ),
+    cardTheme: const CardThemeData(
+      color: AppColors.cardBackground,
+      elevation: 2,
+    ),
+    inputDecorationTheme: InputDecorationTheme(
+      filled: true,
+      fillColor: AppColors.inputBackground,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide.none,
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: AppColors.primary, width: 2),
+      ),
+    ),
+  );
+}
+
+ThemeData _buildDarkTheme() {
+  return ThemeData(
+    useMaterial3: true,
+    colorScheme: ColorScheme.fromSeed(
+      seedColor: AppColors.darkPrimary,
+      brightness: Brightness.dark,
+    ).copyWith(
+      primary: AppColors.darkPrimary,
+      secondary: AppColors.darkSecondary,
+      tertiary: AppColors.darkAccent,
+      surface: AppColors.darkCardBackground,
+      background: AppColors.darkBackground,
+      onSurface: AppColors.darkText,
+      onBackground: AppColors.darkText,
+    ),
+    scaffoldBackgroundColor: AppColors.darkBackground,
+    appBarTheme: const AppBarTheme(
+      backgroundColor: AppColors.darkBackground,
+      foregroundColor: AppColors.darkText,
+      elevation: 0,
+    ),
+    elevatedButtonTheme: ElevatedButtonThemeData(
+      style: ElevatedButton.styleFrom(
+        backgroundColor: AppColors.darkPrimary,
+        foregroundColor: Colors.white,
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+      ),
+    ),
+    cardTheme: const CardThemeData(
+      color: AppColors.darkCardBackground,
+      elevation: 2,
+    ),
+    inputDecorationTheme: InputDecorationTheme(
+      filled: true,
+      fillColor: AppColors.darkInputBackground,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide.none,
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: AppColors.darkPrimary, width: 2),
+      ),
+    ),
+  );
 }
 
 class MainNavigationScreen extends StatefulWidget {
@@ -164,20 +240,23 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Scaffold(
       appBar: AppBar(
         title: Text(
           AppConstants.appName,
-          style: const TextStyle(
+          style: TextStyle(
             fontWeight: FontWeight.bold,
-            color: AppColors.text,
+            color: theme.colorScheme.onSurface,
           ),
         ),
         actions: [
           IconButton(
-            icon: const Icon(
+            icon: Icon(
               AppIcons.profile,
-              color: AppColors.primary,
+              color: theme.colorScheme.primary,
             ),
             onPressed: _navigateToProfile,
             tooltip: 'Profile',
@@ -208,13 +287,13 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
           currentIndex: _currentIndex,
           onTap: _onTabTapped,
           type: BottomNavigationBarType.fixed,
-          backgroundColor: AppColors.background,
-          selectedItemColor: AppColors.primary,
-          unselectedItemColor: Colors.grey,
+          backgroundColor: theme.colorScheme.surface,
+          selectedItemColor: theme.colorScheme.primary,
+          unselectedItemColor: theme.colorScheme.onSurface.withOpacity(0.6),
           selectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600),
           unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.normal),
           elevation: 0,
-          items: const [
+          items: [
             BottomNavigationBarItem(
               icon: Icon(AppIcons.home),
               label: AppStrings.home,

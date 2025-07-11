@@ -21,7 +21,7 @@ class _ChatScreenState extends State<ChatScreen> {
   final ScrollController _scrollController = ScrollController();
   final ApiService _apiService = ApiService();
   final RealtimeChatService _realtimeChatService = RealtimeChatService();
-  
+
   List<Message> _messages = [];
   bool _isTyping = false;
   bool _isLoading = false;
@@ -30,7 +30,7 @@ class _ChatScreenState extends State<ChatScreen> {
   String? _errorMessage;
   String? _currentUserId;
   String? _friendId;
-  
+
   // Stream subscriptions for real-time events
   StreamSubscription<Message>? _messageSubscription;
   StreamSubscription<Message>? _messageSentSubscription;
@@ -52,12 +52,12 @@ class _ChatScreenState extends State<ChatScreen> {
   Future<void> _initializeCurrentUser() async {
     _currentUserId = await _apiService.getCurrentUserId();
     print('🔍 DEBUG: Current user ID set to: $_currentUserId');
-    
+
     // Get friend ID for this chat
     if (widget.chat.isFriendChat) {
       try {
-        _friendId = widget.chat.participantIds
-            .firstWhere((id) => id != _currentUserId);
+        _friendId =
+            widget.chat.participantIds.firstWhere((id) => id != _currentUserId);
       } catch (e) {
         _friendId = widget.chat.id;
       }
@@ -74,7 +74,7 @@ class _ChatScreenState extends State<ChatScreen> {
     // Listen for incoming messages
     _messageSubscription = _realtimeChatService.messageStream.listen((message) {
       print('💬 DEBUG: Received real-time message: ${message.content}');
-      
+
       // Only add the message if it's for this chat
       if (widget.chat.isFriendChat && message.senderId == _friendId) {
         setState(() {
@@ -86,12 +86,14 @@ class _ChatScreenState extends State<ChatScreen> {
     });
 
     // Listen for message sent confirmations
-    _messageSentSubscription = _realtimeChatService.messageSentStream.listen((message) {
+    _messageSentSubscription =
+        _realtimeChatService.messageSentStream.listen((message) {
       print('✅ DEBUG: Message sent confirmation: ${message.content}');
-      
+
       // Update the message in the list if it exists (replace temporary ID with real ID)
       setState(() {
-        final index = _messages.indexWhere((m) => m.content == message.content && m.senderId == _currentUserId);
+        final index = _messages.indexWhere((m) =>
+            m.content == message.content && m.senderId == _currentUserId);
         if (index != -1) {
           _messages[index] = message;
         } else {
@@ -119,12 +121,12 @@ class _ChatScreenState extends State<ChatScreen> {
     _messageController.dispose();
     _scrollController.dispose();
     _typingTimer?.cancel();
-    
+
     // Cancel real-time subscriptions
     _messageSubscription?.cancel();
     _messageSentSubscription?.cancel();
     _errorSubscription?.cancel();
-    
+
     super.dispose();
   }
 
@@ -137,17 +139,17 @@ class _ChatScreenState extends State<ChatScreen> {
     try {
       print('🔍 DEBUG: _loadChatHistory() called');
       Map<String, dynamic> response;
-      
+
       // Check if this is a friend chat (direct messaging)
       if (widget.chat.isFriendChat) {
         // Use direct friend messaging API
         final currentUserId = await _apiService.getCurrentUserId();
         print('🔍 DEBUG: Current user ID: $currentUserId');
-        
+
         if (currentUserId == null) {
           throw Exception('User not logged in');
         }
-        
+
         String? friendId;
         try {
           friendId = widget.chat.participantIds
@@ -155,30 +157,31 @@ class _ChatScreenState extends State<ChatScreen> {
         } catch (e) {
           friendId = widget.chat.id;
         }
-        
+
         print('🔍 DEBUG: Friend ID: $friendId');
-        
+
         if (friendId == null || friendId.isEmpty) {
           throw Exception('Invalid friend ID');
         }
-        
-        print('🔍 DEBUG: Calling getChatHistoryWithUser with friendId: $friendId');
+
+        print(
+            '🔍 DEBUG: Calling getChatHistoryWithUser with friendId: $friendId');
         response = await _apiService.getChatHistoryWithUser(friendId!);
         print('🔍 DEBUG: Chat history response: $response');
       } else {
         // Use room-based messaging (legacy)
         response = await _apiService.getChatMessages(widget.chat.id);
       }
-      
+
       final messagesData = response['messages'] as List;
       print('🔍 DEBUG: Found ${messagesData.length} messages in history');
-      
+
       setState(() {
         try {
           // Sort messages by timestamp (oldest first for chat display)
           print('🔍 DEBUG: Parsing ${messagesData.length} messages...');
           final messages = <Message>[];
-          
+
           for (int i = 0; i < messagesData.length; i++) {
             try {
               final message = Message.fromJson(messagesData[i]);
@@ -189,7 +192,7 @@ class _ChatScreenState extends State<ChatScreen> {
               print('🚨 DEBUG: Message data: ${messagesData[i]}');
             }
           }
-          
+
           messages.sort((a, b) => a.timestamp.compareTo(b.timestamp));
           _messages = messages;
           _isLoading = false;
@@ -199,7 +202,7 @@ class _ChatScreenState extends State<ChatScreen> {
           _isLoading = false;
         }
       });
-      
+
       print('🔍 DEBUG: Set ${_messages.length} messages in state');
       _scrollToBottom();
     } catch (e) {
@@ -214,7 +217,7 @@ class _ChatScreenState extends State<ChatScreen> {
   Future<void> _sendMessage() async {
     final messageContent = _messageController.text.trim();
     if (messageContent.isEmpty || _isSending) return;
-    
+
     if (_friendId == null) {
       print('❌ DEBUG: Cannot send message - friendId is null');
       return;
@@ -228,10 +231,10 @@ class _ChatScreenState extends State<ChatScreen> {
       print('📤 DEBUG: Sending message via real-time service');
       print('📤 DEBUG: Friend ID: $_friendId');
       print('📤 DEBUG: Message content: $messageContent');
-      
+
       // Send message via real-time service (Socket.IO)
       _realtimeChatService.sendMessage(_friendId!, messageContent);
-      
+
       // Add temporary message to UI immediately for better UX
       final tempMessage = Message(
         id: 'temp_${DateTime.now().millisecondsSinceEpoch}',
@@ -243,7 +246,7 @@ class _ChatScreenState extends State<ChatScreen> {
         timestamp: DateTime.now(),
         status: MessageStatus.sending,
       );
-      
+
       setState(() {
         _messages.add(tempMessage);
         _isSending = false;
@@ -257,7 +260,7 @@ class _ChatScreenState extends State<ChatScreen> {
       setState(() {
         _isSending = false;
       });
-      
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Failed to send message: ${e.toString()}'),
@@ -279,7 +282,7 @@ class _ChatScreenState extends State<ChatScreen> {
     setState(() {
       _isTyping = true;
     });
-    
+
     // Send typing indicator via real-time service
     if (_friendId != null) {
       _realtimeChatService.sendTypingIndicator(_friendId!);
@@ -290,7 +293,7 @@ class _ChatScreenState extends State<ChatScreen> {
     setState(() {
       _isTyping = false;
     });
-    
+
     _typingTimer?.cancel();
     _typingTimer = Timer(const Duration(seconds: 2), () {
       // Stop typing indicator via real-time service
@@ -424,9 +427,11 @@ class _ChatScreenState extends State<ChatScreen> {
       body: Column(
         children: [
           Expanded(
-            child: _isLoading 
-              ? const Center(child: CircularProgressIndicator())
-              : (_messages.isEmpty ? _buildEmptyState() : _buildMessageList()),
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : (_messages.isEmpty
+                    ? _buildEmptyState()
+                    : _buildMessageList()),
           ),
           _buildMessageInput(),
         ],
@@ -435,6 +440,8 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Widget _buildEmptyState() {
+    final theme = Theme.of(context);
+
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -442,7 +449,7 @@ class _ChatScreenState extends State<ChatScreen> {
           Icon(
             Icons.chat_bubble_outline,
             size: 64,
-            color: Colors.grey[400],
+            color: theme.colorScheme.onSurface.withOpacity(0.4),
           ),
           const SizedBox(height: 16),
           Text(
@@ -450,7 +457,7 @@ class _ChatScreenState extends State<ChatScreen> {
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w600,
-              color: Colors.grey[600],
+              color: theme.colorScheme.onSurface.withOpacity(0.7),
             ),
           ),
           const SizedBox(height: 8),
@@ -458,7 +465,7 @@ class _ChatScreenState extends State<ChatScreen> {
             'Send a message to begin chatting!',
             style: TextStyle(
               fontSize: 14,
-              color: Colors.grey[500],
+              color: theme.colorScheme.onSurface.withOpacity(0.5),
             ),
             textAlign: TextAlign.center,
           ),
@@ -468,6 +475,8 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Widget _buildMessageList() {
+    final theme = Theme.of(context);
+
     return ListView.builder(
       controller: _scrollController,
       padding: const EdgeInsets.all(16),
@@ -475,25 +484,29 @@ class _ChatScreenState extends State<ChatScreen> {
       itemBuilder: (context, index) {
         final message = _messages[index];
         final isMe = message.senderId == _currentUserId;
-        
+
         return Padding(
           padding: const EdgeInsets.only(bottom: 8),
           child: Column(
-            crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+            crossAxisAlignment:
+                isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
             children: [
               Container(
                 constraints: BoxConstraints(
                   maxWidth: MediaQuery.of(context).size.width * 0.7,
                 ),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                 decoration: BoxDecoration(
-                  color: isMe ? AppColors.primary : Colors.grey[300],
+                  color: isMe
+                      ? theme.colorScheme.primary
+                      : theme.colorScheme.surface,
                   borderRadius: BorderRadius.circular(18),
                 ),
                 child: Text(
                   message.content,
                   style: TextStyle(
-                    color: isMe ? Colors.white : Colors.black87,
+                    color: isMe ? Colors.white : theme.colorScheme.onSurface,
                     fontSize: 16,
                   ),
                 ),
@@ -503,7 +516,7 @@ class _ChatScreenState extends State<ChatScreen> {
                 _formatMessageTime(message.timestamp),
                 style: TextStyle(
                   fontSize: 12,
-                  color: Colors.grey[600],
+                  color: theme.colorScheme.onSurface.withOpacity(0.7),
                 ),
               ),
             ],
@@ -516,7 +529,7 @@ class _ChatScreenState extends State<ChatScreen> {
   String _formatMessageTime(DateTime timestamp) {
     final now = DateTime.now();
     final difference = now.difference(timestamp);
-    
+
     if (difference.inMinutes < 1) {
       return 'Just now';
     } else if (difference.inHours < 1) {
@@ -529,10 +542,12 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Widget _buildMessageInput() {
+    final theme = Theme.of(context);
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Theme.of(context).scaffoldBackgroundColor,
+        color: theme.colorScheme.surface,
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.1),
@@ -544,7 +559,7 @@ class _ChatScreenState extends State<ChatScreen> {
       child: Row(
         children: [
           IconButton(
-            icon: const Icon(Icons.attach_file),
+            icon: Icon(Icons.attach_file, color: theme.colorScheme.onSurface),
             onPressed: () {
               _showAttachmentOptions();
             },
@@ -560,7 +575,7 @@ class _ChatScreenState extends State<ChatScreen> {
                   borderSide: BorderSide.none,
                 ),
                 filled: true,
-                fillColor: Colors.grey[100],
+                fillColor: theme.colorScheme.surface,
                 contentPadding: const EdgeInsets.symmetric(
                   horizontal: 16,
                   vertical: 12,
@@ -573,7 +588,7 @@ class _ChatScreenState extends State<ChatScreen> {
           const SizedBox(width: 8),
           Container(
             decoration: BoxDecoration(
-              color: AppColors.primary,
+              color: theme.colorScheme.primary,
               borderRadius: BorderRadius.circular(24),
             ),
             child: IconButton(
@@ -623,4 +638,4 @@ class _ChatScreenState extends State<ChatScreen> {
       ),
     );
   }
-} 
+}

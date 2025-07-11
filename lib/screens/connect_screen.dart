@@ -591,6 +591,8 @@ class _ConnectScreenState extends State<ConnectScreen> {
   }
 
   Widget _buildWelcomeScreen() {
+    final theme = Theme.of(context);
+
     return SingleChildScrollView(
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 20),
@@ -601,13 +603,13 @@ class _ConnectScreenState extends State<ConnectScreen> {
               width: 120,
               height: 120,
               decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.1),
+                color: theme.colorScheme.primary.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
               child: Icon(
                 Icons.people,
                 size: 60,
-                color: AppColors.primary,
+                color: theme.colorScheme.primary,
               ),
             ),
             const SizedBox(height: 24),
@@ -623,7 +625,7 @@ class _ConnectScreenState extends State<ConnectScreen> {
               child: Text(
                 'Connect with people within your preferred distance range',
                 style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      color: Colors.grey[600],
+                      color: theme.colorScheme.onSurface.withOpacity(0.7),
                     ),
                 textAlign: TextAlign.center,
               ),
@@ -637,6 +639,7 @@ class _ConnectScreenState extends State<ConnectScreen> {
   }
 
   Widget _buildFilterSummary() {
+    final theme = Theme.of(context);
     final selectedRange = AppConstants.distanceRanges.firstWhere(
       (range) => range['value'] == _filters['distance'],
       orElse: () => AppConstants.distanceRanges[0],
@@ -650,9 +653,11 @@ class _ConnectScreenState extends State<ConnectScreen> {
           children: [
             Row(
               children: [
-                const Icon(Icons.settings, size: 16),
+                Icon(Icons.settings,
+                    size: 16, color: theme.colorScheme.onSurface),
                 const SizedBox(width: 8),
-                const Text('Current Filters'),
+                Text('Current Filters',
+                    style: TextStyle(color: theme.colorScheme.onSurface)),
                 const Spacer(),
                 if (!_isPremium)
                   Container(
@@ -694,19 +699,28 @@ class _ConnectScreenState extends State<ConnectScreen> {
   }
 
   Widget _buildFilterItem(String label, String value) {
+    final theme = Theme.of(context);
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: TextStyle(color: Colors.grey[600])),
-          Text(value, style: const TextStyle(fontWeight: FontWeight.w500)),
+          Text(label,
+              style: TextStyle(
+                  color: theme.colorScheme.onSurface.withOpacity(0.7))),
+          Text(value,
+              style: TextStyle(
+                  fontWeight: FontWeight.w500,
+                  color: theme.colorScheme.onSurface)),
         ],
       ),
     );
   }
 
   Widget _buildPremiumFilterItem(String label, String value) {
+    final theme = Theme.of(context);
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
@@ -714,7 +728,9 @@ class _ConnectScreenState extends State<ConnectScreen> {
         children: [
           Row(
             children: [
-              Text(label, style: TextStyle(color: Colors.grey[600])),
+              Text(label,
+                  style: TextStyle(
+                      color: theme.colorScheme.onSurface.withOpacity(0.7))),
               const SizedBox(width: 4),
               const Icon(Icons.star, size: 12, color: AppColors.warning),
             ],
@@ -723,7 +739,7 @@ class _ConnectScreenState extends State<ConnectScreen> {
             value,
             style: TextStyle(
               fontWeight: FontWeight.w500,
-              color: Colors.grey[500],
+              color: theme.colorScheme.onSurface.withOpacity(0.5),
             ),
           ),
         ],
@@ -732,6 +748,8 @@ class _ConnectScreenState extends State<ConnectScreen> {
   }
 
   Widget _buildMatchingScreen() {
+    final theme = Theme.of(context);
+
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -740,7 +758,7 @@ class _ConnectScreenState extends State<ConnectScreen> {
             width: 120,
             height: 120,
             decoration: BoxDecoration(
-              color: AppColors.primary.withOpacity(0.1),
+              color: theme.colorScheme.primary.withOpacity(0.1),
               shape: BoxShape.circle,
             ),
             child: Stack(
@@ -750,14 +768,14 @@ class _ConnectScreenState extends State<ConnectScreen> {
                   width: 80,
                   height: 80,
                   child: CircularProgressIndicator(
-                    color: AppColors.primary,
+                    color: theme.colorScheme.primary,
                     strokeWidth: 3,
                   ),
                 ),
                 Icon(
                   Icons.search,
                   size: 40,
-                  color: AppColors.primary,
+                  color: theme.colorScheme.primary,
                 ),
               ],
             ),
@@ -773,7 +791,7 @@ class _ConnectScreenState extends State<ConnectScreen> {
           Text(
             'Looking for people within your selected distance range',
             style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  color: Colors.grey[600],
+                  color: theme.colorScheme.onSurface.withOpacity(0.7),
                 ),
             textAlign: TextAlign.center,
           ),
@@ -788,13 +806,15 @@ class _ConnectScreenState extends State<ConnectScreen> {
   }
 
   Widget _buildConnectButton() {
+    final theme = Theme.of(context);
+
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton(
         onPressed: _isMatching ? _stopMatching : _startMatching,
         style: ElevatedButton.styleFrom(
           padding: const EdgeInsets.symmetric(vertical: 16),
-          backgroundColor: _isMatching ? Colors.red : AppColors.primary,
+          backgroundColor: _isMatching ? Colors.red : theme.colorScheme.primary,
         ),
         child: Text(
           _isMatching ? 'Stop Matching' : 'Start Matching',
@@ -952,6 +972,8 @@ class _ConnectScreenState extends State<ConnectScreen> {
   }
 
   Widget _buildPremiumFeatureCard() {
+    final theme = Theme.of(context);
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -966,24 +988,29 @@ class _ConnectScreenState extends State<ConnectScreen> {
             children: [
               Icon(Icons.star, color: AppColors.warning, size: 20),
               const SizedBox(width: 8),
-              const Text(
+              Text(
                 'Premium Features',
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 16,
+                  color: theme.colorScheme.onSurface,
                 ),
               ),
             ],
           ),
           const SizedBox(height: 8),
-          const Text(
+          Text(
             'Age Range & Interest Matching',
-            style: TextStyle(fontWeight: FontWeight.w600),
+            style: TextStyle(
+                fontWeight: FontWeight.w600,
+                color: theme.colorScheme.onSurface),
           ),
           const SizedBox(height: 4),
           Text(
             'Get better matches with advanced age filters and interest-based connections.',
-            style: TextStyle(color: Colors.grey[600], fontSize: 14),
+            style: TextStyle(
+                color: theme.colorScheme.onSurface.withOpacity(0.7),
+                fontSize: 14),
           ),
           const SizedBox(height: 12),
           SizedBox(

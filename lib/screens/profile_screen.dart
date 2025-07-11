@@ -49,6 +49,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildLoginPrompt() {
+    final theme = Theme.of(context);
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Profile'),
@@ -64,7 +66,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               Icon(
                 Icons.person_outline,
                 size: 64,
-                color: Colors.grey[400],
+                color: theme.colorScheme.onSurface.withOpacity(0.4),
               ),
               const SizedBox(height: 16),
               Text(
@@ -77,7 +79,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               Text(
                 'Sign in to access your profile and settings',
                 style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      color: Colors.grey[600],
+                      color: theme.colorScheme.onSurface.withOpacity(0.7),
                     ),
                 textAlign: TextAlign.center,
               ),
@@ -103,7 +105,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Widget _buildProfileView() {
     final User user = _currentUser!;
-    
+    final theme = Theme.of(context);
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Profile'),
@@ -118,41 +121,42 @@ class _ProfileScreenState extends State<ProfileScreen> {
             // Profile Picture
             CircleAvatar(
               radius: 60,
-              backgroundColor: Colors.grey[300],
-              backgroundImage: user.hasProfileImage 
-                  ? NetworkImage(user.profileImage!) 
+              backgroundColor: theme.colorScheme.surface,
+              backgroundImage: user.hasProfileImage
+                  ? NetworkImage(user.profileImage!)
                   : null,
-              child: !user.hasProfileImage 
+              child: !user.hasProfileImage
                   ? Icon(
                       Icons.person,
                       size: 60,
-                      color: Colors.grey[600],
-                    ) 
+                      color: theme.colorScheme.onSurface.withOpacity(0.6),
+                    )
                   : null,
             ),
             const SizedBox(height: 16),
-            
+
             // User Name
             Text(
               user.username,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
+                color: theme.colorScheme.onSurface,
               ),
             ),
             const SizedBox(height: 8),
-            
+
             // Email
             if (user.email != null)
               Text(
                 user.email!,
                 style: TextStyle(
                   fontSize: 16,
-                  color: Colors.grey[600],
+                  color: theme.colorScheme.onSurface.withOpacity(0.7),
                 ),
               ),
             const SizedBox(height: 8),
-            
+
             // User Status
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -168,22 +172,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
               ),
             ),
-            
+
             const SizedBox(height: 32),
-            
+
             // Settings Section
             Container(
               decoration: BoxDecoration(
-                color: Colors.grey[50],
+                color: theme.colorScheme.surface,
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Column(
                 children: [
                   // Account Settings
                   ListTile(
-                    leading: const Icon(Icons.settings),
-                    title: const Text('Account Settings'),
-                    trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                    leading: Icon(Icons.settings,
+                        color: theme.colorScheme.onSurface),
+                    title: Text('Account Settings',
+                        style: TextStyle(color: theme.colorScheme.onSurface)),
+                    trailing: Icon(Icons.arrow_forward_ios,
+                        size: 16,
+                        color: theme.colorScheme.onSurface.withOpacity(0.5)),
                     onTap: () {
                       // TODO: Navigate to account settings
                       ScaffoldMessenger.of(context).showSnackBar(
@@ -191,26 +199,38 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       );
                     },
                   ),
-                  
-                  const Divider(height: 1),
-                  
+
+                  Divider(
+                      height: 1,
+                      color: theme.colorScheme.outline.withOpacity(0.2)),
+
                   // Profile Management
                   ListTile(
-                    leading: const Icon(Icons.person_outline),
-                    title: const Text('Manage Profile'),
-                    trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                    leading: Icon(Icons.person_outline,
+                        color: theme.colorScheme.onSurface),
+                    title: Text('Manage Profile',
+                        style: TextStyle(color: theme.colorScheme.onSurface)),
+                    trailing: Icon(Icons.arrow_forward_ios,
+                        size: 16,
+                        color: theme.colorScheme.onSurface.withOpacity(0.5)),
                     onTap: () {
                       Navigator.pushNamed(context, '/profile-management');
                     },
                   ),
-                  
-                  const Divider(height: 1),
-                  
+
+                  Divider(
+                      height: 1,
+                      color: theme.colorScheme.outline.withOpacity(0.2)),
+
                   // Privacy Settings
                   ListTile(
-                    leading: const Icon(Icons.privacy_tip),
-                    title: const Text('Privacy & Security'),
-                    trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                    leading: Icon(Icons.privacy_tip,
+                        color: theme.colorScheme.onSurface),
+                    title: Text('Privacy & Security',
+                        style: TextStyle(color: theme.colorScheme.onSurface)),
+                    trailing: Icon(Icons.arrow_forward_ios,
+                        size: 16,
+                        color: theme.colorScheme.onSurface.withOpacity(0.5)),
                     onTap: () {
                       // TODO: Navigate to privacy settings
                       ScaffoldMessenger.of(context).showSnackBar(
@@ -218,14 +238,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       );
                     },
                   ),
-                  
-                  const Divider(height: 1),
-                  
+
+                  Divider(
+                      height: 1,
+                      color: theme.colorScheme.outline.withOpacity(0.2)),
+
                   // Help & Support
                   ListTile(
-                    leading: const Icon(Icons.help_outline),
-                    title: const Text('Help & Support'),
-                    trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                    leading: Icon(Icons.help_outline,
+                        color: theme.colorScheme.onSurface),
+                    title: Text('Help & Support',
+                        style: TextStyle(color: theme.colorScheme.onSurface)),
+                    trailing: Icon(Icons.arrow_forward_ios,
+                        size: 16,
+                        color: theme.colorScheme.onSurface.withOpacity(0.5)),
                     onTap: () {
                       // TODO: Navigate to help
                       ScaffoldMessenger.of(context).showSnackBar(
@@ -236,9 +262,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ],
               ),
             ),
-            
+
             const SizedBox(height: 32),
-            
+
             // Logout Button
             SizedBox(
               width: double.infinity,
@@ -261,15 +287,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
               ),
             ),
-            
+
             const SizedBox(height: 16),
-            
+
             // App Version
             Text(
               'Version 1.0.0',
               style: TextStyle(
                 fontSize: 12,
-                color: Colors.grey[500],
+                color: theme.colorScheme.onSurface.withOpacity(0.5),
               ),
             ),
 
@@ -278,9 +304,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
               margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.blue.shade50,
+                color: theme.colorScheme.surface,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.blue.shade200),
+                border: Border.all(
+                    color: theme.colorScheme.outline.withOpacity(0.3)),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -290,17 +317,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color: Colors.blue.shade800,
+                      color: theme.colorScheme.onSurface,
                     ),
                   ),
                   const SizedBox(height: 8),
-                                     FutureBuilder<String?>(
-                     future: _apiService.getCurrentUserId(),
+                  FutureBuilder<String?>(
+                    future: _apiService.getCurrentUserId(),
                     builder: (context, snapshot) {
                       if (snapshot.connectionState == ConnectionState.waiting) {
-                        return const Text('Checking authentication...');
+                        return Text('Checking authentication...',
+                            style: TextStyle(
+                                color: theme.colorScheme.onSurface
+                                    .withOpacity(0.7)));
                       }
-                      
+
                       if (snapshot.hasData && snapshot.data != null) {
                         return Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -317,7 +347,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               'User ID: ${snapshot.data}',
                               style: TextStyle(
                                 fontSize: 12,
-                                color: Colors.grey.shade600,
+                                color: theme.colorScheme.onSurface
+                                    .withOpacity(0.7),
                               ),
                             ),
                           ],
@@ -338,7 +369,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               'Please sign in to use chat features',
                               style: TextStyle(
                                 fontSize: 12,
-                                color: Colors.grey.shade600,
+                                color: theme.colorScheme.onSurface
+                                    .withOpacity(0.7),
                               ),
                             ),
                           ],
@@ -374,7 +406,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ],
       ),
     );
-    
+
     if (shouldLogout == true) {
       await _authService.logout();
       if (mounted) {

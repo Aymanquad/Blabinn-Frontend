@@ -35,6 +35,9 @@ class HomeScreen extends StatelessWidget {
   }
 
   Widget _buildWelcomeSection(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(24),
@@ -43,8 +46,8 @@ class HomeScreen extends StatelessWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            AppColors.primary.withValues(alpha: 0.1),
-            AppColors.secondary.withValues(alpha: 0.1),
+            theme.colorScheme.primary.withValues(alpha: 0.1),
+            theme.colorScheme.secondary.withValues(alpha: 0.1),
           ],
         ),
         borderRadius: BorderRadius.circular(16),
@@ -56,14 +59,14 @@ class HomeScreen extends StatelessWidget {
             'Welcome to ${AppConstants.appName}',
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.bold,
-                  color: AppColors.text,
+                  color: theme.colorScheme.onSurface,
                 ),
           ),
           const SizedBox(height: 8),
           Text(
             'Connect with people from around the world!',
             style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  color: Colors.grey[600],
+                  color: theme.colorScheme.onSurface.withOpacity(0.7),
                 ),
           ),
           const SizedBox(height: 16),
@@ -71,14 +74,14 @@ class HomeScreen extends StatelessWidget {
             children: [
               Icon(
                 Icons.people,
-                color: AppColors.primary,
+                color: theme.colorScheme.primary,
                 size: 20,
               ),
               const SizedBox(width: 8),
               Text(
                 'Ready to make new connections?',
                 style: TextStyle(
-                  color: AppColors.primary,
+                  color: theme.colorScheme.primary,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -90,6 +93,8 @@ class HomeScreen extends StatelessWidget {
   }
 
   Widget _buildQuickActions(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -107,7 +112,7 @@ class HomeScreen extends StatelessWidget {
                 icon: AppIcons.connect,
                 title: 'Start Connecting',
                 subtitle: 'Find new people',
-                color: AppColors.primary,
+                color: theme.colorScheme.primary,
                 onTap: () {
                   onNavigateToTab?.call(2); // Navigate to Connect tab (index 2)
                 },
@@ -119,7 +124,7 @@ class HomeScreen extends StatelessWidget {
                 icon: AppIcons.chat,
                 title: 'My Chats',
                 subtitle: 'View conversations',
-                color: AppColors.secondary,
+                color: theme.colorScheme.secondary,
                 onTap: () {
                   onNavigateToTab?.call(1); // Navigate to Chats tab (index 1)
                 },
@@ -132,6 +137,8 @@ class HomeScreen extends StatelessWidget {
   }
 
   Widget _buildSearchSection(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -154,20 +161,20 @@ class HomeScreen extends StatelessWidget {
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: [
-                  AppColors.accent.withValues(alpha: 0.1),
-                  AppColors.primary.withValues(alpha: 0.1),
+                  theme.colorScheme.tertiary.withValues(alpha: 0.1),
+                  theme.colorScheme.primary.withValues(alpha: 0.1),
                 ],
               ),
               borderRadius: BorderRadius.circular(16),
-              border:
-                  Border.all(color: AppColors.accent.withValues(alpha: 0.3)),
+              border: Border.all(
+                  color: theme.colorScheme.tertiary.withValues(alpha: 0.3)),
             ),
             child: Row(
               children: [
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: AppColors.accent,
+                    color: theme.colorScheme.tertiary,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: const Icon(
@@ -186,7 +193,7 @@ class HomeScreen extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
-                          color: AppColors.accent,
+                          color: theme.colorScheme.tertiary,
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -194,7 +201,7 @@ class HomeScreen extends StatelessWidget {
                         'Find and connect with new people',
                         style: TextStyle(
                           fontSize: 14,
-                          color: Colors.grey[600],
+                          color: theme.colorScheme.onSurface.withOpacity(0.7),
                         ),
                       ),
                     ],
@@ -202,7 +209,7 @@ class HomeScreen extends StatelessWidget {
                 ),
                 Icon(
                   Icons.arrow_forward_ios,
-                  color: AppColors.accent,
+                  color: theme.colorScheme.tertiary,
                   size: 16,
                 ),
               ],
@@ -214,6 +221,8 @@ class HomeScreen extends StatelessWidget {
   }
 
   Widget _buildFriendRequestsSection(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -236,20 +245,20 @@ class HomeScreen extends StatelessWidget {
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: [
-                  AppColors.secondary.withValues(alpha: 0.1),
-                  AppColors.primary.withValues(alpha: 0.1),
+                  theme.colorScheme.secondary.withValues(alpha: 0.1),
+                  theme.colorScheme.primary.withValues(alpha: 0.1),
                 ],
               ),
               borderRadius: BorderRadius.circular(16),
-              border:
-                  Border.all(color: AppColors.secondary.withValues(alpha: 0.3)),
+              border: Border.all(
+                  color: theme.colorScheme.secondary.withValues(alpha: 0.3)),
             ),
             child: Row(
               children: [
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: AppColors.secondary,
+                    color: theme.colorScheme.secondary,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: const Icon(
@@ -268,7 +277,7 @@ class HomeScreen extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
-                          color: AppColors.secondary,
+                          color: theme.colorScheme.secondary,
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -276,7 +285,7 @@ class HomeScreen extends StatelessWidget {
                         'Manage your friend requests',
                         style: TextStyle(
                           fontSize: 14,
-                          color: Colors.grey[600],
+                          color: theme.colorScheme.onSurface.withOpacity(0.7),
                         ),
                       ),
                     ],
@@ -284,7 +293,7 @@ class HomeScreen extends StatelessWidget {
                 ),
                 Icon(
                   Icons.arrow_forward_ios,
-                  color: AppColors.secondary,
+                  color: theme.colorScheme.secondary,
                   size: 16,
                 ),
               ],
@@ -296,6 +305,8 @@ class HomeScreen extends StatelessWidget {
   }
 
   Widget _buildFriendsSection(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -318,20 +329,20 @@ class HomeScreen extends StatelessWidget {
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: [
-                  AppColors.accent.withValues(alpha: 0.1),
-                  AppColors.primary.withValues(alpha: 0.1),
+                  theme.colorScheme.tertiary.withValues(alpha: 0.1),
+                  theme.colorScheme.primary.withValues(alpha: 0.1),
                 ],
               ),
               borderRadius: BorderRadius.circular(16),
-              border:
-                  Border.all(color: AppColors.accent.withValues(alpha: 0.3)),
+              border: Border.all(
+                  color: theme.colorScheme.tertiary.withValues(alpha: 0.3)),
             ),
             child: Row(
               children: [
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: AppColors.accent,
+                    color: theme.colorScheme.tertiary,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: const Icon(
@@ -350,7 +361,7 @@ class HomeScreen extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
-                          color: AppColors.accent,
+                          color: theme.colorScheme.tertiary,
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -358,7 +369,7 @@ class HomeScreen extends StatelessWidget {
                         'View and manage your friends',
                         style: TextStyle(
                           fontSize: 14,
-                          color: Colors.grey[600],
+                          color: theme.colorScheme.onSurface.withOpacity(0.7),
                         ),
                       ),
                     ],
@@ -366,7 +377,7 @@ class HomeScreen extends StatelessWidget {
                 ),
                 Icon(
                   Icons.arrow_forward_ios,
-                  color: AppColors.accent,
+                  color: theme.colorScheme.tertiary,
                   size: 16,
                 ),
               ],
@@ -410,13 +421,18 @@ class HomeScreen extends StatelessWidget {
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 4),
-            Text(
-              subtitle,
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.grey[600],
-              ),
-              textAlign: TextAlign.center,
+            Builder(
+              builder: (context) {
+                final theme = Theme.of(context);
+                return Text(
+                  subtitle,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: theme.colorScheme.onSurface.withOpacity(0.7),
+                  ),
+                  textAlign: TextAlign.center,
+                );
+              },
             ),
           ],
         ),
@@ -425,6 +441,8 @@ class HomeScreen extends StatelessWidget {
   }
 
   Widget _buildStatsSection(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -442,7 +460,7 @@ class HomeScreen extends StatelessWidget {
                 title: 'Connections',
                 value: '0',
                 icon: Icons.people_outline,
-                color: AppColors.primary,
+                color: theme.colorScheme.primary,
               ),
             ),
             const SizedBox(width: 12),
@@ -451,7 +469,7 @@ class HomeScreen extends StatelessWidget {
                 title: 'Chats',
                 value: '0',
                 icon: Icons.chat_bubble_outline,
-                color: AppColors.secondary,
+                color: theme.colorScheme.secondary,
               ),
             ),
             const SizedBox(width: 12),
@@ -460,7 +478,7 @@ class HomeScreen extends StatelessWidget {
                 title: 'Friends',
                 value: '0',
                 icon: Icons.favorite_outline,
-                color: AppColors.accent,
+                color: theme.colorScheme.tertiary,
               ),
             ),
           ],
@@ -475,49 +493,57 @@ class HomeScreen extends StatelessWidget {
     required IconData icon,
     required Color color,
   }) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
+    return Builder(
+      builder: (context) {
+        final theme = Theme.of(context);
+
+        return Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surface,
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.05),
+                blurRadius: 10,
+                offset: const Offset(0, 2),
+              ),
+            ],
           ),
-        ],
-      ),
-      child: Column(
-        children: [
-          Icon(
-            icon,
-            color: color,
-            size: 24,
+          child: Column(
+            children: [
+              Icon(
+                icon,
+                color: color,
+                size: 24,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                value,
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: color,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: theme.colorScheme.onSurface.withOpacity(0.7),
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 8),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: color,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            title,
-            style: TextStyle(
-              fontSize: 12,
-              color: Colors.grey[600],
-            ),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 
   Widget _buildRecentActivity(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -532,7 +558,7 @@ class HomeScreen extends StatelessWidget {
           width: double.infinity,
           padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: theme.colorScheme.surface,
             borderRadius: BorderRadius.circular(12),
             boxShadow: [
               BoxShadow(
@@ -547,7 +573,7 @@ class HomeScreen extends StatelessWidget {
               Icon(
                 Icons.history,
                 size: 48,
-                color: Colors.grey[400],
+                color: theme.colorScheme.onSurface.withOpacity(0.4),
               ),
               const SizedBox(height: 16),
               Text(
@@ -555,7 +581,7 @@ class HomeScreen extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
-                  color: Colors.grey[600],
+                  color: theme.colorScheme.onSurface.withOpacity(0.7),
                 ),
               ),
               const SizedBox(height: 8),
@@ -563,7 +589,7 @@ class HomeScreen extends StatelessWidget {
                 'Start connecting with people to see your activity here!',
                 style: TextStyle(
                   fontSize: 14,
-                  color: Colors.grey[500],
+                  color: theme.colorScheme.onSurface.withOpacity(0.5),
                 ),
                 textAlign: TextAlign.center,
               ),

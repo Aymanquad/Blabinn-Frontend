@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../core/constants.dart';
+import '../providers/theme_provider.dart';
+import 'package:provider/provider.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -68,11 +70,11 @@ class _SplashScreenState extends State<SplashScreen>
   void _startSplashSequence() async {
     // Start logo animation
     await _logoController.forward();
-    
+
     // Wait a bit, then start text animation
     await Future.delayed(const Duration(milliseconds: 300));
     await _textController.forward();
-    
+
     // Wait for total splash duration, then navigate
     await Future.delayed(const Duration(milliseconds: 1500));
     _navigateToHome();
@@ -91,17 +93,33 @@ class _SplashScreenState extends State<SplashScreen>
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    final isDarkMode = themeProvider.isDarkMode;
+
+    // Theme-aware colors
+    final primaryColor = isDarkMode ? AppColors.darkPrimary : AppColors.primary;
+    final secondaryColor =
+        isDarkMode ? AppColors.darkSecondary : AppColors.secondary;
+    final backgroundColor =
+        isDarkMode ? AppColors.darkBackground : AppColors.background;
+    final textColor = isDarkMode ? AppColors.darkText : Colors.white;
+    final logoBackgroundColor =
+        isDarkMode ? AppColors.darkCardBackground : Colors.white;
+    final shadowColor = isDarkMode
+        ? Colors.black.withValues(alpha: 0.5)
+        : Colors.black.withValues(alpha: 0.3);
+
     return Scaffold(
-      backgroundColor: AppColors.primary,
+      backgroundColor: primaryColor,
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              AppColors.primary,
-              AppColors.primary.withValues(alpha: 0.8),
-              AppColors.secondary,
+              primaryColor,
+              primaryColor.withValues(alpha: 0.8),
+              secondaryColor,
             ],
           ),
         ),
@@ -119,11 +137,11 @@ class _SplashScreenState extends State<SplashScreen>
                       width: 150,
                       height: 150,
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: logoBackgroundColor,
                         borderRadius: BorderRadius.circular(30),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.3),
+                            color: shadowColor,
                             blurRadius: 20,
                             offset: const Offset(0, 10),
                           ),
@@ -141,9 +159,9 @@ class _SplashScreenState extends State<SplashScreen>
                   );
                 },
               ),
-              
+
               const SizedBox(height: 40),
-              
+
               // App name and tagline with animation
               AnimatedBuilder(
                 animation: _textAnimation,
@@ -156,10 +174,10 @@ class _SplashScreenState extends State<SplashScreen>
                         children: [
                           Text(
                             AppConstants.appName,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 32,
                               fontWeight: FontWeight.bold,
-                              color: Colors.white,
+                              color: textColor,
                               letterSpacing: 1.2,
                             ),
                           ),
@@ -168,7 +186,7 @@ class _SplashScreenState extends State<SplashScreen>
                             'Connect • Chat • Explore',
                             style: TextStyle(
                               fontSize: 16,
-                              color: Colors.white.withValues(alpha: 0.9),
+                              color: textColor.withValues(alpha: 0.9),
                               letterSpacing: 0.8,
                             ),
                           ),
@@ -178,9 +196,9 @@ class _SplashScreenState extends State<SplashScreen>
                   );
                 },
               ),
-              
+
               const SizedBox(height: 60),
-              
+
               // Loading indicator
               AnimatedBuilder(
                 animation: _fadeAnimation,
@@ -192,7 +210,7 @@ class _SplashScreenState extends State<SplashScreen>
                       height: 30,
                       child: CircularProgressIndicator(
                         valueColor: AlwaysStoppedAnimation<Color>(
-                          Colors.white.withValues(alpha: 0.8),
+                          textColor.withValues(alpha: 0.8),
                         ),
                         strokeWidth: 3,
                       ),
@@ -206,4 +224,4 @@ class _SplashScreenState extends State<SplashScreen>
       ),
     );
   }
-} 
+}
