@@ -91,17 +91,26 @@ class _ChatScreenState extends State<ChatScreen> {
     _messageSubscription = _socketService.messageStream.listen((message) {
       print('💬 DEBUG: Received real-time message: ${message.content}');
 
-      // Only add the message if it's for this chat
-      if (widget.chat.isFriendChat && message.senderId == _friendId) {
-        setState(() {
-          _messages.add(message);
-          _messages.sort((a, b) => a.timestamp.compareTo(b.timestamp));
-        });
-        _scrollToBottom();
+      // Add the message if it's for this chat (either from friend or current user)
+      if (widget.chat.isFriendChat && 
+          (message.senderId == _friendId || message.receiverId == _friendId)) {
+        
+        // Check if this message already exists to avoid duplicates
+        bool messageExists = _messages.any((msg) => msg.id == message.id);
+        
+        if (!messageExists) {
+          setState(() {
+            _messages.add(message);
+            _messages.sort((a, b) => a.timestamp.compareTo(b.timestamp));
+          });
+          _scrollToBottom();
 
-        // Auto-save received images to media folder
-        if (message.type == MessageType.image && message.imageUrl != null) {
-          _saveReceivedImageToMediaFolder(message.imageUrl!);
+          // Auto-save received images to media folder (only for messages from others)
+          if (message.type == MessageType.image && 
+              message.imageUrl != null && 
+              message.senderId == _friendId) {
+            _saveReceivedImageToMediaFolder(message.imageUrl!);
+          }
         }
       }
     });
@@ -249,26 +258,14 @@ class _ChatScreenState extends State<ChatScreen> {
       // Send message via socket service
       await _socketService.sendFriendMessage(_friendId!, messageContent);
 
-      // Add temporary message to UI immediately for better UX
-      final tempMessage = Message(
-        id: 'temp_${DateTime.now().millisecondsSinceEpoch}',
-        chatId: widget.chat.id,
-        senderId: _currentUserId!,
-        receiverId: _friendId!,
-        content: messageContent,
-        type: MessageType.text,
-        timestamp: DateTime.now(),
-        status: MessageStatus.sending,
-      );
-
       setState(() {
-        _messages.add(tempMessage);
         _isSending = false;
       });
 
       _messageController.clear();
       _stopTyping();
-      _scrollToBottom();
+      
+      // The message will be received via socket and added to the UI automatically
     } catch (e) {
       print('🚨 DEBUG: Error sending message: $e');
       setState(() {
@@ -491,52 +488,16 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Widget _buildMessageList() {
-    final theme = Theme.of(context);
-
     return ListView.builder(
       controller: _scrollController,
       padding: const EdgeInsets.all(16),
       itemCount: _messages.length,
       itemBuilder: (context, index) {
         final message = _messages[index];
-        final isMe = message.senderId == _currentUserId;
-
-        return Padding(
-          padding: const EdgeInsets.only(bottom: 8),
-          child: Column(
-            crossAxisAlignment:
-                isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
-            children: [
-              Container(
-                constraints: BoxConstraints(
-                  maxWidth: MediaQuery.of(context).size.width * 0.7,
-                ),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                decoration: BoxDecoration(
-                  color: isMe
-                      ? theme.colorScheme.primary
-                      : theme.colorScheme.surface,
-                  borderRadius: BorderRadius.circular(18),
-                ),
-                child: Text(
-                  message.content,
-                  style: TextStyle(
-                    color: isMe ? Colors.white : theme.colorScheme.onSurface,
-                    fontSize: 16,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                _formatMessageTime(message.timestamp),
-                style: TextStyle(
-                  fontSize: 12,
-                  color: theme.colorScheme.onSurface.withOpacity(0.7),
-                ),
-              ),
-            ],
-          ),
+        
+        return ChatBubble(
+          message: message,
+          currentUserId: _currentUserId,
         );
       },
     );
@@ -745,25 +706,11 @@ class _ChatScreenState extends State<ChatScreen> {
       // Send image message via socket service
       await _socketService.sendFriendImageMessage(_friendId!, imageUrl);
 
-      // Add temporary image message to UI
-      final tempMessage = Message(
-        id: 'temp_${DateTime.now().millisecondsSinceEpoch}',
-        chatId: widget.chat.id,
-        senderId: _currentUserId!,
-        receiverId: _friendId!,
-        content: 'Image',
-        type: MessageType.image,
-        imageUrl: imageUrl,
-        timestamp: DateTime.now(),
-        status: MessageStatus.sending,
-      );
-
       setState(() {
-        _messages.add(tempMessage);
         _isSending = false;
       });
 
-      _scrollToBottom();
+      // The message will be received via socket and added to the UI automatically
       _showSuccess('Image sent successfully!');
     } catch (e) {
       print('🚨 DEBUG: Error sending image: $e');

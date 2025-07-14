@@ -42,7 +42,7 @@ class ChatBubble extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildMessageContent(),
-          _buildMessageStatus(),
+          if (message.type != MessageType.text) _buildMessageStatus(),
         ],
       ),
     );
@@ -72,12 +72,28 @@ class ChatBubble extends StatelessWidget {
   Widget _buildTextMessage() {
     return Padding(
       padding: const EdgeInsets.all(12),
-      child: Text(
-        message.content,
-        style: TextStyle(
-          color: _isCurrentUser ? AppColors.sentMessageText : AppColors.receivedMessageText,
-          fontSize: 16,
-        ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          Flexible(
+            child: Text(
+              message.content,
+              style: TextStyle(
+                color: _isCurrentUser ? AppColors.sentMessageText : AppColors.receivedMessageText,
+                fontSize: 16,
+              ),
+            ),
+          ),
+          if (_isCurrentUser) ...[
+            const SizedBox(width: 4),
+            Icon(
+              _getStatusIcon(),
+              size: 16,
+              color: AppColors.sentMessageText.withOpacity(0.7),
+            ),
+          ],
+        ],
       ),
     );
   }
@@ -99,20 +115,58 @@ class ChatBubble extends StatelessWidget {
                   child: Image.network(
                     message.imageUrl!,
                     fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) => const Center(
-                      child: Icon(
-                        Icons.broken_image,
+                    loadingBuilder: (context, child, loadingProgress) {
+                      if (loadingProgress == null) return child;
+                      return Center(
+                        child: CircularProgressIndicator(
+                          value: loadingProgress.expectedTotalBytes != null
+                              ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
+                              : null,
+                        ),
+                      );
+                    },
+                    errorBuilder: (context, error, stackTrace) {
+                      return Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(
+                              Icons.broken_image,
+                              size: 64,
+                              color: Colors.grey,
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Image failed to load',
+                              style: TextStyle(
+                                color: Colors.grey[600],
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                )
+              : Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(
+                        Icons.image,
                         size: 64,
                         color: Colors.grey,
                       ),
-                    ),
-                  ),
-                )
-              : const Center(
-                  child: Icon(
-                    Icons.image,
-                    size: 64,
-                    color: Colors.grey,
+                      const SizedBox(height: 8),
+                      Text(
+                        'No image URL',
+                        style: TextStyle(
+                          color: Colors.grey[600],
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
         ),

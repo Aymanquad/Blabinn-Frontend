@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../core/constants.dart';
 import '../core/config.dart';
@@ -522,10 +523,34 @@ class ApiService {
       final headers = await _headers;
       request.headers.addAll(headers);
       
-      // Add image file
+      // Determine content type based on file extension
+      String contentType = 'image/jpeg'; // Default
+      final extension = imageFile.path.split('.').last.toLowerCase();
+      switch (extension) {
+        case 'jpg':
+        case 'jpeg':
+          contentType = 'image/jpeg';
+          break;
+        case 'png':
+          contentType = 'image/png';
+          break;
+        case 'gif':
+          contentType = 'image/gif';
+          break;
+        case 'webp':
+          contentType = 'image/webp';
+          break;
+        default:
+          contentType = 'image/jpeg'; // Fallback
+      }
+      
+      print('📤 DEBUG: Uploading image with content type: $contentType, file: ${imageFile.path}');
+      
+      // Add image file with explicit content type
       request.files.add(await http.MultipartFile.fromPath(
         'image',
         imageFile.path,
+        contentType: MediaType.parse(contentType),
       ));
       
       final streamedResponse = await request.send();
