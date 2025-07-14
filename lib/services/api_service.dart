@@ -490,6 +490,54 @@ class ApiService {
     throw Exception('Use Firebase authentication instead');
   }
 
+  // Block/Unblock user methods
+  Future<List<Map<String, dynamic>>> getBlockedUsers() async {
+    final response = await _get('/profiles/me/blocked');
+    final data = _handleResponse(response);
+    return List<Map<String, dynamic>>.from(data['blockedUsers'] ?? []);
+  }
+
+  Future<void> blockUser(String userId) async {
+    final response = await _post('/profiles/me/block', {'userId': userId});
+    _handleResponse(response);
+  }
+
+  Future<void> unblockUser(String userId) async {
+    final response = await _post('/profiles/me/unblock', {'userId': userId});
+    _handleResponse(response);
+  }
+
+  // Notification settings methods
+  Future<void> updateNotificationSettings(Map<String, dynamic> settings) async {
+    final response = await _put('/profiles/me/notification-settings', settings);
+    _handleResponse(response);
+  }
+
+  // Image upload methods
+  Future<String> uploadChatImage(File imageFile) async {
+    try {
+      final request = http.MultipartRequest('POST', Uri.parse('$_baseUrl/upload/chat-image'));
+      
+      // Add headers
+      final headers = await _headers;
+      request.headers.addAll(headers);
+      
+      // Add image file
+      request.files.add(await http.MultipartFile.fromPath(
+        'image',
+        imageFile.path,
+      ));
+      
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+      
+      final data = _handleResponse(response);
+      return data['imageUrl'] as String;
+    } catch (e) {
+      throw Exception('Failed to upload image: $e');
+    }
+  }
+
   @deprecated
   Future<Map<String, dynamic>> refreshToken(String refreshToken) async {
     throw Exception('Use Firebase authentication instead');

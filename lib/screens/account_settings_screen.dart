@@ -4,6 +4,9 @@ import '../core/constants.dart';
 import '../providers/theme_provider.dart';
 import '../services/api_service.dart';
 import '../services/firebase_auth_service.dart';
+import 'privacy_settings_screen.dart';
+import 'notifications_settings_screen.dart';
+import 'data_storage_screen.dart';
 
 class AccountSettingsScreen extends StatefulWidget {
   const AccountSettingsScreen({super.key});
@@ -321,8 +324,12 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
               subtitle: 'Manage your privacy preferences',
               trailing: Icon(Icons.arrow_forward_ios, size: 16),
               onTap: () {
-                // TODO: Navigate to privacy settings
-                _showError('Privacy settings coming soon!');
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const PrivacySettingsScreen(),
+                  ),
+                );
               },
             ),
 
@@ -333,8 +340,12 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
               subtitle: 'Configure notification preferences',
               trailing: Icon(Icons.arrow_forward_ios, size: 16),
               onTap: () {
-                // TODO: Navigate to notification settings
-                _showError('Notification settings coming soon!');
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const NotificationsSettingsScreen(),
+                  ),
+                );
               },
             ),
 
@@ -345,8 +356,12 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
               subtitle: 'Manage app data and storage',
               trailing: Icon(Icons.arrow_forward_ios, size: 16),
               onTap: () {
-                // TODO: Navigate to data settings
-                _showError('Data settings coming soon!');
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const DataStorageScreen(),
+                  ),
+                );
               },
             ),
 

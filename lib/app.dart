@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:provider/provider.dart';
 import 'core/constants.dart';
 import 'providers/theme_provider.dart';
+import 'providers/user_provider.dart';
 import 'screens/splash_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/profile_screen.dart';
@@ -16,6 +17,7 @@ import 'screens/user_profile_screen.dart';
 import 'screens/chat_list_screen.dart';
 import 'screens/friends_list_screen.dart';
 import 'screens/account_settings_screen.dart';
+import 'screens/media_folder_screen.dart';
 import 'services/socket_service.dart';
 
 class ChatApp extends StatelessWidget {
@@ -23,8 +25,11 @@ class ChatApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (_) => ThemeProvider(),
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => ThemeProvider()),
+        ChangeNotifierProvider(create: (_) => UserProvider()),
+      ],
       child: Consumer<ThemeProvider>(
         builder: (context, themeProvider, child) {
           return MaterialApp(
@@ -191,6 +196,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       HomeScreen(onNavigateToTab: _onTabTapped),
       const ChatListScreen(),
       const ConnectScreen(),
+      const MediaFolderScreen(),
     ];
   }
 
@@ -307,6 +313,10 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
             BottomNavigationBarItem(
               icon: Icon(AppIcons.connect),
               label: AppStrings.connect,
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(AppIcons.media),
+              label: AppStrings.media,
             ),
           ],
         ),

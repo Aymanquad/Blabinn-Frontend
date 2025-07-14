@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import '../core/constants.dart';
 import '../providers/theme_provider.dart';
+import '../providers/user_provider.dart';
 import 'package:provider/provider.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -68,6 +69,14 @@ class _SplashScreenState extends State<SplashScreen>
   }
 
   void _startSplashSequence() async {
+    // Initialize UserProvider
+    try {
+      final userProvider = Provider.of<UserProvider>(context, listen: false);
+      await userProvider.initialize();
+    } catch (e) {
+      print('UserProvider initialization failed: $e');
+    }
+
     // Start logo animation
     await _logoController.forward();
 

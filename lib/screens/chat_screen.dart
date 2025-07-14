@@ -1,8 +1,15 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:image_picker/image_picker.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:provider/provider.dart';
 import '../core/constants.dart';
 import '../models/chat.dart';
 import '../models/message.dart';
+import '../providers/user_provider.dart';
 import '../services/api_service.dart';
 import '../services/socket_service.dart';
 import '../services/firebase_auth_service.dart';
@@ -22,6 +29,7 @@ class _ChatScreenState extends State<ChatScreen> {
   final ScrollController _scrollController = ScrollController();
   final ApiService _apiService = ApiService();
   final SocketService _socketService = SocketService();
+  final ImagePicker _imagePicker = ImagePicker();
 
   List<Message> _messages = [];
   bool _isTyping = false;
@@ -90,6 +98,11 @@ class _ChatScreenState extends State<ChatScreen> {
           _messages.sort((a, b) => a.timestamp.compareTo(b.timestamp));
         });
         _scrollToBottom();
+
+        // Auto-save received images to media folder
+        if (message.type == MessageType.image && message.imageUrl != null) {
+          _saveReceivedImageToMediaFolder(message.imageUrl!);
+        }
       }
     });
 
@@ -379,13 +392,13 @@ class _ChatScreenState extends State<ChatScreen> {
             },
           ),
           PopupMenuButton<String>(
-            onSelected: (value) {
+            onSelected: (value) async {
               switch (value) {
                 case 'profile':
                   // TODO: Show user profile
                   break;
                 case 'block':
-                  // TODO: Block user
+                  await _blockUser();
                   break;
                 case 'report':
                   // TODO: Report user
@@ -604,6 +617,227 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
+  Future<void> _takePhoto() async {
+    try {
+      print('📸 DEBUG: Starting camera capture');
+      
+      // Request camera permission
+      final status = await Permission.camera.request();
+      if (status != PermissionStatus.granted) {
+        _showError('Camera permission is required to take photos');
+        
+        // Check if permission is permanently denied
+        if (status == PermissionStatus.permanentlyDenied) {
+          final shouldOpenSettings = await showDialog<bool>(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: const Text('Camera Permission Required'),
+              content: const Text('Please grant camera permission in app settings to take photos.'),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context, false),
+                  child: const Text('Cancel'),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.pop(context, true),
+                  child: const Text('Open Settings'),
+                ),
+              ],
+            ),
+          );
+          
+          if (shouldOpenSettings == true) {
+            await openAppSettings();
+          }
+        }
+        return;
+      }
+
+      final XFile? image = await _imagePicker.pickImage(
+        source: ImageSource.camera,
+        imageQuality: 80,
+      );
+
+      if (image != null) {
+        await _sendImageMessage(File(image.path));
+      }
+    } catch (e) {
+      print('❌ DEBUG: Camera capture error: $e');
+      _showError('Failed to take photo: $e');
+    }
+  }
+
+  Future<void> _pickFromGallery() async {
+    try {
+      print('🖼️ DEBUG: Starting gallery picker');
+      
+      // Request storage permission (use photos permission for Android 13+)
+      PermissionStatus status;
+      if (Platform.isAndroid) {
+        status = await Permission.photos.request();
+      } else {
+        status = await Permission.storage.request();
+      }
+      
+      if (status != PermissionStatus.granted) {
+        _showError('Gallery permission is required to select photos');
+        
+        // Check if permission is permanently denied
+        if (status == PermissionStatus.permanentlyDenied) {
+          final shouldOpenSettings = await showDialog<bool>(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: const Text('Gallery Permission Required'),
+              content: const Text('Please grant gallery permission in app settings to select photos.'),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context, false),
+                  child: const Text('Cancel'),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.pop(context, true),
+                  child: const Text('Open Settings'),
+                ),
+              ],
+            ),
+          );
+          
+          if (shouldOpenSettings == true) {
+            await openAppSettings();
+          }
+        }
+        return;
+      }
+
+      final XFile? image = await _imagePicker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 80,
+      );
+
+      if (image != null) {
+        await _sendImageMessage(File(image.path));
+      }
+    } catch (e) {
+      print('❌ DEBUG: Gallery picker error: $e');
+      _showError('Failed to pick image: $e');
+    }
+  }
+
+  Future<void> _sendImageMessage(File imageFile) async {
+    if (_friendId == null) {
+      print('❌ DEBUG: Cannot send image - friendId is null');
+      return;
+    }
+
+    setState(() {
+      _isSending = true;
+    });
+
+    try {
+      print('📤 DEBUG: Uploading and sending image');
+
+      // Upload image to backend
+      final imageUrl = await _apiService.uploadChatImage(imageFile);
+      
+      // Save image to media folder
+      await _saveImageToMediaFolder(imageFile);
+
+      // Send image message via socket service
+      await _socketService.sendFriendImageMessage(_friendId!, imageUrl);
+
+      // Add temporary image message to UI
+      final tempMessage = Message(
+        id: 'temp_${DateTime.now().millisecondsSinceEpoch}',
+        chatId: widget.chat.id,
+        senderId: _currentUserId!,
+        receiverId: _friendId!,
+        content: 'Image',
+        type: MessageType.image,
+        imageUrl: imageUrl,
+        timestamp: DateTime.now(),
+        status: MessageStatus.sending,
+      );
+
+      setState(() {
+        _messages.add(tempMessage);
+        _isSending = false;
+      });
+
+      _scrollToBottom();
+      _showSuccess('Image sent successfully!');
+    } catch (e) {
+      print('🚨 DEBUG: Error sending image: $e');
+      setState(() {
+        _isSending = false;
+      });
+      _showError('Failed to send image: $e');
+    }
+  }
+
+  Future<void> _saveImageToMediaFolder(File imageFile) async {
+    try {
+      final directory = await getApplicationDocumentsDirectory();
+      final mediaDir = Directory('${directory.path}/media');
+      
+      if (!await mediaDir.exists()) {
+        await mediaDir.create(recursive: true);
+      }
+
+      final fileName = '${DateTime.now().millisecondsSinceEpoch}_sent.jpg';
+      final savedFile = File('${mediaDir.path}/$fileName');
+      
+      await imageFile.copy(savedFile.path);
+      print('✅ DEBUG: Sent image saved to media folder');
+    } catch (e) {
+      print('⚠️ DEBUG: Failed to save sent image to media folder: $e');
+    }
+  }
+
+  Future<void> _saveReceivedImageToMediaFolder(String imageUrl) async {
+    try {
+      print('📥 DEBUG: Saving received image from URL: $imageUrl');
+      
+      final directory = await getApplicationDocumentsDirectory();
+      final mediaDir = Directory('${directory.path}/media');
+      
+      if (!await mediaDir.exists()) {
+        await mediaDir.create(recursive: true);
+      }
+
+      // Download the image from URL
+      final response = await http.get(Uri.parse(imageUrl));
+      if (response.statusCode == 200) {
+        final fileName = '${DateTime.now().millisecondsSinceEpoch}_received.jpg';
+        final savedFile = File('${mediaDir.path}/$fileName');
+        
+        await savedFile.writeAsBytes(response.bodyBytes);
+        print('✅ DEBUG: Received image saved to media folder: $fileName');
+      } else {
+        print('❌ DEBUG: Failed to download image: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('⚠️ DEBUG: Failed to save received image to media folder: $e');
+    }
+  }
+
+  void _showSuccess(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: AppColors.success,
+      ),
+    );
+  }
+
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: AppColors.error,
+      ),
+    );
+  }
+
   void _showAttachmentOptions() {
     showModalBottomSheet(
       context: context,
@@ -617,7 +851,7 @@ class _ChatScreenState extends State<ChatScreen> {
               title: const Text('Take Photo'),
               onTap: () {
                 Navigator.pop(context);
-                // TODO: Implement camera
+                _takePhoto();
               },
             ),
             ListTile(
@@ -625,7 +859,7 @@ class _ChatScreenState extends State<ChatScreen> {
               title: const Text('Choose from Gallery'),
               onTap: () {
                 Navigator.pop(context);
-                // TODO: Implement gallery picker
+                _pickFromGallery();
               },
             ),
             ListTile(
@@ -640,5 +874,81 @@ class _ChatScreenState extends State<ChatScreen> {
         ),
       ),
     );
+  }
+
+
+
+  /// Block the current friend user
+  Future<void> _blockUser() async {
+    try {
+      // Show confirmation dialog
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Block User'),
+          content: Text('Are you sure you want to block ${widget.chat.name}? You will no longer be able to see their messages or find them in search.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Block', style: TextStyle(color: Colors.red)),
+            ),
+          ],
+        ),
+      );
+
+      if (confirmed == true && _friendId != null) {
+        // Show loading indicator
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => const Center(
+            child: CircularProgressIndicator(),
+          ),
+        );
+
+        // Block the user using UserProvider
+        final userProvider = Provider.of<UserProvider>(context, listen: false);
+        final success = await userProvider.blockUser(_friendId!);
+
+        // Close loading dialog
+        Navigator.pop(context);
+
+        if (success) {
+          // Show success message
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('${widget.chat.name} has been blocked'),
+              backgroundColor: Colors.green,
+            ),
+          );
+
+          // Navigate back to previous screen
+          Navigator.pop(context);
+        } else {
+          // Show error message
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Failed to block user. Please try again.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      // Close loading dialog if it's open
+      Navigator.pop(context);
+      
+      // Show error message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error blocking user: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 }

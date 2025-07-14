@@ -149,6 +149,7 @@ class AppStrings {
   static const String home = 'Home';
   static const String connect = 'Connect';
   static const String chats = 'Chats';
+  static const String media = 'Media';
   static const String friends = 'Friends';
   static const String profile = 'Profile';
 
@@ -203,6 +204,7 @@ class AppIcons {
   static const IconData send = Icons.send;
   static const IconData camera = Icons.camera_alt;
   static const IconData gallery = Icons.photo_library;
+  static const IconData media = Icons.folder_outlined;
   static const IconData location = Icons.location_on;
   static const IconData settings = Icons.settings;
   static const IconData premium = Icons.star;

@@ -648,6 +648,33 @@ class SocketService {
     _socket!.emit('message', message);
   }
 
+  // Send image message to friend
+  Future<void> sendFriendImageMessage(String receiverId, String imageUrl) async {
+    print('📤 [SOCKET DEBUG] sendFriendImageMessage called');
+    print('   🎯 Receiver ID: $receiverId');
+    print('   🖼️ Image URL: $imageUrl');
+    print('   🔗 Connected: $_isConnected');
+
+    if (!_isConnected) {
+      print('❌ [SOCKET DEBUG] Cannot send friend image message - not connected');
+      throw Exception('WebSocket not connected');
+    }
+
+    final message = {
+      'receiverId': receiverId,
+      'content': 'Image',
+      'imageUrl': imageUrl,
+      'messageType': 'image',
+      'timestamp': DateTime.now().toIso8601String(),
+    };
+
+    print('📤 [SOCKET DEBUG] Sending friend image message via socket');
+    print('   📦 Message data: $message');
+    
+    // Use the Socket.IO emit method directly for friend image messages
+    _socket!.emit('message', message);
+  }
+
   // Send typing indicator
   Future<void> sendTyping(String chatId) async {
     if (!_isConnected) return;
