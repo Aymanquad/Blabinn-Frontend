@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:provider/provider.dart';
+import 'package:screen_protector/screen_protector.dart';
 import 'core/constants.dart';
 import 'providers/theme_provider.dart';
 import 'providers/user_provider.dart';
@@ -181,7 +182,8 @@ class MainNavigationScreen extends StatefulWidget {
   State<MainNavigationScreen> createState() => _MainNavigationScreenState();
 }
 
-class _MainNavigationScreenState extends State<MainNavigationScreen> {
+class _MainNavigationScreenState extends State<MainNavigationScreen> 
+    with WidgetsBindingObserver {
   int _currentIndex = 0;
   final PageController _pageController = PageController();
   final SocketService _socketService = SocketService();
@@ -191,7 +193,9 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _initializeSocketConnection();
+    _enableScreenProtection();
     _screens = [
       HomeScreen(onNavigateToTab: _onTabTapped),
       const ChatListScreen(),
@@ -226,9 +230,50 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _pageController.dispose();
     _socketService.disconnect();
+    _disableScreenProtection();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    switch (state) {
+      case AppLifecycleState.resumed:
+        _enableScreenProtection();
+        break;
+      case AppLifecycleState.paused:
+      case AppLifecycleState.inactive:
+        // Keep security features active even when app is paused/inactive
+        break;
+      case AppLifecycleState.detached:
+        _disableScreenProtection();
+        break;
+      default:
+        break;
+    }
+  }
+
+  Future<void> _enableScreenProtection() async {
+    try {
+      await ScreenProtector.preventScreenshotOn();
+      await ScreenProtector.protectDataLeakageOn();
+      print('🔒 Screen protection enabled');
+    } catch (e) {
+      print('⚠️ Failed to enable screen protection: $e');
+    }
+  }
+
+  Future<void> _disableScreenProtection() async {
+    try {
+      await ScreenProtector.preventScreenshotOff();
+      await ScreenProtector.protectDataLeakageOff();
+      print('🔓 Screen protection disabled');
+    } catch (e) {
+      print('⚠️ Failed to disable screen protection: $e');
+    }
   }
 
   void _onTabTapped(int index) {
