@@ -21,6 +21,7 @@ class RandomChatScreen extends StatefulWidget {
 
 class _RandomChatScreenState extends State<RandomChatScreen> {
   final TextEditingController _messageController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
   final List<Map<String, dynamic>> _messages = [];
   late SocketService _socketService;
   late ApiService _apiService;
@@ -46,7 +47,16 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
     _stopHeartbeat();
     _leaveChatRoom();
     _messageController.dispose();
+    _scrollController.dispose();
     super.dispose();
+  }
+
+  void _scrollToBottom() {
+    Future.delayed(const Duration(milliseconds: 200), () {
+      if (_scrollController.hasClients) {
+        _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+      }
+    });
   }
 
   void _initializeServices() {
@@ -164,10 +174,12 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
           'timestamp': message.timestamp ?? DateTime.now(),
           'isFromCurrentUser': isFromCurrentUser,
         });
-      });
+              });
 
-      print(
-          '✅ [RANDOM CHAT DEBUG] Added new message to UI: $messageContent (from current user: $isFromCurrentUser)');
+        _scrollToBottom();
+
+        print(
+            '✅ [RANDOM CHAT DEBUG] Added new message to UI: $messageContent (from current user: $isFromCurrentUser)');
     }
   }
 
@@ -253,9 +265,11 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
           'timestamp': DateTime.now(),
           'isFromCurrentUser': true,
         });
-      });
+              });
 
-      print('📤 [RANDOM CHAT DEBUG] Added optimistic message to UI: $content');
+        _scrollToBottom();
+
+        print('📤 [RANDOM CHAT DEBUG] Added optimistic message to UI: $content');
 
       _messageController.clear();
 
@@ -439,6 +453,7 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
                     ),
                   )
                 : ListView.builder(
+                    controller: _scrollController,
                     padding: const EdgeInsets.all(16),
                     itemCount: _messages.length,
                     itemBuilder: (context, index) {

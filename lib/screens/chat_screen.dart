@@ -227,6 +227,7 @@ class _ChatScreenState extends State<ChatScreen> {
       });
 
       print('🔍 DEBUG: Set ${_messages.length} messages in state');
+      // Scroll to bottom after loading messages
       _scrollToBottom();
     } catch (e) {
       print('🚨 DEBUG: _loadChatHistory error: $e');
@@ -317,13 +318,9 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   void _scrollToBottom() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    Future.delayed(const Duration(milliseconds: 200), () {
       if (_scrollController.hasClients) {
-        _scrollController.animateTo(
-          _scrollController.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeOut,
-        );
+        _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
       }
     });
   }
