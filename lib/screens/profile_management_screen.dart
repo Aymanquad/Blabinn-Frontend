@@ -33,6 +33,7 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
   String _selectedGender = 'prefer-not-to-say';
   List<String> _interests = [];
   File? _profilePicture;
+  String? _existingProfilePictureUrl;
   List<File> _galleryImages = [];
   bool _isLoading = false;
   bool _isUsernameAvailable = false;
@@ -97,6 +98,13 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
 
     setState(() {
       _selectedGender = profile['gender'] ?? 'prefer-not-to-say';
+      
+      // Set existing profile picture URL if available
+      _existingProfilePictureUrl = profile['profilePicture'] as String? ?? 
+                                  profile['profileImage'] as String?;
+      if (_existingProfilePictureUrl != null) {
+        print('🔍 [PROFILE DEBUG] Found existing profile picture: $_existingProfilePictureUrl');
+      }
       
       // Filter interests to only include valid predefined ones
       final existingInterests = List<String>.from(profile['interests'] ?? []);
@@ -528,6 +536,7 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
       _selectedGender = 'prefer-not-to-say';
       _interests.clear();
       _profilePicture = null;
+      _existingProfilePictureUrl = null;
       _galleryImages.clear();
     });
   }
@@ -556,8 +565,10 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
                 child: Center(
                   child: Text(
                     _profilePicture != null
-                        ? 'Image selected'
-                        : 'No file chosen',
+                        ? 'New image selected'
+                        : (_existingProfilePictureUrl != null 
+                            ? 'Current profile picture'
+                            : 'No file chosen'),
                     style: const TextStyle(color: Colors.grey),
                   ),
                 ),
@@ -570,11 +581,14 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
                 backgroundColor: Colors.green,
                 foregroundColor: Colors.white,
               ),
-              child: const Text('Upload Picture'),
+              child: Text(_existingProfilePictureUrl != null 
+                  ? 'Change Picture' 
+                  : 'Upload Picture'),
             ),
           ],
         ),
-        if (_profilePicture != null) ...[
+        // Show image preview
+        if (_profilePicture != null || _existingProfilePictureUrl != null) ...[
           const SizedBox(height: 8),
           Container(
             height: 100,
@@ -585,7 +599,29 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
             ),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(8),
-              child: Image.file(_profilePicture!, fit: BoxFit.cover),
+              child: _profilePicture != null
+                  ? Image.file(_profilePicture!, fit: BoxFit.cover)
+                  : (_existingProfilePictureUrl != null
+                      ? Image.network(
+                          _existingProfilePictureUrl!,
+                          fit: BoxFit.cover,
+                          loadingBuilder: (context, child, loadingProgress) {
+                            if (loadingProgress == null) return child;
+                            return Center(
+                              child: CircularProgressIndicator(
+                                value: loadingProgress.expectedTotalBytes != null
+                                    ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
+                                    : null,
+                              ),
+                            );
+                          },
+                          errorBuilder: (context, error, stackTrace) {
+                            return const Center(
+                              child: Icon(Icons.error, color: Colors.red),
+                            );
+                          },
+                        )
+                      : const SizedBox.shrink()),
             ),
           ),
         ],

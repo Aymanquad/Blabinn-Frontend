@@ -136,7 +136,11 @@ class User {
         userProfileImage = json['photoURL'] as String;
       } else if (json['profileImage'] != null && json['profileImage'] is String) {
         userProfileImage = json['profileImage'] as String;
+      } else if (json['profilePicture'] != null && json['profilePicture'] is String) {
+        userProfileImage = json['profilePicture'] as String;
       }
+      
+      print('🔍 DEBUG: Profile image URL extracted: $userProfileImage');
       
       final bool isAnonymousUser = json['isAnonymous'] as bool? ?? false;
       

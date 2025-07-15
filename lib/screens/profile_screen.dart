@@ -23,12 +23,59 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _checkAuthStatus();
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Refresh profile when returning from other screens
+    final route = ModalRoute.of(context);
+    if (route != null && route.isCurrent && _currentUser != null) {
+      _loadProfileData();
+    }
+  }
+
   Future<void> _checkAuthStatus() async {
     await _authService.initialize();
-    setState(() {
-      _currentUser = _authService.currentUser;
-      _isLoading = false;
-    });
+    await _apiService.initialize();
+    
+    // Check if we have a logged-in user
+    if (_authService.currentUser != null) {
+      // Load fresh profile data from API
+      await _loadProfileData();
+    } else {
+      setState(() {
+        _currentUser = null;
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _loadProfileData() async {
+    try {
+      // Load fresh profile data from API
+      final responseData = await _apiService.getMyProfile();
+      if (responseData != null && responseData['profile'] != null) {
+        final profileData = responseData['profile'];
+        final updatedUser = User.fromJson(profileData);
+        setState(() {
+          _currentUser = updatedUser;
+          _isLoading = false;
+        });
+        print('✅ Profile loaded successfully for user');
+      } else {
+        // Fall back to cached user if API fails
+        setState(() {
+          _currentUser = _authService.currentUser;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      print('❌ Error loading profile: $e');
+      // Fall back to cached user if API fails
+      setState(() {
+        _currentUser = _authService.currentUser;
+        _isLoading = false;
+      });
+    }
   }
 
   @override
