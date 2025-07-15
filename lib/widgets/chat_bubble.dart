@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../core/constants.dart';
 import '../models/message.dart';
 import '../services/firebase_auth_service.dart';
+import 'full_screen_image_viewer.dart';
 
 class ChatBubble extends StatelessWidget {
   final Message message;
@@ -20,7 +21,7 @@ class ChatBubble extends StatelessWidget {
       child: Column(
         crossAxisAlignment: _isCurrentUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
         children: [
-          _buildMessageBubble(),
+          _buildMessageBubble(context),
           const SizedBox(height: 2),
           _buildMessageTime(),
         ],
@@ -28,7 +29,7 @@ class ChatBubble extends StatelessWidget {
     );
   }
 
-  Widget _buildMessageBubble() {
+  Widget _buildMessageBubble(BuildContext context) {
     return Container(
       constraints: const BoxConstraints(maxWidth: 280),
       decoration: BoxDecoration(
@@ -41,19 +42,19 @@ class ChatBubble extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildMessageContent(),
+          _buildMessageContent(context),
           if (message.type != MessageType.text) _buildMessageStatus(),
         ],
       ),
     );
   }
 
-  Widget _buildMessageContent() {
+  Widget _buildMessageContent(BuildContext context) {
     switch (message.type) {
       case MessageType.text:
         return _buildTextMessage();
       case MessageType.image:
-        return _buildImageMessage();
+        return _buildImageMessage(context);
       case MessageType.video:
         return _buildVideoMessage();
       case MessageType.audio:
@@ -77,12 +78,12 @@ class ChatBubble extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           Flexible(
-            child: Text(
-              message.content,
-              style: TextStyle(
-                color: _isCurrentUser ? AppColors.sentMessageText : AppColors.receivedMessageText,
-                fontSize: 16,
-              ),
+      child: Text(
+        message.content,
+        style: TextStyle(
+          color: _isCurrentUser ? AppColors.sentMessageText : AppColors.receivedMessageText,
+          fontSize: 16,
+        ),
             ),
           ),
           if (_isCurrentUser) ...[
@@ -98,7 +99,7 @@ class ChatBubble extends StatelessWidget {
     );
   }
 
-  Widget _buildImageMessage() {
+  Widget _buildImageMessage(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -110,43 +111,49 @@ class ChatBubble extends StatelessWidget {
             color: Colors.grey[300],
           ),
           child: message.imageUrl != null
-              ? ClipRRect(
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
-                  child: Image.network(
-                    message.imageUrl!,
-                    fit: BoxFit.cover,
-                    loadingBuilder: (context, child, loadingProgress) {
-                      if (loadingProgress == null) return child;
-                      return Center(
-                        child: CircularProgressIndicator(
-                          value: loadingProgress.expectedTotalBytes != null
-                              ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
-                              : null,
-                        ),
-                      );
-                    },
-                    errorBuilder: (context, error, stackTrace) {
-                      return Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(
-                              Icons.broken_image,
-                              size: 64,
-                              color: Colors.grey,
+              ? GestureDetector(
+                  onTap: () => _openFullScreenImage(context),
+                  child: Hero(
+                    tag: 'image_${message.id}',
+                    child: ClipRRect(
+                      borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
+                      child: Image.network(
+                        message.imageUrl!,
+                        fit: BoxFit.cover,
+                        loadingBuilder: (context, child, loadingProgress) {
+                          if (loadingProgress == null) return child;
+                          return Center(
+                            child: CircularProgressIndicator(
+                              value: loadingProgress.expectedTotalBytes != null
+                                  ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
+                                  : null,
                             ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'Image failed to load',
-                              style: TextStyle(
-                                color: Colors.grey[600],
-                                fontSize: 12,
-                              ),
+                          );
+                        },
+                        errorBuilder: (context, error, stackTrace) {
+                          return Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Icon(
+                            Icons.broken_image,
+                            size: 64,
+                            color: Colors.grey,
+                          ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  'Image failed to load',
+                                  style: TextStyle(
+                                    color: Colors.grey[600],
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
                             ),
-                          ],
-                        ),
-                      );
-                    },
+                          );
+                        },
+                      ),
+                    ),
                   ),
                 )
               : Center(
@@ -154,9 +161,9 @@ class ChatBubble extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       const Icon(
-                        Icons.image,
-                        size: 64,
-                        color: Colors.grey,
+                    Icons.image,
+                    size: 64,
+                    color: Colors.grey,
                       ),
                       const SizedBox(height: 8),
                       Text(
@@ -470,5 +477,18 @@ class ChatBubble extends StatelessWidget {
     }
     
     return false;
+  }
+
+  void _openFullScreenImage(BuildContext context) {
+    if (message.imageUrl != null) {
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (context) => FullScreenImageViewer(
+            imageUrl: message.imageUrl!,
+            heroTag: 'image_${message.id}',
+          ),
+        ),
+      );
+    }
   }
 } 

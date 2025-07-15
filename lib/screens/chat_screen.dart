@@ -99,11 +99,11 @@ class _ChatScreenState extends State<ChatScreen> {
         bool messageExists = _messages.any((msg) => msg.id == message.id);
         
         if (!messageExists) {
-          setState(() {
-            _messages.add(message);
-            _messages.sort((a, b) => a.timestamp.compareTo(b.timestamp));
-          });
-          _scrollToBottom();
+        setState(() {
+          _messages.add(message);
+          _messages.sort((a, b) => a.timestamp.compareTo(b.timestamp));
+        });
+        _scrollToBottom();
 
           // Auto-save received images to media folder (only for messages from others)
           if (message.type == MessageType.image && 

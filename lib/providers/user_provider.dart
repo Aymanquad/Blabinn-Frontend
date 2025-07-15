@@ -107,11 +107,11 @@ class UserProvider with ChangeNotifier {
 
   // Logout
   Future<void> logout() async {
-    await _authService.logout();
-    _currentUser = null;
-    _friends.clear();
-    _blockedUsers.clear();
-    notifyListeners();
+      await _authService.logout();
+      _currentUser = null;
+      _friends.clear();
+      _blockedUsers.clear();
+      notifyListeners();
   }
 
   // Update profile
@@ -258,8 +258,8 @@ class UserProvider with ChangeNotifier {
           latitude: latitude,
           longitude: longitude,
         );
-        notifyListeners();
-      }
+    notifyListeners();
+  }
     } catch (e) {
       setError('Failed to update location: $e');
     }
