@@ -29,16 +29,12 @@ class ApiService {
   // Refresh Firebase token
   Future<void> _refreshFirebaseToken() async {
     try {
-      print('🔍 DEBUG: Refreshing Firebase token...');
       _firebaseToken = await _firebaseAuth.getIdToken();
-      if (_firebaseToken != null) {
-        print('✅ DEBUG: Firebase token refreshed successfully');
-      } else {
+      if (_firebaseToken == null) {
         print('❌ DEBUG: Firebase token is null');
       }
     } catch (e) {
       print('🚨 DEBUG: Failed to get Firebase token: $e');
-      _firebaseToken = null;
     }
   }
 
@@ -54,8 +50,6 @@ class ApiService {
 
     if (_firebaseToken != null) {
       headers['Authorization'] = 'Bearer $_firebaseToken';
-      print(
-          '🔍 DEBUG: Added Authorization header with token length: ${_firebaseToken!.length}');
     } else {
       print('❌ DEBUG: No Firebase token available for authorization');
     }

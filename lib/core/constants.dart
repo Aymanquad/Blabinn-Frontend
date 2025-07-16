@@ -53,9 +53,9 @@ class AppConstants {
   static const String appName = 'Global Chat';
   static const String appVersion = '1.0.0';
 
-  // Timeouts
-  static const Duration connectionTimeout = Duration(seconds: 30);
-  static const Duration receiveTimeout = Duration(seconds: 30);
+  // Timeouts - Reduced for faster failures
+  static const Duration connectionTimeout = Duration(seconds: 5);
+  static const Duration receiveTimeout = Duration(seconds: 5);
 
   // File Upload
   static const int maxImageSize = 5 * 1024 * 1024; // 5MB

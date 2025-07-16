@@ -104,12 +104,13 @@ class AppConfig {
   static const int maxRetryAttempts = 3;
   static const Duration retryDelay = Duration(seconds: 2);
   static const Duration cacheExpiration = Duration(hours: 24);
-  static const Duration apiTimeout = Duration(seconds: 30);
-  static const Duration connectionTimeout = Duration(seconds: 30);
+  // Timeouts - Reduced for faster failures
+  static const Duration apiTimeout = Duration(seconds: 5);
+  static const Duration connectionTimeout = Duration(seconds: 5);
 
-  // WebSocket Settings
-  static const int wsMaxReconnectAttempts = 5;
-  static const Duration wsReconnectDelay = Duration(seconds: 3);
+  // WebSocket Configuration
+  static const int wsMaxReconnectAttempts = 2;  // Reduced from 5 to 2
+  static const Duration wsReconnectDelay = Duration(seconds: 1);  // Reduced from 3 to 1
 
   // API Key Validation
   static bool get hasValidApiKey => googleTranslateApiKey.isNotEmpty;

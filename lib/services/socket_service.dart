@@ -96,14 +96,14 @@ class SocketService {
       print('   🌐 URL: ${AppConfig.wsBaseUrl}');
       print('   🔑 Token length: ${authToken.length}');
 
-      _socket = IO.io(AppConfig.wsBaseUrl, <String, dynamic>{
-        'transports': ['websocket', 'polling'],
-        'autoConnect': false,
-        'timeout': 20000,
-        'auth': {
-          'token': authToken,
-        },
-      });
+      _socket = IO.io(
+        AppConfig.wsBaseUrl,
+        IO.OptionBuilder()
+            .setTransports(['websocket'])
+            .setAuth({'token': _authToken})
+            .setTimeout(5000)  // Reduced from 20000 to 5000
+            .build(),
+      );
 
       _socket!.onConnect((_) {
         print('✅ [SOCKET DEBUG] Socket.IO connected successfully');
@@ -746,6 +746,7 @@ class SocketService {
     String? country,
     String? language,
     List<String>? interests,
+    String? genderPreference,
   }) async {
     print('🎯 [SOCKET DEBUG] startRandomConnection called');
     print('   🔌 _isConnected: $_isConnected');
@@ -753,6 +754,7 @@ class SocketService {
     print('   🌍 country: $country');
     print('   🗣️ language: $language');
     print('   💫 interests: $interests');
+    print('   👤 genderPreference: $genderPreference');
     
     print('🎯 [INTEREST MATCH DEBUG] ===============================================');
     print('🎯 [INTEREST MATCH DEBUG] USER JOINING RANDOM CHAT QUEUE');
@@ -763,6 +765,12 @@ class SocketService {
       print('🎯 [INTEREST MATCH DEBUG] Looking for matches with similar interests...');
     } else {
       print('🎯 [INTEREST MATCH DEBUG] User has no interests - will match with anyone');
+    }
+    if (genderPreference != null && genderPreference != 'any') {
+      print('🎯 [GENDER MATCH DEBUG] User gender preference: $genderPreference');
+      print('🎯 [GENDER MATCH DEBUG] Looking for matches with $genderPreference gender...');
+    } else {
+      print('🎯 [GENDER MATCH DEBUG] User has no gender preference - will match with anyone');
     }
     print('🎯 [INTEREST MATCH DEBUG] ===============================================');
 
@@ -790,6 +798,7 @@ class SocketService {
         if (country != null) 'country': country,
         if (language != null) 'language': language,
         if (interests != null) 'interests': interests,
+        if (genderPreference != null) 'genderPreference': genderPreference,
       },
     };
 
@@ -1064,10 +1073,36 @@ class SocketService {
 
   // Get the latest random chat event data
   Map<String, dynamic>? get latestRandomChatData => _latestRandomChatData;
+  
+  // Store the latest timeout data for UI access
+  Map<String, dynamic>? _latestTimeoutData;
+  Map<String, dynamic>? get latestTimeoutData => _latestTimeoutData;
 
   // Handle random chat timeout event
   void _handleRandomChatTimeoutEvent(Map<String, dynamic> data) {
-    _matchController.add(data);
+    print('⏰ [SOCKET DEBUG] Random chat timeout event received: $data');
+    
+    // Extract timeout information
+    final String reason = data['reason'] ?? 'time_limit_exceeded';
+    final String genderPreference = data['genderPreference'] ?? 'any';
+    final String message = data['message'] ?? 'No match found. Please try again later.';
+    
+    print('🚫 [TIMEOUT DEBUG] Timeout reason: $reason');
+    print('👤 [TIMEOUT DEBUG] Gender preference: $genderPreference');
+    print('💬 [TIMEOUT DEBUG] Message: $message');
+    
+    // Add enhanced timeout data
+    final timeoutData = {
+      ...data,
+      'reason': reason,
+      'genderPreference': genderPreference,
+      'message': message,
+    };
+    
+    // Store timeout data for UI access
+    _latestTimeoutData = timeoutData;
+    
+    _matchController.add(timeoutData);
     _eventController.add(SocketEvent.randomChatTimeout);
   }
 

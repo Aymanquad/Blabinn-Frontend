@@ -22,6 +22,7 @@ class _ConnectScreenState extends State<ConnectScreen> {
   String? _currentSessionId;
   String? _matchMessage;
   int _queueTime = 0;
+  String _genderPreference = 'any'; // Add gender preference state
   late ApiService _apiService;
   late SocketService _socketService;
   late StreamSubscription _matchSubscription;
@@ -56,6 +57,8 @@ class _ConnectScreenState extends State<ConnectScreen> {
       'ageRange': 'all',
       'interests': [],
     };
+    // Initialize gender preference
+    _genderPreference = 'any';
   }
 
   Future<void> _loadUserInterests() async {
@@ -140,12 +143,27 @@ class _ConnectScreenState extends State<ConnectScreen> {
       // Navigate to random chat screen
       _navigateToRandomChat(sessionId, chatRoomId);
     } else if (event == 'match_timeout') {
+      print('⏰ [CONNECT DEBUG] Match timeout event received');
+      print('🚫 [CONNECT DEBUG] Timeout reason: ${data['reason']}');
+      print('👤 [CONNECT DEBUG] Gender preference: ${data['genderPreference']}');
+      
+      String timeoutMessage;
+      final String reason = data['reason'] ?? 'time_limit_exceeded';
+      final String genderPreference = data['genderPreference'] ?? 'any';
+      
+      if (reason == 'no_gender_compatible_users') {
+        timeoutMessage = 'No $genderPreference users found after 5 minutes. Please try again later.';
+      } else {
+        timeoutMessage = genderPreference == 'any' 
+            ? 'No match found within 5 minutes. Please try again later.'
+            : 'No match found with your gender preference ($genderPreference) within 5 minutes. Please try again later.';
+      }
+      
       setState(() {
         _isMatching = false;
         _isConnected = false;
         _currentSessionId = null;
-        _matchMessage =
-            data['message'] ?? 'No match found. Please try again later.';
+        _matchMessage = timeoutMessage;
       });
 
       _showTimeoutDialog();
@@ -206,20 +224,30 @@ class _ConnectScreenState extends State<ConnectScreen> {
     }
 
     // Handle general errors
-    print('🔴 [CONNECT DEBUG] Handling general error: $errorMessage');
+    _handleError(errorMessage);
+  }
+
+  void _handleError(String error) {
+    if (!mounted) return;
+
+    print('🔴 [CONNECT DEBUG] Handling general error: $error');
+    
+    // Show user-friendly message for connection issues
+    if (error.contains('timeout') || error.contains('Max reconnection')) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Connection issue. Please check if the backend server is running.'),
+          backgroundColor: Colors.orange,
+          duration: Duration(seconds: 3),
+        ),
+      );
+    }
+    
     setState(() {
       _isMatching = false;
       _isConnected = false;
-      _currentSessionId = null;
-      _matchMessage = 'Error: $errorMessage';
+      _matchMessage = 'Connection error: $error';
     });
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Connection error: $errorMessage'),
-        backgroundColor: Colors.red,
-      ),
-    );
   }
 
   Future<void> _clearActiveSession() async {
@@ -336,11 +364,37 @@ class _ConnectScreenState extends State<ConnectScreen> {
   void _handleRandomChatTimeout() {
     if (!mounted) return;
 
+    // Check if we have timeout data from the socket
+    final timeoutData = _socketService.latestTimeoutData;
+    String timeoutMessage;
+    
+    if (timeoutData != null) {
+      final String reason = timeoutData['reason'] ?? 'time_limit_exceeded';
+      final String genderPreference = timeoutData['genderPreference'] ?? _genderPreference;
+      
+      print('⏰ [TIMEOUT DEBUG] Using socket timeout data');
+      print('🚫 [TIMEOUT DEBUG] Reason: $reason');
+      print('👤 [TIMEOUT DEBUG] Gender preference: $genderPreference');
+      
+      if (reason == 'no_gender_compatible_users') {
+        timeoutMessage = 'No $genderPreference users found after 5 minutes. Please try again later.';
+      } else {
+        timeoutMessage = genderPreference == 'any' 
+            ? 'No match found within 5 minutes. Please try again later.'
+            : 'No match found with your gender preference ($genderPreference) within 5 minutes. Please try again later.';
+      }
+    } else {
+      // Fallback to local gender preference
+      timeoutMessage = _genderPreference == 'any' 
+          ? 'No match found within 5 minutes. Please try again later.'
+          : 'No match found with your gender preference ($_genderPreference) within 5 minutes. Please try again later.';
+    }
+
     setState(() {
       _isMatching = false;
       _isConnected = false;
       _currentSessionId = null;
-      _matchMessage = 'No match found. Please try again later.';
+      _matchMessage = timeoutMessage;
     });
 
     _showTimeoutDialog();
@@ -451,15 +505,19 @@ class _ConnectScreenState extends State<ConnectScreen> {
 
       final userInterests = _filters['interests']?.cast<String>() ?? [];
       print('🔄 [CONNECT DEBUG] Starting random connection via socket');
-      print('   🌍 country: ${_filters['region']}');
-      print('   🗣️ language: ${_filters['language']}');
-      print('   💫 interests: $userInterests');
+      print('   👤 genderPreference: $_genderPreference');
+      
+      // Basic validation
+      if (_genderPreference.isEmpty) {
+        _genderPreference = 'any';
+      }
       
       // Start random connection via socket
       await _socketService.startRandomConnection(
         country: _filters['region'],
         language: _filters['language'],
         interests: userInterests,
+        genderPreference: _genderPreference,
       );
 
       print('✅ [CONNECT DEBUG] Random connection started successfully');
@@ -676,6 +734,8 @@ class _ConnectScreenState extends State<ConnectScreen> {
             ),
             const SizedBox(height: 32),
             _buildFilterSummary(),
+            const SizedBox(height: 16),
+            _buildGenderPreferenceSection(),
           ],
         ),
       ),
@@ -1150,6 +1210,49 @@ class _ConnectScreenState extends State<ConnectScreen> {
           }).toList(),
         ),
       ],
+    );
+  }
+
+  Widget _buildGenderPreferenceSection() {
+    final theme = Theme.of(context);
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.person,
+                    size: 16, color: theme.colorScheme.onSurface),
+                const SizedBox(width: 8),
+                Text('Gender Preference',
+                    style: TextStyle(color: theme.colorScheme.onSurface)),
+              ],
+            ),
+            const SizedBox(height: 12),
+            DropdownButtonFormField<String>(
+              value: _genderPreference,
+              decoration: const InputDecoration(
+                border: OutlineInputBorder(),
+                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                prefixIcon: Icon(Icons.person),
+              ),
+              items: const [
+                DropdownMenuItem(value: 'any', child: Text('Any Gender')),
+                DropdownMenuItem(value: 'male', child: Text('Male')),
+                DropdownMenuItem(value: 'female', child: Text('Female')),
+              ],
+              onChanged: (value) {
+                setState(() {
+                  _genderPreference = value!;
+                });
+              },
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
