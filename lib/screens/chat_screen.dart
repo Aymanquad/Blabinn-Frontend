@@ -13,6 +13,7 @@ import '../providers/user_provider.dart';
 import '../services/api_service.dart';
 import '../services/socket_service.dart';
 import '../services/firebase_auth_service.dart';
+import '../services/premium_service.dart';
 import '../widgets/chat_bubble.dart';
 
 class ChatScreen extends StatefulWidget {
@@ -576,6 +577,12 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Future<void> _takePhoto() async {
+    // Check if user has premium
+    final hasPremium = await PremiumService.checkChatImageSending(context);
+    if (!hasPremium) {
+      return; // User doesn't have premium, popup already shown
+    }
+    
     try {
       print('📸 DEBUG: Starting camera capture');
       
@@ -626,6 +633,12 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Future<void> _pickFromGallery() async {
+    // Check if user has premium
+    final hasPremium = await PremiumService.checkChatImageSending(context);
+    if (!hasPremium) {
+      return; // User doesn't have premium, popup already shown
+    }
+    
     try {
       print('🖼️ DEBUG: Starting gallery picker');
       

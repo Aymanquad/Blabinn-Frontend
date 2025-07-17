@@ -5,6 +5,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'dart:io';
 import '../core/constants.dart';
 import '../services/api_service.dart';
+import '../services/premium_service.dart';
 
 class MediaFolderScreen extends StatefulWidget {
   const MediaFolderScreen({super.key});
@@ -101,6 +102,12 @@ class _MediaFolderScreenState extends State<MediaFolderScreen> with TickerProvid
   }
 
   Future<void> _pickImageFromGallery() async {
+    // Check if user has premium
+    final hasPremium = await PremiumService.checkMediaStorage(context);
+    if (!hasPremium) {
+      return; // User doesn't have premium, popup already shown
+    }
+    
     try {
       // Request storage permission
       final status = await Permission.storage.request();
@@ -125,6 +132,12 @@ class _MediaFolderScreenState extends State<MediaFolderScreen> with TickerProvid
   }
 
   Future<void> _takePhoto() async {
+    // Check if user has premium
+    final hasPremium = await PremiumService.checkMediaStorage(context);
+    if (!hasPremium) {
+      return; // User doesn't have premium, popup already shown
+    }
+    
     try {
       // Request camera permission
       final status = await Permission.camera.request();
@@ -407,6 +420,61 @@ class _MediaFolderScreenState extends State<MediaFolderScreen> with TickerProvid
 
   @override
   Widget build(BuildContext context) {
+    // Check if user has premium for media folder access
+    if (!PremiumService.hasActivePremiumFromContext(context)) {
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text('Media Folder'),
+          centerTitle: true,
+          elevation: 0,
+          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+          foregroundColor: Theme.of(context).textTheme.titleLarge?.color,
+        ),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(
+                Icons.lock,
+                size: 64,
+                color: Colors.grey,
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Premium Feature',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.grey,
+                ),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Media folder is only available for premium users',
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Colors.grey,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              ElevatedButton(
+                onPressed: () {
+                  PremiumService.checkMediaStorage(context);
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.orange,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                ),
+                child: const Text('Upgrade to Premium'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+    
     return Scaffold(
       appBar: AppBar(
         title: const Text('Media Folder'),

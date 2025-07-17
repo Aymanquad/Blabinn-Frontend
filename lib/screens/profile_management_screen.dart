@@ -6,6 +6,7 @@ import '../core/constants.dart';
 import '../models/user.dart';
 import '../services/auth_service.dart';
 import '../services/api_service.dart';
+import '../services/premium_service.dart';
 
 
 class ProfileManagementScreen extends StatefulWidget {
@@ -48,6 +49,42 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
     super.initState();
     _loadCurrentUser();
     _initializeApiService();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    
+    // Check if this is a guest user and pre-fill form
+    final arguments = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+    if (arguments != null && arguments['isGuestUser'] == true) {
+      _prefillGuestUserForm();
+    }
+  }
+
+  // Pre-fill form with default values for guest users
+  void _prefillGuestUserForm() {
+    if (_displayNameController.text.isEmpty) {
+      _displayNameController.text = 'Guest User';
+    }
+    if (_usernameController.text.isEmpty) {
+      _usernameController.text = 'username${DateTime.now().millisecondsSinceEpoch.toString().substring(8)}';
+    }
+    if (_bioController.text.isEmpty) {
+      _bioController.text = 'Hey there! I\'m new to this app.';
+    }
+    if (_ageController.text.isEmpty) {
+      _ageController.text = '25';
+    }
+    
+    setState(() {
+      _selectedGender = 'prefer-not-to-say';
+      // Add some default interests
+      _interests = ['Movies & TV', 'Music & Arts'].where((interest) => 
+        AppConstants.availableInterests.contains(interest)).toList();
+    });
+    
+    print('🎭 DEBUG: Pre-filled guest user form with default values');
   }
 
   Future<void> _initializeApiService() async {
@@ -826,6 +863,12 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
   }
 
   Future<void> _pickProfilePicture() async {
+    // Check if user has premium
+    final hasPremium = await PremiumService.checkProfilePictureUpload(context);
+    if (!hasPremium) {
+      return; // User doesn't have premium, popup already shown
+    }
+    
     try {
       final XFile? image = await _imagePicker.pickImage(
         source: ImageSource.gallery,
@@ -845,6 +888,12 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
   }
 
   Future<void> _pickGalleryImages() async {
+    // Check if user has premium
+    final hasPremium = await PremiumService.checkProfilePictureUpload(context);
+    if (!hasPremium) {
+      return; // User doesn't have premium, popup already shown
+    }
+    
     try {
       final List<XFile> images = await _imagePicker.pickMultiImage(
         maxWidth: 1024,

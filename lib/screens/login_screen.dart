@@ -315,12 +315,77 @@ class _LoginScreenState extends State<LoginScreen> {
     
     try {
       final result = await _authService.signInAsGuest();
-      await _handleAuthResult(result);
+      if (result['success'] == true) {
+        // Show profile creation popup for guest users
+        await _showGuestProfilePopup();
+      } else {
+        _showError(result['message'] ?? 'Guest sign-in failed');
+      }
     } catch (e) {
       _showError('Guest sign-in failed: ${e.toString()}');
     } finally {
       setState(() => _isLoading = false);
     }
+  }
+
+  // Show popup for guest users to create profile
+  Future<void> _showGuestProfilePopup() async {
+    return showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Row(
+            children: [
+              Icon(Icons.person_add, color: Colors.orange),
+              SizedBox(width: 8),
+              Text('Create Profile'),
+            ],
+          ),
+          content: const Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Welcome to the app!',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              ),
+              SizedBox(height: 8),
+              Text(
+                'Creating a profile is IMPORTANT for the best experience:',
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+              ),
+              SizedBox(height: 8),
+              Text('• Connect with other users'),
+              Text('• Personalize your chat experience'),
+              Text('• Access all app features'),
+              SizedBox(height: 12),
+              Text(
+                'We\'ll help you get started with some basic information.',
+                style: TextStyle(fontSize: 14, fontStyle: FontStyle.italic),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                Navigator.pushReplacementNamed(context, '/home');
+              },
+              child: const Text('Skip for now'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                Navigator.pushReplacementNamed(context, '/profile-management', 
+                  arguments: {'isGuestUser': true});
+              },
+              child: const Text('Create Profile'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   // Handle authentication result from backend
@@ -332,7 +397,7 @@ class _LoginScreenState extends State<LoginScreen> {
       // Navigate based on user status
       if (isNewUser) {
         // New user - go to profile creation or onboarding
-        Navigator.pushReplacementNamed(context, '/profile-setup');
+        Navigator.pushReplacementNamed(context, '/profile-management');
       } else {
         // Existing user - go to main app
         Navigator.pushReplacementNamed(context, '/home');

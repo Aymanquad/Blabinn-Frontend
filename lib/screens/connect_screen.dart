@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../core/constants.dart';
 import '../services/api_service.dart';
 import '../services/socket_service.dart';
+import '../services/premium_service.dart';
 import '../models/user.dart';
 import 'dart:async';
 import 'dart:convert';
@@ -1244,7 +1245,16 @@ class _ConnectScreenState extends State<ConnectScreen> {
                 DropdownMenuItem(value: 'male', child: Text('Male')),
                 DropdownMenuItem(value: 'female', child: Text('Female')),
               ],
-              onChanged: (value) {
+              onChanged: (value) async {
+                // Check if user is trying to select non-'any' gender preference
+                if (value != 'any' && value != null) {
+                  // Check if user has premium
+                  final hasPremium = await PremiumService.checkGenderPreferences(context);
+                  if (!hasPremium) {
+                    return; // User doesn't have premium, popup shown, keep current selection
+                  }
+                }
+                
                 setState(() {
                   _genderPreference = value!;
                 });
