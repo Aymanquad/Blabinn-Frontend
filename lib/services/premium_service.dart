@@ -8,12 +8,18 @@ import 'package:provider/provider.dart';
 /// Handles premium status checks and operations
 class PremiumService {
   /// Check if user has premium and show popup if not
+  /// PREMIUM CHECKS DISABLED FOR TESTING - ALWAYS RETURNS TRUE
   static Future<bool> checkPremiumOrShowPopup({
     required BuildContext context,
     required String feature,
     required String description,
     VoidCallback? onBuyPremium,
   }) async {
+    // PREMIUM CHECKS DISABLED FOR TESTING - ALWAYS ALLOW ACCESS
+    print('🔧 DEBUG: Premium check bypassed for testing - feature: $feature');
+    return true;
+    
+    /* ORIGINAL PREMIUM CHECK CODE - COMMENTED OUT FOR TESTING
     final userProvider = Provider.of<UserProvider>(context, listen: false);
     final user = userProvider.currentUser;
     
@@ -41,12 +47,20 @@ class PremiumService {
     );
     
     return false;
+    */
   }
   
   /// Check if user has premium without showing popup
+  /// PREMIUM CHECKS DISABLED FOR TESTING - ALWAYS RETURNS TRUE
   static bool hasActivePremium(User? user) {
+    // PREMIUM CHECKS DISABLED FOR TESTING - ALWAYS ALLOW ACCESS
+    print('🔧 DEBUG: Premium status check bypassed for testing - always returning true');
+    return true;
+    
+    /* ORIGINAL PREMIUM CHECK CODE - COMMENTED OUT FOR TESTING
     if (user == null) return false;
     return user.isPremium;
+    */
   }
   
   /// Check if user has premium from context

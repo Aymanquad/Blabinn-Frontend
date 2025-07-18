@@ -333,7 +333,8 @@ class AuthService {
   }
 
   // Check if user is premium
-  bool get isPremium => _currentUser?.isPremium ?? false;
+  // PREMIUM CHECKS DISABLED FOR TESTING - ALWAYS RETURNS TRUE
+  bool get isPremium => true; // _currentUser?.isPremium ?? false;
 
   // Check if user is guest
   bool get isGuest => _currentUser?.email == null || _currentUser?.email?.isEmpty == true;

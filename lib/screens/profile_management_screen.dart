@@ -7,6 +7,7 @@ import '../models/user.dart';
 import '../services/auth_service.dart';
 import '../services/api_service.dart';
 import '../services/premium_service.dart';
+import '../providers/user_provider.dart';
 
 
 class ProfileManagementScreen extends StatefulWidget {
@@ -881,9 +882,55 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
         setState(() {
           _profilePicture = File(image.path);
         });
+        
+        // Upload profile picture immediately and update user profile
+        await _uploadProfilePicture(File(image.path));
       }
     } catch (e) {
       _showError('Error picking image: $e');
+    }
+  }
+
+  Future<void> _uploadProfilePicture(File imageFile) async {
+    try {
+      setState(() {
+        _isLoading = true;
+      });
+      
+             print('📤 DEBUG: Starting profile picture upload...');
+       
+       // Upload image to Firebase Storage
+       final uploadResult = await _apiService.uploadProfilePicture(imageFile);
+       
+       print('✅ DEBUG: Profile picture uploaded successfully');
+       print('🔗 DEBUG: Upload result: $uploadResult');
+       print('🔗 DEBUG: Firebase URL: ${uploadResult['url']}');
+       
+       // Update user profile with new Firebase URL
+       final firebaseUrl = uploadResult['url'] as String;
+      await _apiService.updateProfile({
+        'profileImage': firebaseUrl,
+      });
+      
+      print('✅ DEBUG: User profile updated with new image URL');
+      
+             // Update local user data
+       if (_currentUser != null) {
+         setState(() {
+           _currentUser = _currentUser!.copyWith(profileImage: firebaseUrl);
+           _existingProfilePictureUrl = firebaseUrl;
+         });
+       }
+       
+       _showSuccess('Profile picture updated successfully!');
+      
+    } catch (e) {
+      print('❌ DEBUG: Profile picture upload failed: $e');
+      _showError('Failed to upload profile picture: $e');
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
     }
   }
 

@@ -262,6 +262,7 @@ class PremiumPopup extends StatelessWidget {
   }
 
   /// Show premium popup dialog
+  /// PREMIUM POPUP DISABLED FOR TESTING - DOES NOTHING
   static Future<void> show({
     required BuildContext context,
     required String feature,
@@ -269,6 +270,11 @@ class PremiumPopup extends StatelessWidget {
     VoidCallback? onBuyPremium,
     VoidCallback? onCancel,
   }) {
+    // PREMIUM POPUP DISABLED FOR TESTING - JUST RETURN
+    print('🔧 DEBUG: Premium popup disabled for testing - feature: $feature');
+    return Future.value();
+    
+    /* ORIGINAL PREMIUM POPUP CODE - COMMENTED OUT FOR TESTING
     return showDialog(
       context: context,
       barrierDismissible: false,
@@ -279,5 +285,6 @@ class PremiumPopup extends StatelessWidget {
         onCancel: onCancel,
       ),
     );
+    */
   }
 } 

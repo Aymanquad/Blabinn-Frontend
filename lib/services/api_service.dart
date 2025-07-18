@@ -209,27 +209,48 @@ class ApiService {
   // Upload methods
   Future<Map<String, dynamic>> uploadProfilePicture(File imageFile) async {
     try {
+      // Use Firebase Storage endpoint like chat images
+      final request = http.MultipartRequest('POST', Uri.parse('$_baseUrl/upload/profile-picture'));
+      
+      // Add headers
       final headers = await _headers;
-      headers.remove('Content-Type'); // Let http handle multipart content-type
-
-      final request = http.MultipartRequest(
-        'POST',
-        Uri.parse('$_baseUrl/profiles/me/picture'),
-      );
-
       request.headers.addAll(headers);
-      request.files.add(
-          await http.MultipartFile.fromPath('profilePicture', imageFile.path));
-
-      final response = await request.send().timeout(_timeout);
-      final responseData = await response.stream.bytesToString();
-
-      if (response.statusCode >= 200 && response.statusCode < 300) {
-        return jsonDecode(responseData);
-      } else {
-        final errorData = jsonDecode(responseData);
-        throw Exception(errorData['message'] ?? 'Upload failed');
+      
+      // Determine content type based on file extension
+      String contentType = 'image/jpeg'; // Default
+      final extension = imageFile.path.split('.').last.toLowerCase();
+      switch (extension) {
+        case 'jpg':
+        case 'jpeg':
+          contentType = 'image/jpeg';
+          break;
+        case 'png':
+          contentType = 'image/png';
+          break;
+        case 'gif':
+          contentType = 'image/gif';
+          break;
+        case 'webp':
+          contentType = 'image/webp';
+          break;
+        default:
+          contentType = 'image/jpeg'; // Fallback
       }
+      
+      print('📤 DEBUG: Uploading profile picture with content type: $contentType, file: ${imageFile.path}');
+      
+      // Add image file with explicit content type
+      request.files.add(await http.MultipartFile.fromPath(
+        'profilePicture',
+        imageFile.path,
+        contentType: MediaType.parse(contentType),
+      ));
+      
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+      
+      final data = _handleResponse(response);
+      return data;
     } catch (e) {
       throw Exception('Upload failed: $e');
     }
