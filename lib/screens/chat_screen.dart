@@ -624,7 +624,7 @@ class _ChatScreenState extends State<ChatScreen> {
       );
 
       if (image != null) {
-        await _sendImageMessage(File(image.path));
+        await _showImageConfirmation(File(image.path));
       }
     } catch (e) {
       print('❌ DEBUG: Camera capture error: $e');
@@ -686,11 +686,82 @@ class _ChatScreenState extends State<ChatScreen> {
       );
 
       if (image != null) {
-        await _sendImageMessage(File(image.path));
+        await _showImageConfirmation(File(image.path));
       }
     } catch (e) {
       print('❌ DEBUG: Gallery picker error: $e');
       _showError('Failed to pick image: $e');
+    }
+  }
+
+  Future<void> _showImageConfirmation(File imageFile) async {
+    final theme = Theme.of(context);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => Dialog(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(16),
+              child: Text(
+                'Send Image?',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: theme.colorScheme.onSurface,
+                ),
+              ),
+            ),
+            Container(
+              constraints: const BoxConstraints(
+                maxHeight: 300,
+                maxWidth: 300,
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: Image.file(
+                  imageFile,
+                  fit: BoxFit.contain,
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context, false),
+                    child: Text(
+                      'Cancel',
+                      style: TextStyle(
+                        color: theme.colorScheme.onSurface.withOpacity(0.7),
+                      ),
+                    ),
+                  ),
+                  ElevatedButton(
+                    onPressed: () => Navigator.pop(context, true),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: theme.colorScheme.primary,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 12,
+                      ),
+                    ),
+                    child: const Text('Send'),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (confirmed == true) {
+      await _sendImageMessage(imageFile);
     }
   }
 

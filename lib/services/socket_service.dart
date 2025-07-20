@@ -662,7 +662,7 @@ class SocketService {
 
     final message = {
       'receiverId': receiverId,
-      'content': 'Image',
+      'content': '',
       'imageUrl': imageUrl,
       'messageType': 'image',
       'timestamp': DateTime.now().toIso8601String(),
