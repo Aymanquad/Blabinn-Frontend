@@ -8,6 +8,7 @@ import '../core/config.dart';
 import '../models/message.dart';
 import '../models/chat.dart';
 import '../models/user.dart';
+import 'notification_service.dart';
 
 enum SocketEvent {
   connect,
@@ -53,6 +54,9 @@ class SocketService {
 
   // Message deduplication
   final Set<String> _processedMessageIds = {};
+  
+  // Notification service
+  final NotificationService _notificationService = NotificationService();
 
   // Stream controllers for different events
   final StreamController<SocketEvent> _eventController =
@@ -293,8 +297,65 @@ class SocketService {
       final message = Message.fromJson(data);
       _messageController.add(message);
       _eventController.add(SocketEvent.message);
+      
+      // Show in-app notification for the message
+      _showNotificationForMessage(message, data);
     } catch (e) {
       _handleError(e);
+    }
+  }
+  
+  // Show notification for received message
+  void _showNotificationForMessage(Message message, Map<String, dynamic> data) {
+    try {
+      print('🔔 [SOCKET NOTIFICATION DEBUG] _showNotificationForMessage called');
+      print('   📦 Raw data: $data');
+      print('   📦 Message: ${message.toString()}');
+      
+      // Get sender information from multiple possible locations in the data
+      String senderName = 'Unknown';
+      
+      // Try different data structures to find sender name
+      if (data['sender'] != null && data['sender'] is Map) {
+        senderName = data['sender']['displayName'] ?? data['sender']['username'] ?? senderName;
+      } else if (data['message'] != null && data['message'] is Map) {
+        final messageData = data['message'] as Map<String, dynamic>;
+        if (messageData['sender'] != null) {
+          senderName = messageData['sender']['displayName'] ?? messageData['sender']['username'] ?? senderName;
+        }
+      } else if (data['senderName'] != null) {
+        senderName = data['senderName'];
+      }
+      
+      final senderId = message.senderId;
+      
+      print('🔔 [SOCKET NOTIFICATION DEBUG] Extracted sender info:');
+      print('   👤 Sender Name: $senderName');
+      print('   👤 Sender ID: $senderId');
+      print('   💬 Message Content: ${message.content}');
+      
+      // Show in-app notification
+      print('🔔 [SOCKET NOTIFICATION DEBUG] Calling NotificationService.showInAppNotificationForMessage');
+      _notificationService.showInAppNotificationForMessage(
+        senderName: senderName,
+        message: message.content.isNotEmpty ? message.content : 'Sent an image',
+        senderId: senderId,
+        chatId: message.receiverId, // Using receiverId as chatId for friend chats
+      );
+      
+      print('✅ [SOCKET NOTIFICATION DEBUG] Notification service called successfully');
+    } catch (e) {
+      print('❌ [SOCKET NOTIFICATION DEBUG] Error showing notification: $e');
+      print('   📦 Stack trace: ${e.toString()}');
+    }
+  }
+  
+  // Get current user ID (helper method)
+  String? _getCurrentUserId() {
+    try {
+      return FirebaseAuth.FirebaseAuth.instance.currentUser?.uid;
+    } catch (e) {
+      return null;
     }
   }
 
@@ -1163,6 +1224,10 @@ class SocketService {
         _processedMessageIds.add(message.id);
         _messageController.add(message);
         _eventController.add(SocketEvent.message);
+        
+        // 🔔 TRIGGER NOTIFICATION for messages from other users
+        print('🔔 [SOCKET DEBUG] Triggering notification for message from other user');
+        _showNotificationForMessage(message, data);
       } else if (currentUserId != null && message.senderId == currentUserId) {
         // This is a message from the current user via new_message event
         // Only add it if we haven't already processed it via message_sent

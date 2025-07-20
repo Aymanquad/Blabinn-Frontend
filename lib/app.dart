@@ -5,6 +5,8 @@ import 'package:screen_protector/screen_protector.dart';
 import 'core/constants.dart';
 import 'providers/theme_provider.dart';
 import 'providers/user_provider.dart';
+import 'services/notification_service.dart';
+import 'widgets/in_app_notification.dart';
 import 'screens/splash_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/profile_screen.dart';
@@ -184,6 +186,7 @@ class MainNavigationScreen extends StatefulWidget {
 
 class _MainNavigationScreenState extends State<MainNavigationScreen> 
     with WidgetsBindingObserver {
+  final NotificationService _notificationService = NotificationService();
   int _currentIndex = 0;
   final PageController _pageController = PageController();
   final SocketService _socketService = SocketService();
@@ -194,8 +197,10 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _initializeNotifications();
     _initializeSocketConnection();
     _enableScreenProtection();
+    _setupInAppNotificationListener();
     _screens = [
       HomeScreen(onNavigateToTab: _onTabTapped),
       const ChatListScreen(),
@@ -227,6 +232,56 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
       print('❌ [APP DEBUG] Socket connection failed: $e');
     }
   }
+  
+  Future<void> _initializeNotifications() async {
+    try {
+      await _notificationService.initialize();
+      print('✅ [APP DEBUG] Notifications initialized');
+    } catch (e) {
+      print('❌ [APP DEBUG] Failed to initialize notifications: $e');
+    }
+  }
+  
+  void _setupInAppNotificationListener() {
+    print('🔔 [APP DEBUG] Setting up in-app notification listener');
+    
+    _notificationService.inAppNotificationStream.listen(
+      (notificationData) {
+        print('🔔 [APP DEBUG] *** NOTIFICATION RECEIVED IN STREAM ***');
+        print('   📦 Notification data: $notificationData');
+        print('   📱 Widget mounted: $mounted');
+        
+        if (mounted) {
+          print('🔔 [APP DEBUG] Showing in-app notification widget');
+          
+          showInAppNotification(
+            context: context,
+            senderName: notificationData['senderName'] ?? 'Unknown',
+            message: notificationData['message'] ?? 'New message',
+            senderId: notificationData['senderId'] ?? '',
+            chatId: notificationData['chatId'],
+            onTap: () {
+              print('🔔 [APP DEBUG] In-app notification tapped');
+              // TODO: Navigate to chat screen
+              // You can add navigation logic here
+            },
+          );
+          
+          print('✅ [APP DEBUG] showInAppNotification called');
+        } else {
+          print('❌ [APP DEBUG] Widget not mounted, cannot show notification');
+        }
+      },
+      onError: (error) {
+        print('❌ [APP DEBUG] Error in notification stream: $error');
+      },
+      onDone: () {
+        print('🔔 [APP DEBUG] Notification stream closed');
+      },
+    );
+    
+    print('✅ [APP DEBUG] In-app notification listener setup complete');
+  }
 
   @override
   void dispose() {
@@ -243,13 +298,18 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
     switch (state) {
       case AppLifecycleState.resumed:
         _enableScreenProtection();
+        _notificationService.setAppForegroundState(true);
+        print('🔔 [APP DEBUG] App resumed - foreground notifications enabled');
         break;
       case AppLifecycleState.paused:
       case AppLifecycleState.inactive:
         // Keep security features active even when app is paused/inactive
+        _notificationService.setAppForegroundState(false);
+        print('🔔 [APP DEBUG] App paused/inactive - background notifications enabled');
         break;
       case AppLifecycleState.detached:
         _disableScreenProtection();
+        _notificationService.setAppForegroundState(false);
         break;
       default:
         break;
@@ -306,6 +366,18 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
           ),
         ),
         actions: [
+          // Test notification button (temporary)
+          IconButton(
+            icon: Icon(
+              Icons.notifications_active,
+              color: theme.colorScheme.secondary,
+            ),
+            onPressed: () {
+              print('🔔 [TEST] Test notification button pressed');
+              _notificationService.testNotification();
+            },
+            tooltip: 'Test Notification',
+          ),
           IconButton(
             icon: Icon(
               AppIcons.profile,
