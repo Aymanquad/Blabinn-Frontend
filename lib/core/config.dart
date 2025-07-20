@@ -67,9 +67,9 @@ class AppConfig {
 
   // Alternative URLs for physical devices (use your computer's IP)
   // To find your IP: ipconfig (Windows) or ifconfig (Mac/Linux)
-  static const String _physicalDeviceIP = EnvConfig.physicalDeviceIp;
-
-  static String get physicalDeviceApiUrl => 'http://$_physicalDeviceIP:3000';
+  // Commented out since we're using deployed backend
+  // static const String _physicalDeviceIP = EnvConfig.physicalDeviceIp;
+  // static String get physicalDeviceApiUrl => 'http://$_physicalDeviceIP:3000';
 
   // Google Translate API
   static const String googleTranslateApiKey = EnvConfig.googleTranslateApiKey;
@@ -109,8 +109,9 @@ class AppConfig {
   static const Duration connectionTimeout = Duration(seconds: 5);
 
   // WebSocket Configuration
-  static const int wsMaxReconnectAttempts = 2;  // Reduced from 5 to 2
-  static const Duration wsReconnectDelay = Duration(seconds: 1);  // Reduced from 3 to 1
+  static const int wsMaxReconnectAttempts = 2; // Reduced from 5 to 2
+  static const Duration wsReconnectDelay =
+      Duration(seconds: 1); // Reduced from 3 to 1
 
   // API Key Validation
   static bool get hasValidApiKey => googleTranslateApiKey.isNotEmpty;
@@ -131,7 +132,7 @@ class AppConfig {
         'apiBaseUrl': apiBaseUrl,
         'apiUrl': apiUrl,
         'wsBaseUrl': wsBaseUrl,
-        'physicalDeviceApiUrl': physicalDeviceApiUrl,
+        // 'physicalDeviceApiUrl': physicalDeviceApiUrl, // Commented out since using deployed backend
       };
 
   // Feature availability

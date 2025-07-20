@@ -32,11 +32,11 @@ class _LoginScreenState extends State<LoginScreen> {
               // Logo and title
               _buildHeader(),
               const SizedBox(height: 48),
-              
+
               // Firebase status indicator
               _buildFirebaseStatus(),
               const SizedBox(height: 24),
-              
+
               // Test connection button
               ElevatedButton(
                 onPressed: _testConnection,
@@ -45,9 +45,9 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 child: Text('🔍 Test Backend Connection'),
               ),
-              
+
               SizedBox(height: 8),
-              
+
               // Debug info button
               ElevatedButton(
                 onPressed: _showDebugInfo,
@@ -56,30 +56,30 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 child: Text('🔍 Show Debug Info'),
               ),
-              
+
               SizedBox(height: 8),
-              
-              // Test physical device IP button
-              ElevatedButton(
-                onPressed: _testPhysicalDeviceConnection,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.teal,
-                ),
-                child: Text('📱 Test Physical Device IP'),
-              ),
-              
+
+              // Test physical device IP button - Commented out since using deployed backend
+              // ElevatedButton(
+              //   onPressed: _testPhysicalDeviceConnection,
+              //   style: ElevatedButton.styleFrom(
+              //     backgroundColor: Colors.teal,
+              //   ),
+              //   child: Text('📱 Test Physical Device IP'),
+              // ),
+
               // Sign in buttons
               _buildSignInButtons(),
               const SizedBox(height: 24),
-              
+
               // Or divider
               _buildDivider(),
               const SizedBox(height: 24),
-              
+
               // Guest button
               _buildGuestButton(),
               const SizedBox(height: 32),
-              
+
               // Terms and privacy
               _buildTermsText(),
             ],
@@ -109,16 +109,16 @@ class _LoginScreenState extends State<LoginScreen> {
         Text(
           'Welcome to ${AppConstants.appName}',
           style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-            fontWeight: FontWeight.bold,
-            color: AppColors.text,
-          ),
+                fontWeight: FontWeight.bold,
+                color: AppColors.text,
+              ),
         ),
         const SizedBox(height: 8),
         Text(
           'Connect with people around the world',
           style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-            color: Colors.grey[600],
-          ),
+                color: Colors.grey[600],
+              ),
           textAlign: TextAlign.center,
         ),
       ],
@@ -127,7 +127,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Widget _buildFirebaseStatus() {
     final isFirebaseAvailable = _authService.isFirebaseAvailable;
-    
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(12),
@@ -149,12 +149,14 @@ class _LoginScreenState extends State<LoginScreen> {
           const SizedBox(width: 8),
           Expanded(
             child: Text(
-              isFirebaseAvailable 
+              isFirebaseAvailable
                   ? 'Firebase configured - All features available'
                   : 'Firebase not configured - Limited features available',
               style: TextStyle(
                 fontSize: 12,
-                color: isFirebaseAvailable ? Colors.green[700] : Colors.orange[700],
+                color: isFirebaseAvailable
+                    ? Colors.green[700]
+                    : Colors.orange[700],
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -166,7 +168,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Widget _buildSignInButtons() {
     final isFirebaseAvailable = _authService.isFirebaseAvailable;
-    
+
     return Column(
       children: [
         // Google Sign In Button
@@ -174,8 +176,9 @@ class _LoginScreenState extends State<LoginScreen> {
           width: double.infinity,
           height: 56,
           child: ElevatedButton.icon(
-            onPressed: isFirebaseAvailable && !_isLoading ? _signInWithGoogle : null,
-            icon: _isLoading 
+            onPressed:
+                isFirebaseAvailable && !_isLoading ? _signInWithGoogle : null,
+            icon: _isLoading
                 ? const SizedBox(
                     width: 20,
                     height: 20,
@@ -185,39 +188,49 @@ class _LoginScreenState extends State<LoginScreen> {
                     'assets/images/google_logo.png', // You'll need to add this
                     width: 24,
                     height: 24,
-                    errorBuilder: (context, error, stackTrace) => const Icon(Icons.g_mobiledata),
+                    errorBuilder: (context, error, stackTrace) =>
+                        const Icon(Icons.g_mobiledata),
                   ),
-            label: Text(isFirebaseAvailable ? 'Continue with Google' : 'Google (Requires Firebase)'),
+            label: Text(isFirebaseAvailable
+                ? 'Continue with Google'
+                : 'Google (Requires Firebase)'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: isFirebaseAvailable ? Colors.white : Colors.grey[200],
-              foregroundColor: isFirebaseAvailable ? Colors.black87 : Colors.grey[600],
-              side: BorderSide(color: isFirebaseAvailable ? Colors.grey : Colors.grey[400]!),
+              backgroundColor:
+                  isFirebaseAvailable ? Colors.white : Colors.grey[200],
+              foregroundColor:
+                  isFirebaseAvailable ? Colors.black87 : Colors.grey[600],
+              side: BorderSide(
+                  color: isFirebaseAvailable ? Colors.grey : Colors.grey[400]!),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
             ),
           ),
         ),
-        
+
         const SizedBox(height: 16),
-        
+
         // Apple Sign In Button (only show on iOS)
         if (Platform.isIOS) ...[
           SizedBox(
             width: double.infinity,
             height: 56,
             child: ElevatedButton.icon(
-              onPressed: isFirebaseAvailable && !_isLoading ? _signInWithApple : null,
-              icon: _isLoading 
+              onPressed:
+                  isFirebaseAvailable && !_isLoading ? _signInWithApple : null,
+              icon: _isLoading
                   ? const SizedBox(
                       width: 20,
                       height: 20,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
                   : const Icon(Icons.apple, size: 24),
-              label: Text(isFirebaseAvailable ? 'Continue with Apple' : 'Apple (Requires Firebase)'),
+              label: Text(isFirebaseAvailable
+                  ? 'Continue with Apple'
+                  : 'Apple (Requires Firebase)'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: isFirebaseAvailable ? Colors.black : Colors.grey[600],
+                backgroundColor:
+                    isFirebaseAvailable ? Colors.black : Colors.grey[600],
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
@@ -252,7 +265,7 @@ class _LoginScreenState extends State<LoginScreen> {
       height: 56,
       child: OutlinedButton.icon(
         onPressed: _isLoading ? null : _signInAsGuest,
-        icon: _isLoading 
+        icon: _isLoading
             ? const SizedBox(
                 width: 20,
                 height: 20,
@@ -275,8 +288,8 @@ class _LoginScreenState extends State<LoginScreen> {
     return Text(
       'By continuing, you agree to our Terms of Service and Privacy Policy',
       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-        color: Colors.grey[600],
-      ),
+            color: Colors.grey[600],
+          ),
       textAlign: TextAlign.center,
     );
   }
@@ -284,7 +297,7 @@ class _LoginScreenState extends State<LoginScreen> {
   // Sign in with Google
   Future<void> _signInWithGoogle() async {
     setState(() => _isLoading = true);
-    
+
     try {
       final result = await _authService.signInWithGoogle();
       await _handleAuthResult(result);
@@ -298,7 +311,7 @@ class _LoginScreenState extends State<LoginScreen> {
   // Sign in with Apple
   Future<void> _signInWithApple() async {
     setState(() => _isLoading = true);
-    
+
     try {
       final result = await _authService.signInWithApple();
       await _handleAuthResult(result);
@@ -312,7 +325,7 @@ class _LoginScreenState extends State<LoginScreen> {
   // Sign in as Guest
   Future<void> _signInAsGuest() async {
     setState(() => _isLoading = true);
-    
+
     try {
       final result = await _authService.signInAsGuest();
       if (result['success'] == true) {
@@ -377,8 +390,8 @@ class _LoginScreenState extends State<LoginScreen> {
             ElevatedButton(
               onPressed: () {
                 Navigator.of(context).pop();
-                Navigator.pushReplacementNamed(context, '/profile-management', 
-                  arguments: {'isGuestUser': true});
+                Navigator.pushReplacementNamed(context, '/profile-management',
+                    arguments: {'isGuestUser': true});
               },
               child: const Text('Create Profile'),
             ),
@@ -393,7 +406,7 @@ class _LoginScreenState extends State<LoginScreen> {
     if (result['success'] == true) {
       final user = result['user'];
       final isNewUser = result['isNewUser'] ?? false;
-      
+
       // Navigate based on user status
       if (isNewUser) {
         // New user - go to profile creation or onboarding
@@ -421,22 +434,23 @@ class _LoginScreenState extends State<LoginScreen> {
   void _testConnection() async {
     print('🔍 DEBUG: Starting connection test...');
     print('🔍 DEBUG: Platform config: ${AppConfig.debugInfo}');
-    
+
     final authService = AuthService();
-    
+
     // Test basic connectivity
     final canConnect = await authService.testBackendConnection();
     print('🔍 DEBUG: Can connect to backend: $canConnect');
-    
+
     if (canConnect) {
       // Test POST requests
       final canPost = await authService.testPostRequest();
       print('🔍 DEBUG: Can make POST requests: $canPost');
-      
+
       // Show success message
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('✅ Backend connection successful!\nUsing: ${AppConfig.apiUrl}'),
+          content: Text(
+              '✅ Backend connection successful!\nUsing: ${AppConfig.apiUrl}'),
           backgroundColor: Colors.green,
           duration: Duration(seconds: 4),
         ),
@@ -445,7 +459,8 @@ class _LoginScreenState extends State<LoginScreen> {
       // Show error message with suggestions
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('❌ Cannot connect to backend\nTrying: ${AppConfig.apiUrl}\nTap "Show Debug Info" for help'),
+          content: Text(
+              '❌ Cannot connect to backend\nTrying: ${AppConfig.apiUrl}\nTap "Show Debug Info" for help'),
           backgroundColor: Colors.red,
           duration: Duration(seconds: 6),
         ),
@@ -478,11 +493,11 @@ class _LoginScreenState extends State<LoginScreen> {
               Text('• For physical device, use your computer\'s IP'),
               Text('• For emulator, 10.0.2.2 should work'),
               SizedBox(height: 8),
-              Text('Alternative URL for physical device:'),
-              SelectableText(
-                config['physicalDeviceApiUrl'],
-                style: TextStyle(fontFamily: 'monospace', color: Colors.orange),
-              ),
+              // Text('Alternative URL for physical device:'),
+              // SelectableText(
+              //   config['physicalDeviceApiUrl'],
+              //   style: TextStyle(fontFamily: 'monospace', color: Colors.orange),
+              // ),
               SizedBox(height: 8),
               Text('To find your IP:'),
               Text('Windows: ipconfig'),
@@ -509,41 +524,42 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  void _testPhysicalDeviceConnection() async {
-    print('🔍 DEBUG: Testing with physical device IP...');
-    
-    // Temporarily override the API URL for testing
-    final testUrl = AppConfig.physicalDeviceApiUrl;
-    print('🔍 DEBUG: Testing URL: $testUrl');
-    
-    try {
-      final response = await http.get(
-        Uri.parse('$testUrl/api/auth/test-connection'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-      ).timeout(Duration(seconds: 10));
-      
-      if (response.statusCode == 200) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('✅ Physical device IP works!\nUpdate your config with this IP'),
-            backgroundColor: Colors.green,
-            duration: Duration(seconds: 4),
-          ),
-        );
-      } else {
-        throw Exception('HTTP ${response.statusCode}');
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('❌ Physical device IP failed: $e'),
-          backgroundColor: Colors.red,
-          duration: Duration(seconds: 4),
-        ),
-      );
-    }
-  }
-} 
+  // void _testPhysicalDeviceConnection() async {
+  //   print('🔍 DEBUG: Testing with physical device IP...');
+  //
+  //   // Temporarily override the API URL for testing
+  //   final testUrl = AppConfig.physicalDeviceApiUrl;
+  //   print('🔍 DEBUG: Testing URL: $testUrl');
+  //
+  //   try {
+  //     final response = await http.get(
+  //       Uri.parse('$testUrl/api/auth/test-connection'),
+  //       headers: {
+  //         'Content-Type': 'application/json',
+  //         'Accept': 'application/json',
+  //       },
+  //     ).timeout(Duration(seconds: 10));
+  //
+  //     if (response.statusCode == 200) {
+  //       ScaffoldMessenger.of(context).showSnackBar(
+  //         SnackBar(
+  //           content: Text(
+  //               '✅ Physical device IP works!\nUpdate your config with this IP'),
+  //           backgroundColor: Colors.green,
+  //           duration: Duration(seconds: 4),
+  //         ),
+  //       );
+  //     } else {
+  //       throw Exception('HTTP ${response.statusCode}');
+  //     }
+  //   } catch (e) {
+  //     ScaffoldMessenger.of(context).showSnackBar(
+  //       SnackBar(
+  //         content: Text('❌ Physical device IP failed: $e'),
+  //         backgroundColor: Colors.red,
+  //         duration: Duration(seconds: 4),
+  //       ),
+  //     );
+  //   }
+  // }
+}

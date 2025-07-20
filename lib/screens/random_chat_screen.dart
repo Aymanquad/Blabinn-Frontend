@@ -68,7 +68,7 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
     _messageSubscription =
         _socketService.messageStream.listen(_handleNewMessage);
     _errorSubscription = _socketService.errorStream.listen(_handleError);
-    
+
     // Listen for socket events (including session end events)
     _socketService.eventStream.listen((event) {
       print('📡 [RANDOM CHAT DEBUG] Socket event received: $event');
@@ -174,12 +174,12 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
           'timestamp': message.timestamp ?? DateTime.now(),
           'isFromCurrentUser': isFromCurrentUser,
         });
-              });
+      });
 
-        _scrollToBottom();
+      _scrollToBottom();
 
-        print(
-            '✅ [RANDOM CHAT DEBUG] Added new message to UI: $messageContent (from current user: $isFromCurrentUser)');
+      print(
+          '✅ [RANDOM CHAT DEBUG] Added new message to UI: $messageContent (from current user: $isFromCurrentUser)');
     }
   }
 
@@ -198,7 +198,7 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
     if (!mounted || !_isSessionActive) return;
 
     print('🚪 [RANDOM CHAT DEBUG] Partner ended session, handling locally');
-    
+
     setState(() {
       _isSessionActive = false;
     });
@@ -265,11 +265,11 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
           'timestamp': DateTime.now(),
           'isFromCurrentUser': true,
         });
-              });
+      });
 
-        _scrollToBottom();
+      _scrollToBottom();
 
-        print('📤 [RANDOM CHAT DEBUG] Added optimistic message to UI: $content');
+      print('📤 [RANDOM CHAT DEBUG] Added optimistic message to UI: $content');
 
       _messageController.clear();
 
@@ -297,7 +297,7 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
 
     try {
       print('🚪 [RANDOM CHAT DEBUG] Ending session with reason: $reason');
-      
+
       // End session via socket (this will notify both users)
       await _socketService.endRandomChatSession(widget.sessionId, reason);
 
@@ -373,11 +373,14 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Random Chat'),
         centerTitle: true,
-        backgroundColor: AppColors.primary,
+        backgroundColor: isDark ? AppColors.darkPrimary : AppColors.primary,
         foregroundColor: Colors.white,
         actions: [
           Container(
@@ -412,11 +415,12 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(12),
-            color: AppColors.primary.withOpacity(0.1),
+            color: (isDark ? AppColors.darkPrimary : AppColors.primary)
+                .withOpacity(0.1),
             child: Text(
               'Random chat session active • ${_formatTime(_timeRemaining)} remaining',
               style: TextStyle(
-                color: AppColors.primary,
+                color: isDark ? AppColors.darkPrimary : AppColors.primary,
                 fontWeight: FontWeight.w500,
               ),
               textAlign: TextAlign.center,
@@ -425,28 +429,28 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
           // Messages list
           Expanded(
             child: _messages.isEmpty
-                ? const Center(
+                ? Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Icon(
                           Icons.chat_bubble_outline,
                           size: 64,
-                          color: Colors.grey,
+                          color: isDark ? Colors.grey[400] : Colors.grey,
                         ),
-                        SizedBox(height: 16),
+                        const SizedBox(height: 16),
                         Text(
                           'Start chatting!',
                           style: TextStyle(
                             fontSize: 18,
-                            color: Colors.grey,
+                            color: isDark ? Colors.grey[400] : Colors.grey,
                           ),
                         ),
-                        SizedBox(height: 8),
+                        const SizedBox(height: 8),
                         Text(
                           'Say hello to your random chat partner',
                           style: TextStyle(
-                            color: Colors.grey,
+                            color: isDark ? Colors.grey[400] : Colors.grey,
                           ),
                         ),
                       ],
@@ -473,8 +477,12 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
                           ),
                           decoration: BoxDecoration(
                             color: isFromCurrentUser
-                                ? AppColors.primary
-                                : Colors.grey[300],
+                                ? (isDark
+                                    ? AppColors.darkPrimary
+                                    : AppColors.primary)
+                                : (isDark
+                                    ? AppColors.darkReceivedMessage
+                                    : Colors.grey[300]),
                             borderRadius: BorderRadius.circular(18),
                           ),
                           child: Text(
@@ -482,7 +490,9 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
                             style: TextStyle(
                               color: isFromCurrentUser
                                   ? Colors.white
-                                  : Colors.black87,
+                                  : (isDark
+                                      ? AppColors.darkText
+                                      : Colors.black87),
                             ),
                           ),
                         ),
@@ -495,7 +505,7 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: isDark ? AppColors.darkCardBackground : Colors.white,
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black.withOpacity(0.1),
@@ -516,7 +526,9 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
                           borderSide: BorderSide.none,
                         ),
                         filled: true,
-                        fillColor: Colors.grey[100],
+                        fillColor: isDark
+                            ? AppColors.darkInputBackground
+                            : Colors.grey[100],
                         contentPadding: const EdgeInsets.symmetric(
                           horizontal: 20,
                           vertical: 10,
@@ -532,7 +544,8 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
                     child: Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: AppColors.primary,
+                        color:
+                            isDark ? AppColors.darkPrimary : AppColors.primary,
                         shape: BoxShape.circle,
                       ),
                       child: const Icon(
