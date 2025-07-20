@@ -294,13 +294,22 @@ class SocketService {
   // Handle incoming message
   void _handleIncomingMessage(Map<String, dynamic> data) {
     try {
+      print('🔍 [SOCKET DEBUG] Raw message data: $data');
+      print('🔍 [SOCKET DEBUG] Message type in data: ${data['messageType']}');
+      print('🔍 [SOCKET DEBUG] Image URL in data: ${data['imageUrl']}');
+      
       final message = Message.fromJson(data);
+      
+      print('🔍 [SOCKET DEBUG] Parsed message type: ${message.type}');
+      print('🔍 [SOCKET DEBUG] Parsed image URL: ${message.imageUrl}');
+      
       _messageController.add(message);
       _eventController.add(SocketEvent.message);
       
       // Show in-app notification for the message
       _showNotificationForMessage(message, data);
     } catch (e) {
+      print('❌ [SOCKET DEBUG] Error parsing message: $e');
       _handleError(e);
     }
   }

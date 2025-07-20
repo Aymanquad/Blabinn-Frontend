@@ -15,6 +15,7 @@ import '../services/socket_service.dart';
 import '../services/firebase_auth_service.dart';
 import '../services/premium_service.dart';
 import '../widgets/chat_bubble.dart';
+import 'media_folder_screen.dart';
 
 class ChatScreen extends StatefulWidget {
   final Chat chat;
@@ -107,10 +108,21 @@ class _ChatScreenState extends State<ChatScreen> {
         _scrollToBottom();
 
           // Auto-save received images to media folder (only for messages from others)
+          print('🔍 DEBUG: Message type: ${message.type}');
+          print('🔍 DEBUG: Image URL: ${message.imageUrl}');
+          print('🔍 DEBUG: Sender ID: ${message.senderId}');
+          print('🔍 DEBUG: Friend ID: $_friendId');
+          print('🔍 DEBUG: Is image message: ${message.type == MessageType.image}');
+          print('🔍 DEBUG: Has image URL: ${message.imageUrl != null}');
+          print('🔍 DEBUG: Is from friend: ${message.senderId == _friendId}');
+          
           if (message.type == MessageType.image && 
               message.imageUrl != null && 
               message.senderId == _friendId) {
+            print('✅ DEBUG: Saving received image from friend!');
             _saveReceivedImageToMediaFolder(message.imageUrl!);
+          } else {
+            print('❌ DEBUG: Not saving image - conditions not met');
           }
         }
       }
@@ -829,28 +841,63 @@ class _ChatScreenState extends State<ChatScreen> {
 
   Future<void> _saveReceivedImageToMediaFolder(String imageUrl) async {
     try {
-      print('📥 DEBUG: Saving received image from URL: $imageUrl');
+      print('📥 DEBUG: Starting to save received image from URL: $imageUrl');
+      print('📥 DEBUG: Friend ID: $_friendId');
       
+      // Download the image from URL first
+      print('📥 DEBUG: Downloading image...');
+      final response = await http.get(Uri.parse(imageUrl));
+      if (response.statusCode != 200) {
+        print('❌ DEBUG: Failed to download image: ${response.statusCode}');
+        return;
+      }
+      print('✅ DEBUG: Image downloaded successfully, size: ${response.bodyBytes.length} bytes');
+
+      // Create temporary file
       final directory = await getApplicationDocumentsDirectory();
-      final mediaDir = Directory('${directory.path}/media');
+      final tempDir = Directory('${directory.path}/temp');
+      if (!await tempDir.exists()) {
+        await tempDir.create(recursive: true);
+      }
       
-      if (!await mediaDir.exists()) {
-        await mediaDir.create(recursive: true);
+      final tempFileName = '${DateTime.now().millisecondsSinceEpoch}_temp.jpg';
+      final tempFile = File('${tempDir.path}/$tempFileName');
+      await tempFile.writeAsBytes(response.bodyBytes);
+      print('✅ DEBUG: Temporary file created: ${tempFile.path}');
+
+      // Get friend's name for metadata
+      String friendName = 'Unknown Friend';
+      if (_friendId != null) {
+        try {
+          print('📥 DEBUG: Getting friend profile...');
+          // Try to get friend's profile to get their name
+          final friendProfile = await _apiService.getUserProfile(_friendId!);
+          friendName = friendProfile['firstName'] ?? friendProfile['displayName'] ?? 'Unknown Friend';
+          print('✅ DEBUG: Friend name retrieved: $friendName');
+        } catch (e) {
+          print('⚠️ DEBUG: Could not get friend name: $e');
+          // Fallback to using friend ID as name if we can't get the actual name
+          friendName = 'Friend $_friendId';
+        }
       }
 
-      // Download the image from URL
-      final response = await http.get(Uri.parse(imageUrl));
-      if (response.statusCode == 200) {
-        final fileName = '${DateTime.now().millisecondsSinceEpoch}_received.jpg';
-        final savedFile = File('${mediaDir.path}/$fileName');
-        
-        await savedFile.writeAsBytes(response.bodyBytes);
-        print('✅ DEBUG: Received image saved to media folder: $fileName');
-      } else {
-        print('❌ DEBUG: Failed to download image: ${response.statusCode}');
+      // Use MediaFolderScreen method to properly save with metadata
+      print('📥 DEBUG: Saving to media folder with metadata...');
+      await MediaFolderScreen.saveReceivedImage(tempFile, _friendId ?? 'unknown', friendName);
+      
+      // Clean up temp file
+      if (await tempFile.exists()) {
+        await tempFile.delete();
+        print('✅ DEBUG: Temporary file cleaned up');
       }
+      
+      print('✅ DEBUG: Received image saved to media folder with friend info: $friendName');
+      
+      // Show user notification
+      _showSuccess('Image from $friendName saved to Media Folder!');
     } catch (e) {
       print('⚠️ DEBUG: Failed to save received image to media folder: $e');
+      _showError('Failed to save received image');
     }
   }
 
