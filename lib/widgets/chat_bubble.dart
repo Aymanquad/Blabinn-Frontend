@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../core/constants.dart';
 import '../models/message.dart';
 import '../services/firebase_auth_service.dart';
+import '../providers/theme_provider.dart';
 import 'full_screen_image_viewer.dart';
 
 class ChatBubble extends StatelessWidget {
@@ -16,24 +18,28 @@ class ChatBubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      child: Column(
-        crossAxisAlignment: _isCurrentUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
-        children: [
-          _buildMessageBubble(context),
-          const SizedBox(height: 2),
-          _buildMessageTime(),
-        ],
-      ),
+    return Consumer<ThemeProvider>(
+      builder: (context, themeProvider, child) {
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          child: Column(
+            crossAxisAlignment: _isCurrentUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+            children: [
+              _buildMessageBubble(context, themeProvider.isDarkMode),
+              const SizedBox(height: 2),
+              _buildMessageTime(themeProvider.isDarkMode),
+            ],
+          ),
+        );
+      },
     );
   }
 
-  Widget _buildMessageBubble(BuildContext context) {
+  Widget _buildMessageBubble(BuildContext context, bool isDarkMode) {
     return Container(
       constraints: const BoxConstraints(maxWidth: 280),
       decoration: BoxDecoration(
-        color: _isCurrentUser ? AppColors.sentMessage : AppColors.receivedMessage,
+        color: _getBubbleColor(isDarkMode),
         borderRadius: BorderRadius.circular(18).copyWith(
           topLeft: _isCurrentUser ? const Radius.circular(18) : const Radius.circular(4),
           topRight: _isCurrentUser ? const Radius.circular(4) : const Radius.circular(18),
@@ -42,35 +48,55 @@ class ChatBubble extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildMessageContent(context),
-          if (message.type != MessageType.text) _buildMessageStatus(),
+          _buildMessageContent(context, isDarkMode),
+          if (message.type != MessageType.text) _buildMessageStatus(isDarkMode),
         ],
       ),
     );
   }
 
-  Widget _buildMessageContent(BuildContext context) {
-    switch (message.type) {
-      case MessageType.text:
-        return _buildTextMessage();
-      case MessageType.image:
-        return _buildImageMessage(context);
-      case MessageType.video:
-        return _buildVideoMessage();
-      case MessageType.audio:
-        return _buildAudioMessage();
-      case MessageType.location:
-        return _buildLocationMessage();
-      case MessageType.file:
-        return _buildFileMessage();
-      case MessageType.system:
-        return _buildSystemMessage();
-      default:
-        return _buildTextMessage();
+  Color _getBubbleColor(bool isDarkMode) {
+    if (_isCurrentUser) {
+      // Sent messages: Simple purple in dark mode, primary in light mode
+      return isDarkMode ? const Color(0xFF6B46C1) : AppColors.primary;
+    } else {
+      // Received messages: Simple gray in dark mode
+      return isDarkMode ? const Color(0xFF4A4A5E) : AppColors.receivedMessage;
     }
   }
 
-  Widget _buildTextMessage() {
+  Color _getTextColor(bool isDarkMode) {
+    if (_isCurrentUser) {
+      // Sent messages always use white text
+      return Colors.white;
+    } else {
+      // Received messages use theme-appropriate text color
+      return isDarkMode ? AppColors.darkText : AppColors.text;
+    }
+  }
+
+  Widget _buildMessageContent(BuildContext context, bool isDarkMode) {
+    switch (message.type) {
+      case MessageType.text:
+        return _buildTextMessage(isDarkMode);
+      case MessageType.image:
+        return _buildImageMessage(context, isDarkMode);
+      case MessageType.video:
+        return _buildVideoMessage(isDarkMode);
+      case MessageType.audio:
+        return _buildAudioMessage(isDarkMode);
+      case MessageType.location:
+        return _buildLocationMessage(isDarkMode);
+      case MessageType.file:
+        return _buildFileMessage(isDarkMode);
+      case MessageType.system:
+        return _buildSystemMessage(isDarkMode);
+      default:
+        return _buildTextMessage(isDarkMode);
+    }
+  }
+
+  Widget _buildTextMessage(bool isDarkMode) {
     return Padding(
       padding: const EdgeInsets.all(12),
       child: Row(
@@ -78,12 +104,12 @@ class ChatBubble extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           Flexible(
-      child: Text(
-        message.content,
-        style: TextStyle(
-          color: _isCurrentUser ? AppColors.sentMessageText : AppColors.receivedMessageText,
-          fontSize: 16,
-        ),
+            child: Text(
+              message.content,
+              style: TextStyle(
+                color: _getTextColor(isDarkMode),
+                fontSize: 16,
+              ),
             ),
           ),
           if (_isCurrentUser) ...[
@@ -91,7 +117,7 @@ class ChatBubble extends StatelessWidget {
             Icon(
               _getStatusIcon(),
               size: 16,
-              color: AppColors.sentMessageText.withOpacity(0.7),
+              color: Colors.white.withOpacity(0.7),
             ),
           ],
         ],
@@ -99,7 +125,7 @@ class ChatBubble extends StatelessWidget {
     );
   }
 
-  Widget _buildImageMessage(BuildContext context) {
+  Widget _buildImageMessage(BuildContext context, bool isDarkMode) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -183,7 +209,7 @@ class ChatBubble extends StatelessWidget {
             child: Text(
               message.content,
               style: TextStyle(
-                color: _isCurrentUser ? AppColors.sentMessageText : AppColors.receivedMessageText,
+                color: _getTextColor(isDarkMode),
                 fontSize: 16,
               ),
             ),
@@ -192,7 +218,7 @@ class ChatBubble extends StatelessWidget {
     );
   }
 
-  Widget _buildVideoMessage() {
+  Widget _buildVideoMessage(bool isDarkMode) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -217,7 +243,7 @@ class ChatBubble extends StatelessWidget {
             child: Text(
               message.content,
               style: TextStyle(
-                color: _isCurrentUser ? AppColors.sentMessageText : AppColors.receivedMessageText,
+                color: _getTextColor(isDarkMode),
                 fontSize: 16,
               ),
             ),
@@ -226,7 +252,7 @@ class ChatBubble extends StatelessWidget {
     );
   }
 
-  Widget _buildAudioMessage() {
+  Widget _buildAudioMessage(bool isDarkMode) {
     return Container(
       width: 200,
       padding: const EdgeInsets.all(12),
@@ -234,7 +260,7 @@ class ChatBubble extends StatelessWidget {
         children: [
           Icon(
             Icons.play_arrow,
-            color: _isCurrentUser ? AppColors.sentMessageText : AppColors.receivedMessageText,
+            color: _getTextColor(isDarkMode),
           ),
           const SizedBox(width: 8),
           Expanded(
@@ -244,15 +270,17 @@ class ChatBubble extends StatelessWidget {
                 Text(
                   'Audio Message',
                   style: TextStyle(
-                    color: _isCurrentUser ? AppColors.sentMessageText : AppColors.receivedMessageText,
+                    color: _getTextColor(isDarkMode),
                     fontWeight: FontWeight.w600,
                   ),
                 ),
                 const SizedBox(height: 4),
-                const LinearProgressIndicator(
+                LinearProgressIndicator(
                   value: 0.3,
                   backgroundColor: Colors.grey,
-                  valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    isDarkMode ? AppColors.darkPrimary : AppColors.primary,
+                  ),
                 ),
               ],
             ),
@@ -262,7 +290,7 @@ class ChatBubble extends StatelessWidget {
     );
   }
 
-  Widget _buildLocationMessage() {
+  Widget _buildLocationMessage(bool isDarkMode) {
     final latitude = message.metadata?['latitude']?.toDouble();
     final longitude = message.metadata?['longitude']?.toDouble();
     final address = message.metadata?['address'];
@@ -271,7 +299,7 @@ class ChatBubble extends StatelessWidget {
       width: 200,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
-        color: Colors.grey[200],
+        color: isDarkMode ? Colors.grey[800] : Colors.grey[200],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -298,7 +326,7 @@ class ChatBubble extends StatelessWidget {
                 Text(
                   'Location',
                   style: TextStyle(
-                    color: _isCurrentUser ? AppColors.sentMessageText : AppColors.receivedMessageText,
+                    color: _getTextColor(isDarkMode),
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -307,7 +335,7 @@ class ChatBubble extends StatelessWidget {
                   Text(
                     address,
                     style: TextStyle(
-                      color: _isCurrentUser ? AppColors.sentMessageText : AppColors.receivedMessageText,
+                      color: _getTextColor(isDarkMode),
                       fontSize: 12,
                     ),
                   ),
@@ -320,7 +348,7 @@ class ChatBubble extends StatelessWidget {
     );
   }
 
-  Widget _buildFileMessage() {
+  Widget _buildFileMessage(bool isDarkMode) {
     final fileName = message.metadata?['fileName'] ?? 'File';
     final fileSize = message.metadata?['fileSize'] ?? 'Unknown size';
 
@@ -328,7 +356,7 @@ class ChatBubble extends StatelessWidget {
       width: 200,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.grey[200],
+        color: isDarkMode ? Colors.grey[800] : Colors.grey[200],
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
@@ -336,7 +364,7 @@ class ChatBubble extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: AppColors.primary,
+              color: isDarkMode ? AppColors.darkPrimary : AppColors.primary,
               borderRadius: BorderRadius.circular(8),
             ),
             child: const Icon(
@@ -353,7 +381,7 @@ class ChatBubble extends StatelessWidget {
                 Text(
                   fileName,
                   style: TextStyle(
-                    color: _isCurrentUser ? AppColors.sentMessageText : AppColors.receivedMessageText,
+                    color: _getTextColor(isDarkMode),
                     fontWeight: FontWeight.w600,
                   ),
                   maxLines: 1,
@@ -363,7 +391,7 @@ class ChatBubble extends StatelessWidget {
                 Text(
                   fileSize,
                   style: TextStyle(
-                    color: _isCurrentUser ? AppColors.sentMessageText : AppColors.receivedMessageText,
+                    color: _getTextColor(isDarkMode),
                     fontSize: 12,
                   ),
                 ),
@@ -375,18 +403,18 @@ class ChatBubble extends StatelessWidget {
     );
   }
 
-  Widget _buildSystemMessage() {
+  Widget _buildSystemMessage(bool isDarkMode) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: AppColors.background,
+        color: isDarkMode ? AppColors.darkBackground : AppColors.background,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.text.withOpacity(0.2)),
+        border: Border.all(color: (isDarkMode ? AppColors.darkText : AppColors.text).withOpacity(0.2)),
       ),
       child: Text(
         message.content,
         style: TextStyle(
-          color: AppColors.text.withOpacity(0.7),
+          color: (isDarkMode ? AppColors.darkText : AppColors.text).withOpacity(0.7),
           fontSize: 12,
           fontStyle: FontStyle.italic,
         ),
@@ -395,7 +423,7 @@ class ChatBubble extends StatelessWidget {
     );
   }
 
-  Widget _buildMessageStatus() {
+  Widget _buildMessageStatus(bool isDarkMode) {
     if (!_isCurrentUser) return const SizedBox.shrink();
 
     return Padding(
@@ -406,7 +434,7 @@ class ChatBubble extends StatelessWidget {
           Icon(
             _getStatusIcon(),
             size: 16,
-            color: AppColors.sentMessageText.withOpacity(0.7),
+            color: Colors.white.withOpacity(0.7),
           ),
         ],
       ),
@@ -430,7 +458,7 @@ class ChatBubble extends StatelessWidget {
     }
   }
 
-  Widget _buildMessageTime() {
+  Widget _buildMessageTime(bool isDarkMode) {
     return Padding(
       padding: EdgeInsets.only(
         left: _isCurrentUser ? 0 : 16,
@@ -439,7 +467,7 @@ class ChatBubble extends StatelessWidget {
       child: Text(
         message.formattedTime ?? _formatTime(message.timestamp),
         style: TextStyle(
-          color: AppColors.text.withOpacity(0.5),
+          color: (isDarkMode ? AppColors.darkText : AppColors.text).withOpacity(0.5),
           fontSize: 12,
         ),
       ),
