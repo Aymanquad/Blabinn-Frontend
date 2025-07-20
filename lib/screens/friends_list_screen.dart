@@ -200,7 +200,21 @@ class _FriendsListScreenState extends State<FriendsListScreen> {
                   onSelected: (value) {
                     switch (value) {
                       case 'profile':
-                        // TODO: Show user profile
+                        final userId = friend['uid'] ?? friend['id'];
+                        if (userId != null) {
+                          Navigator.pushNamed(
+                            context,
+                            '/user-profile',
+                            arguments: userId,
+                          );
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Unable to view profile: User ID not found'),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                        }
                         break;
                       case 'remove':
                         _removeFriend(friend);

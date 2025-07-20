@@ -390,7 +390,13 @@ class _ChatScreenState extends State<ChatScreen> {
             onSelected: (value) async {
               switch (value) {
                 case 'profile':
-                  // TODO: Show user profile
+                  if (_friendId != null) {
+                    Navigator.pushNamed(
+                      context,
+                      '/user-profile',
+                      arguments: _friendId,
+                    );
+                  }
                   break;
                 case 'block':
                   await _blockUser();
