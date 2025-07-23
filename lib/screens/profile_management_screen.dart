@@ -9,7 +9,6 @@ import '../services/api_service.dart';
 import '../services/premium_service.dart';
 import '../providers/user_provider.dart';
 
-
 class ProfileManagementScreen extends StatefulWidget {
   const ProfileManagementScreen({Key? key}) : super(key: key);
 
@@ -29,7 +28,6 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
   final _usernameController = TextEditingController();
   final _bioController = TextEditingController();
   final _ageController = TextEditingController();
-
 
   // Form state
   String _selectedGender = 'prefer-not-to-say';
@@ -55,9 +53,10 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    
+
     // Check if this is a guest user and pre-fill form
-    final arguments = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+    final arguments =
+        ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
     if (arguments != null && arguments['isGuestUser'] == true) {
       _prefillGuestUserForm();
     }
@@ -69,7 +68,8 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
       _displayNameController.text = 'Guest User';
     }
     if (_usernameController.text.isEmpty) {
-      _usernameController.text = 'username${DateTime.now().millisecondsSinceEpoch.toString().substring(8)}';
+      _usernameController.text =
+          'username${DateTime.now().millisecondsSinceEpoch.toString().substring(8)}';
     }
     if (_bioController.text.isEmpty) {
       _bioController.text = 'Hey there! I\'m new to this app.';
@@ -77,14 +77,16 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
     if (_ageController.text.isEmpty) {
       _ageController.text = '25';
     }
-    
+
     setState(() {
       _selectedGender = 'prefer-not-to-say';
       // Add some default interests
-      _interests = ['Movies & TV', 'Music & Arts'].where((interest) => 
-        AppConstants.availableInterests.contains(interest)).toList();
+      _interests = ['Movies & TV', 'Music & Arts']
+          .where(
+              (interest) => AppConstants.availableInterests.contains(interest))
+          .toList();
     });
-    
+
     print('🎭 DEBUG: Pre-filled guest user form with default values');
   }
 
@@ -136,31 +138,45 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
 
     setState(() {
       _selectedGender = profile['gender'] ?? 'prefer-not-to-say';
-      
+
       // Set existing profile picture URL if available
-      _existingProfilePictureUrl = profile['profilePicture'] as String? ?? 
-                                  profile['profileImage'] as String?;
+      _existingProfilePictureUrl = profile['profilePicture'] as String? ??
+          profile['profileImage'] as String?;
       if (_existingProfilePictureUrl != null) {
-        print('🔍 [PROFILE DEBUG] Found existing profile picture: $_existingProfilePictureUrl');
+        print(
+            '🔍 [PROFILE DEBUG] Found existing profile picture: $_existingProfilePictureUrl');
       }
-      
+
       // Filter interests to only include valid predefined ones
       final existingInterests = List<String>.from(profile['interests'] ?? []);
-      print('🔍 [PROFILE DEBUG] Loading existing interests: $existingInterests');
-      print('🔍 [PROFILE DEBUG] Available predefined interests: ${AppConstants.availableInterests}');
-      
+      print(
+          '🔍 [PROFILE DEBUG] Loading existing interests: $existingInterests');
+      print(
+          '🔍 [PROFILE DEBUG] Available predefined interests: ${AppConstants.availableInterests}');
+
       _interests = existingInterests
-          .where((interest) => AppConstants.availableInterests.contains(interest))
+          .where(
+              (interest) => AppConstants.availableInterests.contains(interest))
           .toList();
-      
+
       print('🔍 [PROFILE DEBUG] Filtered interests: $_interests');
-      
+
       // Log if user had invalid interests that were cleared
       if (_interests.length != existingInterests.length) {
-        print('🔄 [PROFILE DEBUG] Cleared ${existingInterests.length - _interests.length} invalid interests');
-        print('🔄 [PROFILE DEBUG] Interests that were removed: ${existingInterests.where((i) => !AppConstants.availableInterests.contains(i)).toList()}');
-        print('🔄 [PROFILE DEBUG] User will need to select new interests from predefined list');
+        print(
+            '🔄 [PROFILE DEBUG] Cleared ${existingInterests.length - _interests.length} invalid interests');
+        print(
+            '🔄 [PROFILE DEBUG] Interests that were removed: ${existingInterests.where((i) => !AppConstants.availableInterests.contains(i)).toList()}');
+        print(
+            '🔄 [PROFILE DEBUG] User will need to select new interests from predefined list');
       }
+
+      // Load existing gallery images (note: we can't load existing gallery images as File objects,
+      // but we can show them in the UI. For now, we'll just clear the gallery selection
+      // and let users re-upload if needed)
+      _galleryImages.clear();
+      print(
+          '🔍 [PROFILE DEBUG] Cleared gallery images - users need to re-upload if needed');
     });
   }
 
@@ -300,8 +316,6 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
                     // Interests
                     _buildInterestsSection(),
                     const SizedBox(height: 24),
-
-
 
                     // Action Buttons - Simplified for now
                     _buildActionButtons(),
@@ -500,6 +514,18 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
         await _apiService.uploadProfilePicture(_profilePicture!);
       }
 
+      // Upload gallery images if selected
+      if (_galleryImages.isNotEmpty) {
+        for (final imageFile in _galleryImages) {
+          try {
+            await _apiService.addGalleryPicture(imageFile);
+          } catch (e) {
+            print('Failed to upload gallery image: $e');
+            // Continue with other images even if one fails
+          }
+        }
+      }
+
       _showSuccess('Profile created successfully!');
       setState(() {
         _hasExistingProfile = true;
@@ -541,7 +567,7 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
       print('🔄 [PROFILE DEBUG] Full profile data: $profileData');
 
       final result = await _apiService.updateProfile(profileData);
-      
+
       print('✅ [PROFILE DEBUG] Profile update result: $result');
 
       // Upload profile picture if selected
@@ -549,8 +575,20 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
         await _apiService.uploadProfilePicture(_profilePicture!);
       }
 
+      // Upload gallery images if selected
+      if (_galleryImages.isNotEmpty) {
+        for (final imageFile in _galleryImages) {
+          try {
+            await _apiService.addGalleryPicture(imageFile);
+          } catch (e) {
+            print('Failed to upload gallery image: $e');
+            // Continue with other images even if one fails
+          }
+        }
+      }
+
       _showSuccess('Profile updated successfully!');
-      
+
       // Reload profile to verify interests were saved correctly
       print('🔄 [PROFILE DEBUG] Reloading profile to verify interests...');
       await _loadExistingProfile();
@@ -562,8 +600,6 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
       });
     }
   }
-
-
 
   void _clearForm() {
     _displayNameController.clear();
@@ -604,7 +640,7 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
                   child: Text(
                     _profilePicture != null
                         ? 'New image selected'
-                        : (_existingProfilePictureUrl != null 
+                        : (_existingProfilePictureUrl != null
                             ? 'Current profile picture'
                             : 'No file chosen'),
                     style: const TextStyle(color: Colors.grey),
@@ -619,8 +655,8 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
                 backgroundColor: Colors.green,
                 foregroundColor: Colors.white,
               ),
-              child: Text(_existingProfilePictureUrl != null 
-                  ? 'Change Picture' 
+              child: Text(_existingProfilePictureUrl != null
+                  ? 'Change Picture'
                   : 'Upload Picture'),
             ),
           ],
@@ -647,8 +683,10 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
                             if (loadingProgress == null) return child;
                             return Center(
                               child: CircularProgressIndicator(
-                                value: loadingProgress.expectedTotalBytes != null
-                                    ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
+                                value: loadingProgress.expectedTotalBytes !=
+                                        null
+                                    ? loadingProgress.cumulativeBytesLoaded /
+                                        loadingProgress.expectedTotalBytes!
                                     : null,
                               ),
                             );
@@ -869,7 +907,7 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
     if (!hasPremium) {
       return; // User doesn't have premium, popup already shown
     }
-    
+
     try {
       final XFile? image = await _imagePicker.pickImage(
         source: ImageSource.gallery,
@@ -882,7 +920,7 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
         setState(() {
           _profilePicture = File(image.path);
         });
-        
+
         // Upload profile picture immediately and update user profile
         await _uploadProfilePicture(File(image.path));
       }
@@ -896,34 +934,33 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
       setState(() {
         _isLoading = true;
       });
-      
-             print('📤 DEBUG: Starting profile picture upload...');
-       
-       // Upload image to Firebase Storage
-       final uploadResult = await _apiService.uploadProfilePicture(imageFile);
-       
-       print('✅ DEBUG: Profile picture uploaded successfully');
-       print('🔗 DEBUG: Upload result: $uploadResult');
-       print('🔗 DEBUG: Firebase URL: ${uploadResult['url']}');
-       
-       // Update user profile with new Firebase URL
-       final firebaseUrl = uploadResult['url'] as String;
+
+      print('📤 DEBUG: Starting profile picture upload...');
+
+      // Upload image to Firebase Storage
+      final uploadResult = await _apiService.uploadProfilePicture(imageFile);
+
+      print('✅ DEBUG: Profile picture uploaded successfully');
+      print('🔗 DEBUG: Upload result: $uploadResult');
+      print('🔗 DEBUG: Firebase URL: ${uploadResult['url']}');
+
+      // Update user profile with new Firebase URL
+      final firebaseUrl = uploadResult['url'] as String;
       await _apiService.updateProfile({
         'profileImage': firebaseUrl,
       });
-      
+
       print('✅ DEBUG: User profile updated with new image URL');
-      
-             // Update local user data
-       if (_currentUser != null) {
-         setState(() {
-           _currentUser = _currentUser!.copyWith(profileImage: firebaseUrl);
-           _existingProfilePictureUrl = firebaseUrl;
-         });
-       }
-       
-       _showSuccess('Profile picture updated successfully!');
-      
+
+      // Update local user data
+      if (_currentUser != null) {
+        setState(() {
+          _currentUser = _currentUser!.copyWith(profileImage: firebaseUrl);
+          _existingProfilePictureUrl = firebaseUrl;
+        });
+      }
+
+      _showSuccess('Profile picture updated successfully!');
     } catch (e) {
       print('❌ DEBUG: Profile picture upload failed: $e');
       _showError('Failed to upload profile picture: $e');
@@ -940,7 +977,7 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
     if (!hasPremium) {
       return; // User doesn't have premium, popup already shown
     }
-    
+
     try {
       final List<XFile> images = await _imagePicker.pickMultiImage(
         maxWidth: 1024,
@@ -960,8 +997,6 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
       _showError('Error picking images: $e');
     }
   }
-
-
 
   void _showError(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -990,6 +1025,4 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
 
     super.dispose();
   }
-
-
 }

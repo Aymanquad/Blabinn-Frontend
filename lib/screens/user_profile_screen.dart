@@ -79,10 +79,11 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     });
 
     try {
-      // For now, we'll try to load gallery from the profile data
-      // This could be extended to load from a separate gallery endpoint
-      if (_userData?['gallery'] != null) {
-        _galleryImages = List<String>.from(_userData!['gallery']);
+      // Load gallery from the profilePictures field (backend provides this)
+      if (_userData?['profilePictures'] != null &&
+          _userData!['profilePictures'] is List) {
+        _galleryImages = List<String>.from(
+            _userData!['profilePictures'].map((pic) => pic['url']));
       }
     } catch (e) {
       print('Failed to load user gallery: $e');
@@ -165,10 +166,12 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         icon: const Icon(Icons.edit),
         label: const Text('Edit Profile'),
         style: ElevatedButton.styleFrom(
-          backgroundColor: isDarkMode ? AppColors.darkPrimary : AppColors.primary,
+          backgroundColor:
+              isDarkMode ? AppColors.darkPrimary : AppColors.primary,
           foregroundColor: Colors.white,
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
         ),
       );
     }
@@ -180,10 +183,12 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
           icon: const Icon(Icons.person_add),
           label: const Text('Send Friend Request'),
           style: ElevatedButton.styleFrom(
-            backgroundColor: isDarkMode ? AppColors.darkPrimary : AppColors.primary,
+            backgroundColor:
+                isDarkMode ? AppColors.darkPrimary : AppColors.primary,
             foregroundColor: Colors.white,
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
           ),
         );
       case 'pending_sent':
@@ -192,10 +197,13 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
           icon: const Icon(Icons.schedule),
           label: const Text('Request Sent'),
           style: OutlinedButton.styleFrom(
-            foregroundColor: isDarkMode ? AppColors.darkPrimary : AppColors.primary,
-            side: BorderSide(color: isDarkMode ? AppColors.darkPrimary : AppColors.primary),
+            foregroundColor:
+                isDarkMode ? AppColors.darkPrimary : AppColors.primary,
+            side: BorderSide(
+                color: isDarkMode ? AppColors.darkPrimary : AppColors.primary),
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
           ),
         );
       case 'pending_received':
@@ -259,10 +267,13 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                 icon: const Icon(Icons.chat),
                 label: const Text('Message'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: isDarkMode ? AppColors.darkSecondary : AppColors.secondary,
+                  backgroundColor: isDarkMode
+                      ? AppColors.darkSecondary
+                      : AppColors.secondary,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 12),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(25)),
                 ),
               ),
             ),
@@ -272,8 +283,10 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
               style: OutlinedButton.styleFrom(
                 foregroundColor: Colors.red,
                 side: const BorderSide(color: Colors.red),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(25)),
               ),
               child: const Icon(Icons.person_remove),
             ),
@@ -285,10 +298,12 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
           icon: const Icon(Icons.person_add),
           label: const Text('Send Friend Request'),
           style: ElevatedButton.styleFrom(
-            backgroundColor: isDarkMode ? AppColors.darkPrimary : AppColors.primary,
+            backgroundColor:
+                isDarkMode ? AppColors.darkPrimary : AppColors.primary,
             foregroundColor: Colors.white,
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
           ),
         );
     }
@@ -296,7 +311,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
   Widget _buildProfileHeader(bool isDarkMode) {
     final theme = Theme.of(context);
-    
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(24),
@@ -305,13 +320,16 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            (isDarkMode ? AppColors.darkPrimary : AppColors.primary).withOpacity(0.1),
-            (isDarkMode ? AppColors.darkSecondary : AppColors.secondary).withOpacity(0.1),
+            (isDarkMode ? AppColors.darkPrimary : AppColors.primary)
+                .withOpacity(0.1),
+            (isDarkMode ? AppColors.darkSecondary : AppColors.secondary)
+                .withOpacity(0.1),
           ],
         ),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: (isDarkMode ? AppColors.darkText : AppColors.text).withOpacity(0.1),
+          color: (isDarkMode ? AppColors.darkText : AppColors.text)
+              .withOpacity(0.1),
           width: 1,
         ),
       ),
@@ -323,25 +341,33 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   border: Border.all(
-                    color: (isDarkMode ? AppColors.darkPrimary : AppColors.primary).withOpacity(0.3),
+                    color:
+                        (isDarkMode ? AppColors.darkPrimary : AppColors.primary)
+                            .withOpacity(0.3),
                     width: 3,
                   ),
                 ),
                 child: CircleAvatar(
                   radius: 60,
-                  backgroundColor: (isDarkMode ? AppColors.darkPrimary : AppColors.primary).withOpacity(0.1),
+                  backgroundColor:
+                      (isDarkMode ? AppColors.darkPrimary : AppColors.primary)
+                          .withOpacity(0.1),
                   backgroundImage: _userData?['profilePicture'] != null
                       ? NetworkImage(_userData!['profilePicture'])
                       : null,
                   child: _userData?['profilePicture'] == null
                       ? Text(
-                          (_userData?['displayName'] ?? _userData?['username'] ?? '?')
+                          (_userData?['displayName'] ??
+                                  _userData?['username'] ??
+                                  '?')
                               .substring(0, 1)
                               .toUpperCase(),
                           style: TextStyle(
                             fontSize: 32,
                             fontWeight: FontWeight.bold,
-                            color: isDarkMode ? AppColors.darkPrimary : AppColors.primary,
+                            color: isDarkMode
+                                ? AppColors.darkPrimary
+                                : AppColors.primary,
                           ),
                         )
                       : null,
@@ -356,7 +382,8 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                     decoration: BoxDecoration(
                       color: Colors.green,
                       shape: BoxShape.circle,
-                      border: Border.all(color: theme.scaffoldBackgroundColor, width: 2),
+                      border: Border.all(
+                          color: theme.scaffoldBackgroundColor, width: 2),
                     ),
                     child: const Icon(
                       Icons.check,
@@ -396,7 +423,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   Widget _buildBioSection(bool isDarkMode) {
     final theme = Theme.of(context);
     final bio = _userData?['bio'];
-    
+
     if (bio == null || bio.toString().trim().isEmpty) {
       return const SizedBox.shrink();
     }
@@ -450,12 +477,13 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   Widget _buildInterestsSection(bool isDarkMode) {
     final theme = Theme.of(context);
     final interests = _userData?['interests'];
-    
+
     if (interests == null || (interests is List && interests.isEmpty)) {
       return const SizedBox.shrink();
     }
 
-    final interestsList = interests is List ? interests.cast<String>() : <String>[];
+    final interestsList =
+        interests is List ? interests.cast<String>() : <String>[];
 
     return Container(
       width: double.infinity,
@@ -495,12 +523,17 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
             runSpacing: 8,
             children: interestsList.map((interest) {
               return Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 decoration: BoxDecoration(
-                  color: (isDarkMode ? AppColors.darkPrimary : AppColors.primary).withOpacity(0.1),
+                  color:
+                      (isDarkMode ? AppColors.darkPrimary : AppColors.primary)
+                          .withOpacity(0.1),
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
-                    color: (isDarkMode ? AppColors.darkPrimary : AppColors.primary).withOpacity(0.3),
+                    color:
+                        (isDarkMode ? AppColors.darkPrimary : AppColors.primary)
+                            .withOpacity(0.3),
                     width: 1,
                   ),
                 ),
@@ -509,7 +542,8 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
-                    color: isDarkMode ? AppColors.darkPrimary : AppColors.primary,
+                    color:
+                        isDarkMode ? AppColors.darkPrimary : AppColors.primary,
                   ),
                 ),
               );
@@ -522,16 +556,13 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
   Widget _buildGallerySection(bool isDarkMode) {
     final theme = Theme.of(context);
-    
-    // For demo, we'll create some sample gallery images from profile picture
+
+    // Load gallery images from profilePictures field (backend provides this)
     List<String> galleryImages = [];
-    if (_userData?['profilePicture'] != null) {
-      galleryImages = [_userData!['profilePicture']];
-    }
-    
-    // Add any additional gallery images from userData
-    if (_userData?['gallery'] != null && _userData!['gallery'] is List) {
-      galleryImages.addAll(List<String>.from(_userData!['gallery']));
+    if (_userData?['profilePictures'] != null &&
+        _userData!['profilePictures'] is List) {
+      galleryImages = List<String>.from(
+          _userData!['profilePictures'].map((pic) => pic['url']));
     }
 
     if (galleryImages.isEmpty) {
@@ -556,7 +587,8 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
             children: [
               Icon(
                 Icons.photo_library_outlined,
-                color: isDarkMode ? AppColors.darkSecondary : AppColors.secondary,
+                color:
+                    isDarkMode ? AppColors.darkSecondary : AppColors.secondary,
                 size: 20,
               ),
               const SizedBox(width: 8),
@@ -623,12 +655,15 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                             color: theme.colorScheme.surface,
                             child: Center(
                               child: CircularProgressIndicator(
-                                value: loadingProgress.expectedTotalBytes != null
-                                    ? loadingProgress.cumulativeBytesLoaded / 
-                                      loadingProgress.expectedTotalBytes!
+                                value: loadingProgress.expectedTotalBytes !=
+                                        null
+                                    ? loadingProgress.cumulativeBytesLoaded /
+                                        loadingProgress.expectedTotalBytes!
                                     : null,
                                 strokeWidth: 2,
-                                color: isDarkMode ? AppColors.darkPrimary : AppColors.primary,
+                                color: isDarkMode
+                                    ? AppColors.darkPrimary
+                                    : AppColors.primary,
                               ),
                             ),
                           );
@@ -638,7 +673,8 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                             color: theme.colorScheme.surface,
                             child: Icon(
                               Icons.broken_image,
-                              color: theme.colorScheme.onSurface.withOpacity(0.5),
+                              color:
+                                  theme.colorScheme.onSurface.withOpacity(0.5),
                             ),
                           );
                         },
@@ -722,7 +758,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     required bool isDarkMode,
   }) {
     final theme = Theme.of(context);
-    
+
     return Row(
       children: [
         Icon(
@@ -805,7 +841,8 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                       context: context,
                       backgroundColor: theme.colorScheme.surface,
                       shape: const RoundedRectangleBorder(
-                        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                        borderRadius:
+                            BorderRadius.vertical(top: Radius.circular(20)),
                       ),
                       builder: (context) => _buildBottomSheet(isDarkMode),
                     );
@@ -816,7 +853,8 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
           body: _isLoading
               ? Center(
                   child: CircularProgressIndicator(
-                    color: isDarkMode ? AppColors.darkPrimary : AppColors.primary,
+                    color:
+                        isDarkMode ? AppColors.darkPrimary : AppColors.primary,
                   ),
                 )
               : _errorMessage != null
@@ -840,7 +878,8 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                           Text(
                             _errorMessage!,
                             style: TextStyle(
-                              color: theme.colorScheme.onSurface.withOpacity(0.7),
+                              color:
+                                  theme.colorScheme.onSurface.withOpacity(0.7),
                             ),
                             textAlign: TextAlign.center,
                           ),
@@ -848,7 +887,9 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                           ElevatedButton(
                             onPressed: _loadUserProfile,
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: isDarkMode ? AppColors.darkPrimary : AppColors.primary,
+                              backgroundColor: isDarkMode
+                                  ? AppColors.darkPrimary
+                                  : AppColors.primary,
                               foregroundColor: Colors.white,
                             ),
                             child: const Text('Try Again'),
@@ -881,7 +922,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
   Widget _buildBottomSheet(bool isDarkMode) {
     final theme = Theme.of(context);
-    
+
     return Container(
       padding: const EdgeInsets.all(20),
       child: Column(
@@ -909,7 +950,8 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
               // For now, show a placeholder message
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text('Opening chat with ${_userData?['displayName'] ?? 'user'}...'),
+                  content: Text(
+                      'Opening chat with ${_userData?['displayName'] ?? 'user'}...'),
                   backgroundColor: AppColors.primary,
                 ),
               );
