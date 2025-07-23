@@ -290,8 +290,7 @@ class ApiService {
   }
 
   Future<Map<String, dynamic>> setMainPicture(String filename) async {
-    final response =
-        await _put('/profiles/me/gallery/main', {'filename': filename});
+    final response = await _put('/profiles/me/gallery/$filename/main', {});
     return _handleResponse(response);
   }
 

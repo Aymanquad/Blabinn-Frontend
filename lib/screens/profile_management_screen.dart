@@ -34,7 +34,8 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
   List<String> _interests = [];
   File? _profilePicture;
   String? _existingProfilePictureUrl;
-  List<File> _galleryImages = [];
+  List<File> _galleryImages = []; // New images to upload
+  List<Map<String, dynamic>> _existingGalleryImages = []; // Existing gallery images from backend
   bool _isLoading = false;
   bool _isUsernameAvailable = false;
   bool _isCheckingUsername = false;
@@ -147,36 +148,39 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
             '🔍 [PROFILE DEBUG] Found existing profile picture: $_existingProfilePictureUrl');
       }
 
+      // Load existing gallery images
+      if (profile['profilePictures'] != null && profile['profilePictures'] is List) {
+        _existingGalleryImages = List<Map<String, dynamic>>.from(
+          profile['profilePictures'].map((pic) => {
+            'url': pic['url'],
+            'filename': pic['filename'],
+          }),
+        );
+        print('🔍 [PROFILE DEBUG] Loaded ${_existingGalleryImages.length} existing gallery images');
+      } else {
+        _existingGalleryImages = [];
+      }
+
       // Filter interests to only include valid predefined ones
       final existingInterests = List<String>.from(profile['interests'] ?? []);
-      print(
-          '🔍 [PROFILE DEBUG] Loading existing interests: $existingInterests');
-      print(
-          '🔍 [PROFILE DEBUG] Available predefined interests: ${AppConstants.availableInterests}');
+      print('🔍 [PROFILE DEBUG] Loading existing interests: $existingInterests');
+      print('🔍 [PROFILE DEBUG] Available predefined interests: ${AppConstants.availableInterests}');
 
       _interests = existingInterests
-          .where(
-              (interest) => AppConstants.availableInterests.contains(interest))
+          .where((interest) => AppConstants.availableInterests.contains(interest))
           .toList();
 
       print('🔍 [PROFILE DEBUG] Filtered interests: $_interests');
 
       // Log if user had invalid interests that were cleared
       if (_interests.length != existingInterests.length) {
-        print(
-            '🔄 [PROFILE DEBUG] Cleared ${existingInterests.length - _interests.length} invalid interests');
-        print(
-            '🔄 [PROFILE DEBUG] Interests that were removed: ${existingInterests.where((i) => !AppConstants.availableInterests.contains(i)).toList()}');
-        print(
-            '🔄 [PROFILE DEBUG] User will need to select new interests from predefined list');
+        print('🔄 [PROFILE DEBUG] Cleared ${existingInterests.length - _interests.length} invalid interests');
+        print('🔄 [PROFILE DEBUG] Interests that were removed: ${existingInterests.where((i) => !AppConstants.availableInterests.contains(i)).toList()}');
+        print('🔄 [PROFILE DEBUG] User will need to select new interests from predefined list');
       }
 
-      // Load existing gallery images (note: we can't load existing gallery images as File objects,
-      // but we can show them in the UI. For now, we'll just clear the gallery selection
-      // and let users re-upload if needed)
+      // Clear new gallery image selections
       _galleryImages.clear();
-      print(
-          '🔍 [PROFILE DEBUG] Cleared gallery images - users need to re-upload if needed');
     });
   }
 
@@ -706,11 +710,14 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
   }
 
   Widget _buildGallerySection() {
+    final totalImages = _existingGalleryImages.length + _galleryImages.length;
+    final canAddMore = totalImages < 5;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Photo Gallery (Up to 5 pictures):',
+          'Photo Gallery (${totalImages}/5 pictures):',
           style: TextStyle(
             fontWeight: FontWeight.w600,
             color: Theme.of(context).colorScheme.onSurface,
@@ -728,9 +735,9 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
                 ),
                 child: Center(
                   child: Text(
-                    _galleryImages.isNotEmpty
-                        ? '${_galleryImages.length} images selected'
-                        : 'No file chosen',
+                    totalImages > 0
+                        ? '$totalImages images in gallery'
+                        : 'No images in gallery',
                     style: const TextStyle(color: Colors.grey),
                   ),
                 ),
@@ -738,16 +745,122 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
             ),
             const SizedBox(width: 12),
             ElevatedButton(
-              onPressed: _galleryImages.length < 5 ? _pickGalleryImages : null,
+              onPressed: canAddMore ? _pickGalleryImages : null,
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.green,
                 foregroundColor: Colors.white,
               ),
-              child: const Text('Add to Gallery'),
+              child: Text(canAddMore ? 'Add to Gallery' : 'Gallery Full'),
             ),
           ],
         ),
+        if (totalImages > 0) ...[
+          const SizedBox(height: 16),
+          Text(
+            'Existing Gallery Images:',
+            style: TextStyle(
+              fontSize: 14,
+              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+            ),
+          ),
+          const SizedBox(height: 8),
+          SizedBox(
+            height: 80,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              itemCount: _existingGalleryImages.length,
+              itemBuilder: (context, index) {
+                final image = _existingGalleryImages[index];
+                return Container(
+                  width: 80,
+                  height: 80,
+                  margin: const EdgeInsets.only(right: 8),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.grey),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        Image.network(
+                          image['url'],
+                          fit: BoxFit.cover,
+                          loadingBuilder: (context, child, loadingProgress) {
+                            if (loadingProgress == null) return child;
+                            return Center(
+                              child: CircularProgressIndicator(
+                                value: loadingProgress.expectedTotalBytes != null
+                                    ? loadingProgress.cumulativeBytesLoaded /
+                                        loadingProgress.expectedTotalBytes!
+                                    : null,
+                              ),
+                            );
+                          },
+                          errorBuilder: (context, error, stackTrace) {
+                            return const Center(
+                              child: Icon(Icons.error, color: Colors.red),
+                            );
+                          },
+                        ),
+                        Positioned(
+                          top: 4,
+                          right: 4,
+                          child: GestureDetector(
+                            onTap: () => _removeExistingGalleryImage(index),
+                            child: Container(
+                              width: 20,
+                              height: 20,
+                              decoration: const BoxDecoration(
+                                color: Colors.red,
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.close,
+                                color: Colors.white,
+                                size: 16,
+                              ),
+                            ),
+                          ),
+                        ),
+                        Positioned(
+                          bottom: 4,
+                          right: 4,
+                          child: GestureDetector(
+                            onTap: () => _setAsMainProfilePicture(image['filename']),
+                            child: Container(
+                              width: 20,
+                              height: 20,
+                              decoration: BoxDecoration(
+                                color: Colors.blue.withOpacity(0.8),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.person,
+                                color: Colors.white,
+                                size: 16,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
         if (_galleryImages.isNotEmpty) ...[
+          const SizedBox(height: 16),
+          Text(
+            'New Images to Upload:',
+            style: TextStyle(
+              fontSize: 14,
+              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+            ),
+          ),
           const SizedBox(height: 8),
           SizedBox(
             height: 80,
@@ -772,8 +885,7 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
                           top: 4,
                           right: 4,
                           child: GestureDetector(
-                            onTap: () =>
-                                setState(() => _galleryImages.removeAt(index)),
+                            onTap: () => setState(() => _galleryImages.removeAt(index)),
                             child: Container(
                               width: 20,
                               height: 20,
@@ -995,6 +1107,42 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
       });
     } catch (e) {
       _showError('Error picking images: $e');
+    }
+  }
+
+  Future<void> _removeExistingGalleryImage(int index) async {
+    try {
+      setState(() => _isLoading = true);
+      
+      final image = _existingGalleryImages[index];
+      await _apiService.removeGalleryPicture(image['filename']);
+      
+      setState(() {
+        _existingGalleryImages.removeAt(index);
+      });
+      
+      _showSuccess('Gallery image removed successfully');
+    } catch (e) {
+      _showError('Failed to remove gallery image: $e');
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _setAsMainProfilePicture(String filename) async {
+    try {
+      setState(() => _isLoading = true);
+      
+      await _apiService.setMainPicture(filename);
+      
+      // Reload profile to get updated profile picture URL
+      await _loadExistingProfile();
+      
+      _showSuccess('Main profile picture updated successfully');
+    } catch (e) {
+      _showError('Failed to update main profile picture: $e');
+    } finally {
+      setState(() => _isLoading = false);
     }
   }
 
