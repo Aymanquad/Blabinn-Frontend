@@ -30,7 +30,7 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
   final _ageController = TextEditingController();
 
   // Form state
-  String _selectedGender = 'prefer-not-to-say';
+  String _selectedGender = 'male'; // Initialize with male instead of prefer-not-to-say
   List<String> _interests = [];
   File? _profilePicture;
   String? _existingProfilePictureUrl;
@@ -135,10 +135,17 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
     _displayNameController.text = profile['displayName'] ?? '';
     _usernameController.text = profile['username'] ?? '';
     _bioController.text = profile['bio'] ?? '';
-    _ageController.text = profile['age']?.toString() ?? '';
+    
+    // Handle age properly
+    final age = profile['age'];
+    _ageController.text = age != null ? age.toString() : '';
+    print('🔍 [PROFILE DEBUG] Setting age: $age');
 
     setState(() {
-      _selectedGender = profile['gender'] ?? 'prefer-not-to-say';
+      // Handle gender properly - default to male if invalid or missing
+      final gender = profile['gender']?.toString().toLowerCase().trim() ?? '';
+      _selectedGender = ['male', 'female'].contains(gender) ? gender : 'male';
+      print('🔍 [PROFILE DEBUG] Setting gender: $gender (normalized to: $_selectedGender)');
 
       // Set existing profile picture URL if available
       _existingProfilePictureUrl = profile['profilePicture'] as String? ??
@@ -301,20 +308,7 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
                     const SizedBox(height: 16),
 
                     // Age
-                    _buildTextField(
-                      controller: _ageController,
-                      label: 'Age',
-                      hint: 'Enter age',
-                      keyboardType: TextInputType.number,
-                      validator: (value) {
-                        if (value == null || value.isEmpty) return null;
-                        final age = int.tryParse(value);
-                        if (age == null || age < 13 || age > 120) {
-                          return 'Age must be between 13 and 120';
-                        }
-                        return null;
-                      },
-                    ),
+                    _buildAgeField(),
                     const SizedBox(height: 16),
 
                     // Interests
@@ -427,6 +421,46 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
     );
   }
 
+  Widget _buildAgeField() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Age:',
+          style: TextStyle(
+            fontWeight: FontWeight.w600,
+            color: Theme.of(context).colorScheme.onSurface,
+          ),
+        ),
+        const SizedBox(height: 8),
+        TextFormField(
+          controller: _ageController,
+          keyboardType: TextInputType.number,
+          decoration: const InputDecoration(
+            hintText: 'Enter your age (optional)',
+            border: OutlineInputBorder(),
+          ),
+          validator: (value) {
+            if (value == null || value.isEmpty) {
+              return null; // Age is optional
+            }
+            final age = int.tryParse(value);
+            if (age == null) {
+              return 'Please enter a valid number';
+            }
+            if (age < 13) {
+              return 'Age must be at least 13';
+            }
+            if (age > 120) {
+              return 'Age must be less than 120';
+            }
+            return null;
+          },
+        ),
+      ],
+    );
+  }
+
   Widget _buildActionButtons() {
     return Column(
       children: [
@@ -497,6 +531,12 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
       return;
     }
 
+    // Validate gender selection
+    if (_selectedGender.isEmpty) {
+      _showError('Please select your gender');
+      return;
+    }
+
     setState(() {
       _isLoading = true;
     });
@@ -507,9 +547,11 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
         'username': _usernameController.text.trim(),
         'bio': _bioController.text.trim(),
         'gender': _selectedGender,
-        'age': int.tryParse(_ageController.text.trim()) ?? 0,
+        'age': _ageController.text.isEmpty ? null : int.parse(_ageController.text.trim()),
         'interests': _interests,
       };
+
+      print('🔄 [PROFILE DEBUG] Creating profile with data: $profileData');
 
       final result = await _apiService.createProfile(profileData);
 
@@ -553,6 +595,12 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
       return;
     }
 
+    // Validate gender selection
+    if (_selectedGender.isEmpty) {
+      _showError('Please select your gender');
+      return;
+    }
+
     setState(() {
       _isLoading = true;
     });
@@ -563,12 +611,11 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
         'username': _usernameController.text.trim(),
         'bio': _bioController.text.trim(),
         'gender': _selectedGender,
-        'age': int.tryParse(_ageController.text.trim()) ?? 0,
+        'age': _ageController.text.isEmpty ? null : int.parse(_ageController.text.trim()),
         'interests': _interests,
       };
 
-      print('🔄 [PROFILE DEBUG] Updating profile with interests: $_interests');
-      print('🔄 [PROFILE DEBUG] Full profile data: $profileData');
+      print('🔄 [PROFILE DEBUG] Updating profile with data: $profileData');
 
       final result = await _apiService.updateProfile(profileData);
 
@@ -593,8 +640,8 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
 
       _showSuccess('Profile updated successfully!');
 
-      // Reload profile to verify interests were saved correctly
-      print('🔄 [PROFILE DEBUG] Reloading profile to verify interests...');
+      // Reload profile to verify changes
+      print('🔄 [PROFILE DEBUG] Reloading profile to verify changes...');
       await _loadExistingProfile();
     } catch (e) {
       _showError('Error updating profile: $e');
@@ -609,9 +656,9 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
     _displayNameController.clear();
     _usernameController.clear();
     _bioController.clear();
-    _ageController.clear();
+    _ageController.clear(); // Clear age field
     setState(() {
-      _selectedGender = 'prefer-not-to-say';
+      _selectedGender = 'male'; // Reset to male instead of prefer-not-to-say
       _interests.clear();
       _profilePicture = null;
       _existingProfilePictureUrl = null;
@@ -917,29 +964,44 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Gender:',
-          style: TextStyle(
-            fontWeight: FontWeight.w600,
-            color: Theme.of(context).colorScheme.onSurface,
-          ),
+        Row(
+          children: [
+            Text(
+              'Gender:',
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                color: Theme.of(context).colorScheme.onSurface,
+              ),
+            ),
+            const Text(
+              ' *',
+              style: TextStyle(
+                color: Colors.red,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
         ),
         const SizedBox(height: 8),
         DropdownButtonFormField<String>(
           value: _selectedGender,
           decoration: const InputDecoration(
             border: OutlineInputBorder(),
+            hintText: 'Select gender',
           ),
           items: const [
             DropdownMenuItem(value: 'male', child: Text('Male')),
             DropdownMenuItem(value: 'female', child: Text('Female')),
-            DropdownMenuItem(value: 'other', child: Text('Other')),
-            DropdownMenuItem(
-                value: 'prefer-not-to-say', child: Text('Prefer not to say')),
           ],
+          validator: (value) {
+            if (value == null || value.isEmpty) {
+              return 'Please select a gender';
+            }
+            return null;
+          },
           onChanged: (value) {
             setState(() {
-              _selectedGender = value ?? 'prefer-not-to-say';
+              _selectedGender = value ?? 'male';
             });
           },
         ),
