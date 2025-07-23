@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'background_image_service.dart';
 
 class NotificationService {
   static final NotificationService _instance = NotificationService._internal();
@@ -122,6 +123,9 @@ class NotificationService {
     print('   📦 Body: ${message.notification?.body}');
     print('   📦 Data: ${message.data}');
     
+    // Handle image messages for auto-save
+    await _handleImageFromNotification(message);
+    
     if (_isAppInForeground) {
       // Show in-app notification
       _showInAppNotification(message);
@@ -135,13 +139,25 @@ class NotificationService {
   static Future<void> _handleBackgroundMessage(RemoteMessage message) async {
     print('🔔 [NOTIFICATION DEBUG] Background message received');
     print('   📦 Message ID: ${message.messageId}');
-    // Background messages are automatically handled by the system
+    print('   📦 Data: ${message.data}');
+    
+    try {
+      // Handle image messages even in background
+      final backgroundImageService = BackgroundImageService();
+      await backgroundImageService.handleImageFromPushNotification(message.data);
+      print('✅ [NOTIFICATION DEBUG] Background image handling completed');
+    } catch (e) {
+      print('❌ [NOTIFICATION DEBUG] Error handling background image: $e');
+    }
   }
   
   // Handle notification tap
   Future<void> _handleNotificationTap(RemoteMessage message) async {
     print('🔔 [NOTIFICATION DEBUG] Notification tapped');
     print('   📦 Data: ${message.data}');
+    
+    // Handle image messages for auto-save when notification is tapped
+    await _handleImageFromNotification(message);
     
     // TODO: Navigate to appropriate screen based on message data
     final chatId = message.data['chatId'];
@@ -150,6 +166,27 @@ class NotificationService {
     if (chatId != null) {
       print('🔔 [NOTIFICATION DEBUG] Should navigate to chat: $chatId');
       // Add navigation logic here
+    }
+  }
+  
+  // Handle image messages from push notifications
+  Future<void> _handleImageFromNotification(RemoteMessage message) async {
+    try {
+      print('🖼️ [NOTIFICATION IMAGE DEBUG] Checking for image in notification');
+      print('   📦 Data: ${message.data}');
+      
+             // Check if this notification contains image data
+       final messageType = message.data['messageType'];
+       if (messageType == 'image') {
+         print('✅ [NOTIFICATION IMAGE DEBUG] Image message detected, processing...');
+         // Create instance locally to avoid circular dependency
+         final backgroundImageService = BackgroundImageService();
+         await backgroundImageService.handleImageFromPushNotification(message.data);
+       } else {
+         print('⏭️ [NOTIFICATION IMAGE DEBUG] Not an image message, skipping');
+       }
+    } catch (e) {
+      print('❌ [NOTIFICATION IMAGE DEBUG] Error handling image from notification: $e');
     }
   }
   

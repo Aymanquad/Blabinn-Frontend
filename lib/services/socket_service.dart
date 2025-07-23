@@ -9,6 +9,7 @@ import '../models/message.dart';
 import '../models/chat.dart';
 import '../models/user.dart';
 import 'notification_service.dart';
+import 'background_image_service.dart';
 
 enum SocketEvent {
   connect,
@@ -55,8 +56,9 @@ class SocketService {
   // Message deduplication
   final Set<String> _processedMessageIds = {};
   
-  // Notification service
+  // Services
   final NotificationService _notificationService = NotificationService();
+  final BackgroundImageService _backgroundImageService = BackgroundImageService();
 
   // Stream controllers for different events
   final StreamController<SocketEvent> _eventController =
@@ -308,6 +310,9 @@ class SocketService {
       
       // Show in-app notification for the message
       _showNotificationForMessage(message, data);
+      
+      // Handle image messages through background service
+      _handleImageMessageGlobally(message, data);
     } catch (e) {
       print('❌ [SOCKET DEBUG] Error parsing message: $e');
       _handleError(e);
@@ -356,6 +361,52 @@ class SocketService {
     } catch (e) {
       print('❌ [SOCKET NOTIFICATION DEBUG] Error showing notification: $e');
       print('   📦 Stack trace: ${e.toString()}');
+    }
+  }
+
+  // Handle image messages globally for auto-save
+  void _handleImageMessageGlobally(Message message, Map<String, dynamic> data) {
+    try {
+      print('🖼️ [SOCKET IMAGE DEBUG] _handleImageMessageGlobally called');
+      print('   📦 Message type: ${message.type}');
+      print('   🔗 Image URL: ${message.imageUrl}');
+      
+      // Only process image messages
+      if (message.type != MessageType.image || message.imageUrl == null) {
+        print('⏭️ [SOCKET IMAGE DEBUG] Not an image message, skipping');
+        return;
+      }
+      
+      // Get sender name from the same data extraction logic
+      String senderName = 'Unknown Friend';
+      
+      if (data['sender'] != null && data['sender'] is Map) {
+        senderName = data['sender']['displayName'] ?? data['sender']['username'] ?? senderName;
+      } else if (data['message'] != null && data['message'] is Map) {
+        final messageData = data['message'] as Map<String, dynamic>;
+        if (messageData['sender'] != null) {
+          senderName = messageData['sender']['displayName'] ?? messageData['sender']['username'] ?? senderName;
+        }
+      } else if (data['senderName'] != null) {
+        senderName = data['senderName'];
+      }
+      
+             print('🖼️ [SOCKET IMAGE DEBUG] Processing image from: $senderName');
+       
+       // Process through background image service
+       _backgroundImageService.handleReceivedImageMessage(message, senderName: senderName);
+       
+       // Show notification about image being saved
+       _notificationService.showInAppNotificationForMessage(
+         senderName: senderName,
+         message: 'Image saved to Media Folder',
+         senderId: 'system',
+         chatId: 'media_notification',
+       );
+       
+       print('✅ [SOCKET IMAGE DEBUG] Image message sent to background service');
+    } catch (e) {
+      print('❌ [SOCKET IMAGE DEBUG] Error handling image message globally: $e');
     }
   }
   
@@ -1237,6 +1288,31 @@ class SocketService {
         // 🔔 TRIGGER NOTIFICATION for messages from other users
         print('🔔 [SOCKET DEBUG] Triggering notification for message from other user');
         _showNotificationForMessage(message, data);
+        
+        // 🖼️ HANDLE IMAGE MESSAGES globally for auto-save
+        _handleImageMessageGlobally(message, data);
+        
+        // Show notification for saved image if it's an image message
+        if (message.type == MessageType.image && message.imageUrl != null) {
+          String senderName = 'Unknown Friend';
+          if (data['sender'] != null && data['sender'] is Map) {
+            senderName = data['sender']['displayName'] ?? data['sender']['username'] ?? senderName;
+          } else if (data['message'] != null && data['message'] is Map) {
+            final messageData = data['message'] as Map<String, dynamic>;
+            if (messageData['sender'] != null) {
+              senderName = messageData['sender']['displayName'] ?? messageData['sender']['username'] ?? senderName;
+            }
+          } else if (data['senderName'] != null) {
+            senderName = data['senderName'];
+          }
+          
+          _notificationService.showInAppNotificationForMessage(
+            senderName: senderName,
+            message: 'Image saved to Media Folder',
+            senderId: 'system',
+            chatId: 'media_notification',
+          );
+        }
       } else if (currentUserId != null && message.senderId == currentUserId) {
         // This is a message from the current user via new_message event
         // Only add it if we haven't already processed it via message_sent
