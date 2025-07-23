@@ -8,16 +8,15 @@ import '../core/constants.dart';
 import '../services/api_service.dart';
 import '../services/premium_service.dart';
 
-/// MediaFolderScreen - Manages user's media collection with three tabs:
-/// 1. Saved - All images saved to media folder (from camera/gallery)
-/// 2. From Gallery - Images specifically added from device gallery 
-/// 3. Received - Images received from friends in chats
+/// MediaFolderScreen - Manages user's media collection with two tabs:
+/// 1. Saved - All images saved to media folder (from camera)
+/// 2. Received - Images received from friends in chats
 ///
 /// INTEGRATION WITH CHAT SYSTEM:
 /// To automatically save received images from friends, call:
 /// ```dart
 /// import '../screens/media_folder_screen.dart';
-/// 
+///
 /// // In your chat message handler when an image is received:
 /// await MediaFolderScreen.saveReceivedImage(imageFile, friendId, friendName);
 /// ```
@@ -41,11 +40,12 @@ class MediaFolderScreen extends StatefulWidget {
   State<MediaFolderScreen> createState() => _MediaFolderScreenState();
 
   // Function to save received images from friends (called from chat system)
-  static Future<void> saveReceivedImage(File imageFile, String friendId, String friendName) async {
+  static Future<void> saveReceivedImage(
+      File imageFile, String friendId, String friendName) async {
     try {
       final directory = await getApplicationDocumentsDirectory();
       final mediaDir = Directory('${directory.path}/media');
-      
+
       if (!await mediaDir.exists()) {
         await mediaDir.create(recursive: true);
       }
@@ -53,23 +53,26 @@ class MediaFolderScreen extends StatefulWidget {
       final timestamp = DateTime.now();
       final fileName = '${timestamp.millisecondsSinceEpoch}_received.jpg';
       final savedFile = File('${mediaDir.path}/$fileName');
-      
+
       await imageFile.copy(savedFile.path);
-      
+
       // Save metadata with friend info
-      await _saveImageMetadataStatic(fileName, 'received', timestamp, friendId: friendId, friendName: friendName);
-      
+      await _saveImageMetadataStatic(fileName, 'received', timestamp,
+          friendId: friendId, friendName: friendName);
+
       print('✅ Received image saved successfully: $friendName -> $fileName');
     } catch (e) {
       print('Error saving received image: $e');
     }
   }
 
-  static Future<void> _saveImageMetadataStatic(String fileName, String source, DateTime timestamp, {String? friendId, String? friendName}) async {
+  static Future<void> _saveImageMetadataStatic(
+      String fileName, String source, DateTime timestamp,
+      {String? friendId, String? friendName}) async {
     try {
       final directory = await getApplicationDocumentsDirectory();
       final metadataFile = File('${directory.path}/media_metadata.json');
-      
+
       Map<String, dynamic> metadata = {};
       if (await metadataFile.exists()) {
         final content = await metadataFile.readAsString();
@@ -77,22 +80,22 @@ class MediaFolderScreen extends StatefulWidget {
           metadata = Map<String, dynamic>.from(json.decode(content));
         }
       }
-      
+
       Map<String, dynamic> imageMetadata = {
         'source': source,
         'timestamp': timestamp.toIso8601String(),
         'dateAdded': timestamp.toIso8601String(),
       };
-      
+
       if (friendId != null) {
         imageMetadata['friendId'] = friendId;
       }
       if (friendName != null) {
         imageMetadata['friendName'] = friendName;
       }
-      
+
       metadata[fileName] = imageMetadata;
-      
+
       await metadataFile.writeAsString(json.encode(metadata));
     } catch (e) {
       print('Error saving image metadata: $e');
@@ -100,23 +103,23 @@ class MediaFolderScreen extends StatefulWidget {
   }
 }
 
-class _MediaFolderScreenState extends State<MediaFolderScreen> with TickerProviderStateMixin {
+class _MediaFolderScreenState extends State<MediaFolderScreen>
+    with TickerProviderStateMixin {
   final ApiService _apiService = ApiService();
   final ImagePicker _imagePicker = ImagePicker();
   late TabController _tabController;
-  
+
   bool _isLoading = false;
   List<File> _savedImages = [];
-  List<Map<String, dynamic>> _galleryImages = [];
   List<Map<String, dynamic>> _receivedImages = [];
-  
+
   int _selectedTabIndex = 0;
-  final List<String> _tabTitles = ['Saved', 'From Gallery', 'Received'];
+  final List<String> _tabTitles = ['Saved', 'Received'];
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 2, vsync: this);
     _loadImages();
   }
 
@@ -133,7 +136,6 @@ class _MediaFolderScreenState extends State<MediaFolderScreen> with TickerProvid
 
     try {
       await _loadSavedImages();
-      await _loadGalleryImages();
       await _loadReceivedImages();
     } catch (e) {
       _showError('Failed to load images: $e');
@@ -148,19 +150,21 @@ class _MediaFolderScreenState extends State<MediaFolderScreen> with TickerProvid
     try {
       final directory = await getApplicationDocumentsDirectory();
       final mediaDir = Directory('${directory.path}/media');
-      
+
       if (await mediaDir.exists()) {
         final files = await mediaDir.list().toList();
         List<File> imageFiles = files
-            .where((file) => file.path.toLowerCase().endsWith('.jpg') || 
-                           file.path.toLowerCase().endsWith('.png') ||
-                           file.path.toLowerCase().endsWith('.jpeg'))
+            .where((file) =>
+                file.path.toLowerCase().endsWith('.jpg') ||
+                file.path.toLowerCase().endsWith('.png') ||
+                file.path.toLowerCase().endsWith('.jpeg'))
             .cast<File>()
             .toList();
-        
+
         // Sort by file modification time (newest first)
-        imageFiles.sort((a, b) => b.lastModifiedSync().compareTo(a.lastModifiedSync()));
-        
+        imageFiles.sort(
+            (a, b) => b.lastModifiedSync().compareTo(a.lastModifiedSync()));
+
         setState(() {
           _savedImages = imageFiles;
         });
@@ -170,57 +174,18 @@ class _MediaFolderScreenState extends State<MediaFolderScreen> with TickerProvid
     }
   }
 
-  Future<void> _loadGalleryImages() async {
-    try {
-      final directory = await getApplicationDocumentsDirectory();
-      final metadataFile = File('${directory.path}/media_metadata.json');
-      
-      if (await metadataFile.exists()) {
-        final content = await metadataFile.readAsString();
-        if (content.isNotEmpty) {
-          final Map<String, dynamic> metadata = json.decode(content);
-          
-          List<Map<String, dynamic>> galleryImagesList = [];
-          
-          for (final entry in metadata.entries) {
-            if (entry.value['source'] == 'gallery') {
-              final imageFile = File('${directory.path}/media/${entry.key}');
-              if (await imageFile.exists()) {
-                galleryImagesList.add({
-                  'file': imageFile,
-                  'fileName': entry.key,
-                  'timestamp': DateTime.parse(entry.value['timestamp']),
-                  'source': entry.value['source'],
-                });
-              }
-            }
-          }
-          
-          // Sort by timestamp (newest first)
-          galleryImagesList.sort((a, b) => b['timestamp'].compareTo(a['timestamp']));
-          
-          setState(() {
-            _galleryImages = galleryImagesList;
-          });
-        }
-      }
-    } catch (e) {
-      print('Error loading gallery images: $e');
-    }
-  }
-
   Future<void> _loadReceivedImages() async {
     try {
       final directory = await getApplicationDocumentsDirectory();
       final metadataFile = File('${directory.path}/media_metadata.json');
-      
+
       if (await metadataFile.exists()) {
         final content = await metadataFile.readAsString();
         if (content.isNotEmpty) {
           final Map<String, dynamic> metadata = json.decode(content);
-          
+
           List<Map<String, dynamic>> receivedImagesList = [];
-          
+
           for (final entry in metadata.entries) {
             if (entry.value['source'] == 'received') {
               final imageFile = File('${directory.path}/media/${entry.key}');
@@ -236,10 +201,11 @@ class _MediaFolderScreenState extends State<MediaFolderScreen> with TickerProvid
               }
             }
           }
-          
+
           // Sort by timestamp (newest first)
-          receivedImagesList.sort((a, b) => b['timestamp'].compareTo(a['timestamp']));
-          
+          receivedImagesList
+              .sort((a, b) => b['timestamp'].compareTo(a['timestamp']));
+
           setState(() {
             _receivedImages = receivedImagesList;
           });
@@ -250,74 +216,13 @@ class _MediaFolderScreenState extends State<MediaFolderScreen> with TickerProvid
     }
   }
 
-  Future<void> _pickImageFromGallery() async {
-    // Check if user has premium
-    final hasPremium = await PremiumService.checkMediaStorage(context);
-    if (!hasPremium) {
-      return; // User doesn't have premium, popup already shown
-    }
-    
-    try {
-      // Request appropriate permission based on platform (Android 13+ uses photos permission)
-      PermissionStatus status;
-      if (Platform.isAndroid) {
-        status = await Permission.photos.request();
-      } else {
-        status = await Permission.storage.request();
-      }
-      
-      if (status != PermissionStatus.granted) {
-        _showError('Gallery permission is required to access photos');
-        
-        // Check if permission is permanently denied
-        if (status == PermissionStatus.permanentlyDenied) {
-          final shouldOpenSettings = await showDialog<bool>(
-            context: context,
-            builder: (context) => AlertDialog(
-              title: const Text('Gallery Permission Required'),
-              content: const Text('Please grant gallery permission in app settings to select photos.'),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context, false),
-                  child: const Text('Cancel'),
-                ),
-                TextButton(
-                  onPressed: () => Navigator.pop(context, true),
-                  child: const Text('Open Settings'),
-                ),
-              ],
-            ),
-          );
-          
-          if (shouldOpenSettings == true) {
-            await openAppSettings();
-          }
-        }
-        return;
-      }
-
-      final XFile? image = await _imagePicker.pickImage(
-        source: ImageSource.gallery,
-        imageQuality: 80,
-      );
-
-      if (image != null) {
-        await _saveImageToMediaFolder(File(image.path), 'gallery');
-        await _loadImages();
-        _showSuccess('Image saved to media folder!');
-      }
-    } catch (e) {
-      _showError('Failed to pick image: $e');
-    }
-  }
-
   Future<void> _takePhoto() async {
     // Check if user has premium
     final hasPremium = await PremiumService.checkMediaStorage(context);
     if (!hasPremium) {
       return; // User doesn't have premium, popup already shown
     }
-    
+
     try {
       // Request camera permission
       final status = await Permission.camera.request();
@@ -345,7 +250,7 @@ class _MediaFolderScreenState extends State<MediaFolderScreen> with TickerProvid
     try {
       final directory = await getApplicationDocumentsDirectory();
       final mediaDir = Directory('${directory.path}/media');
-      
+
       if (!await mediaDir.exists()) {
         await mediaDir.create(recursive: true);
       }
@@ -353,9 +258,9 @@ class _MediaFolderScreenState extends State<MediaFolderScreen> with TickerProvid
       final timestamp = DateTime.now();
       final fileName = '${timestamp.millisecondsSinceEpoch}_$source.jpg';
       final savedFile = File('${mediaDir.path}/$fileName');
-      
+
       await imageFile.copy(savedFile.path);
-      
+
       // Save metadata for this image
       await _saveImageMetadata(fileName, source, timestamp);
     } catch (e) {
@@ -363,11 +268,13 @@ class _MediaFolderScreenState extends State<MediaFolderScreen> with TickerProvid
     }
   }
 
-  Future<void> _saveImageMetadata(String fileName, String source, DateTime timestamp, {String? friendId, String? friendName}) async {
+  Future<void> _saveImageMetadata(
+      String fileName, String source, DateTime timestamp,
+      {String? friendId, String? friendName}) async {
     try {
       final directory = await getApplicationDocumentsDirectory();
       final metadataFile = File('${directory.path}/media_metadata.json');
-      
+
       Map<String, dynamic> metadata = {};
       if (await metadataFile.exists()) {
         final content = await metadataFile.readAsString();
@@ -375,22 +282,22 @@ class _MediaFolderScreenState extends State<MediaFolderScreen> with TickerProvid
           metadata = Map<String, dynamic>.from(json.decode(content));
         }
       }
-      
+
       Map<String, dynamic> imageMetadata = {
         'source': source,
         'timestamp': timestamp.toIso8601String(),
         'dateAdded': timestamp.toIso8601String(),
       };
-      
+
       if (friendId != null) {
         imageMetadata['friendId'] = friendId;
       }
       if (friendName != null) {
         imageMetadata['friendName'] = friendName;
       }
-      
+
       metadata[fileName] = imageMetadata;
-      
+
       await metadataFile.writeAsString(json.encode(metadata));
     } catch (e) {
       print('Error saving image metadata: $e');
@@ -401,11 +308,11 @@ class _MediaFolderScreenState extends State<MediaFolderScreen> with TickerProvid
     try {
       // Delete the image file
       await imageFile.delete();
-      
+
       // Clean up metadata
       final fileName = imageFile.path.split('/').last;
       await _removeImageMetadata(fileName);
-      
+
       await _loadImages();
       _showSuccess('Image deleted successfully');
     } catch (e) {
@@ -417,7 +324,7 @@ class _MediaFolderScreenState extends State<MediaFolderScreen> with TickerProvid
     try {
       final directory = await getApplicationDocumentsDirectory();
       final metadataFile = File('${directory.path}/media_metadata.json');
-      
+
       if (await metadataFile.exists()) {
         final content = await metadataFile.readAsString();
         if (content.isNotEmpty) {
@@ -451,7 +358,8 @@ class _MediaFolderScreenState extends State<MediaFolderScreen> with TickerProvid
             children: [
               // Image
               ClipRRect(
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                borderRadius:
+                    const BorderRadius.vertical(top: Radius.circular(16)),
                 child: Image.file(
                   imageFile,
                   height: 300,
@@ -526,7 +434,8 @@ class _MediaFolderScreenState extends State<MediaFolderScreen> with TickerProvid
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Delete Image'),
-        content: const Text('Are you sure you want to delete this image? This action cannot be undone.'),
+        content: const Text(
+            'Are you sure you want to delete this image? This action cannot be undone.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -543,8 +452,6 @@ class _MediaFolderScreenState extends State<MediaFolderScreen> with TickerProvid
       ),
     );
   }
-
-
 
   void _showSuccess(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -586,7 +493,7 @@ class _MediaFolderScreenState extends State<MediaFolderScreen> with TickerProvid
             ),
             const SizedBox(height: 8),
             Text(
-              'Add images from gallery or camera',
+              'Add images from camera',
               style: TextStyle(
                 fontSize: 14,
                 color: Theme.of(context).textTheme.bodySmall?.color,
@@ -641,12 +548,12 @@ class _MediaFolderScreenState extends State<MediaFolderScreen> with TickerProvid
     );
   }
 
-  Widget _buildGalleryImageGrid(List<Map<String, dynamic>> galleryImages) {
-    if (galleryImages.isEmpty) {
+  Widget _buildReceivedImageGrid(List<Map<String, dynamic>> receivedImages) {
+    if (receivedImages.isEmpty) {
       return _buildEmptyState(
-        'No gallery images',
-        'Images you save from your device gallery will appear here',
-        Icons.photo_library_outlined,
+        'No received images',
+        'Images sent by your friends will be saved here automatically',
+        Icons.inbox_outlined,
       );
     }
 
@@ -657,15 +564,17 @@ class _MediaFolderScreenState extends State<MediaFolderScreen> with TickerProvid
         crossAxisSpacing: 8,
         mainAxisSpacing: 8,
       ),
-      itemCount: galleryImages.length,
+      itemCount: receivedImages.length,
       cacheExtent: 200, // Improves performance
       itemBuilder: (context, index) {
-        final imageData = galleryImages[index];
+        final imageData = receivedImages[index];
         final imageFile = imageData['file'] as File;
+        final friendName = imageData['friendName'] as String;
         final timestamp = imageData['timestamp'] as DateTime;
-        
+
         return GestureDetector(
-          onTap: () => _showImageDetails(imageFile),
+          onTap: () =>
+              _showReceivedImageDetails(imageFile, friendName, timestamp),
           child: Container(
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(8),
@@ -694,7 +603,7 @@ class _MediaFolderScreenState extends State<MediaFolderScreen> with TickerProvid
                     },
                   ),
                 ),
-                // Source indicator
+                // Friend indicator
                 Positioned(
                   top: 4,
                   right: 4,
@@ -705,91 +614,12 @@ class _MediaFolderScreenState extends State<MediaFolderScreen> with TickerProvid
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Icon(
-                      Icons.photo_library,
+                      Icons.person,
                       color: Colors.white,
                       size: 12,
                     ),
                   ),
                 ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildReceivedImageGrid(List<Map<String, dynamic>> receivedImages) {
-    if (receivedImages.isEmpty) {
-      return _buildEmptyState(
-        'No received images',
-        'Images sent by your friends will be saved here automatically',
-        Icons.inbox_outlined,
-      );
-    }
-
-    return GridView.builder(
-      padding: const EdgeInsets.all(16),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 3,
-        crossAxisSpacing: 8,
-        mainAxisSpacing: 8,
-      ),
-      itemCount: receivedImages.length,
-      cacheExtent: 200, // Improves performance
-      itemBuilder: (context, index) {
-        final imageData = receivedImages[index];
-        final imageFile = imageData['file'] as File;
-        final friendName = imageData['friendName'] as String;
-        final timestamp = imageData['timestamp'] as DateTime;
-        
-        return GestureDetector(
-          onTap: () => _showReceivedImageDetails(imageFile, friendName, timestamp),
-          child: Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(
-                color: Theme.of(context).dividerColor.withOpacity(0.3),
-              ),
-            ),
-            child: Stack(
-              children: [
-                                 ClipRRect(
-                   borderRadius: BorderRadius.circular(8),
-                   child: Image.file(
-                     imageFile,
-                     fit: BoxFit.cover,
-                     width: double.infinity,
-                     height: double.infinity,
-                     errorBuilder: (context, error, stackTrace) {
-                       return Container(
-                         color: Colors.grey[300],
-                         child: const Icon(
-                           Icons.broken_image,
-                           color: Colors.grey,
-                           size: 32,
-                         ),
-                       );
-                     },
-                   ),
-                 ),
-                 // Friend indicator
-                 Positioned(
-                   top: 4,
-                   right: 4,
-                   child: Container(
-                     padding: const EdgeInsets.all(4),
-                     decoration: BoxDecoration(
-                       color: Colors.black54,
-                       borderRadius: BorderRadius.circular(12),
-                     ),
-                     child: Icon(
-                       Icons.person,
-                       color: Colors.white,
-                       size: 12,
-                     ),
-                   ),
-                 ),
                 // Friend name overlay
                 Positioned(
                   bottom: 0,
@@ -831,7 +661,8 @@ class _MediaFolderScreenState extends State<MediaFolderScreen> with TickerProvid
     );
   }
 
-  void _showReceivedImageDetails(File imageFile, String friendName, DateTime timestamp) {
+  void _showReceivedImageDetails(
+      File imageFile, String friendName, DateTime timestamp) {
     showDialog(
       context: context,
       builder: (context) => Dialog(
@@ -846,7 +677,8 @@ class _MediaFolderScreenState extends State<MediaFolderScreen> with TickerProvid
             children: [
               // Image
               ClipRRect(
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                borderRadius:
+                    const BorderRadius.vertical(top: Radius.circular(16)),
                 child: Image.file(
                   imageFile,
                   height: 300,
@@ -911,7 +743,7 @@ class _MediaFolderScreenState extends State<MediaFolderScreen> with TickerProvid
   String _formatTimestamp(DateTime timestamp) {
     final now = DateTime.now();
     final difference = now.difference(timestamp);
-    
+
     if (difference.inDays > 0) {
       return '${difference.inDays} day${difference.inDays == 1 ? '' : 's'} ago';
     } else if (difference.inHours > 0) {
@@ -1003,7 +835,8 @@ class _MediaFolderScreenState extends State<MediaFolderScreen> with TickerProvid
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.orange,
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
                 ),
                 child: const Text('Upgrade to Premium'),
               ),
@@ -1012,7 +845,7 @@ class _MediaFolderScreenState extends State<MediaFolderScreen> with TickerProvid
         ),
       );
     }
-    
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Media Folder'),
@@ -1030,25 +863,12 @@ class _MediaFolderScreenState extends State<MediaFolderScreen> with TickerProvid
             icon: const Icon(Icons.add),
             onSelected: (value) {
               switch (value) {
-                case 'gallery':
-                  _pickImageFromGallery();
-                  break;
                 case 'camera':
                   _takePhoto();
                   break;
               }
             },
             itemBuilder: (context) => [
-              const PopupMenuItem(
-                value: 'gallery',
-                child: Row(
-                  children: [
-                    Icon(Icons.photo_library),
-                    SizedBox(width: 8),
-                    Text('From Gallery'),
-                  ],
-                ),
-              ),
               const PopupMenuItem(
                 value: 'camera',
                 child: Row(
@@ -1072,9 +892,7 @@ class _MediaFolderScreenState extends State<MediaFolderScreen> with TickerProvid
           labelColor: AppColors.primary,
           unselectedLabelColor: Theme.of(context).textTheme.bodySmall?.color,
           indicatorColor: AppColors.primary,
-          tabs: _tabTitles
-              .map((title) => Tab(text: title))
-              .toList(),
+          tabs: _tabTitles.map((title) => Tab(text: title)).toList(),
         ),
       ),
       body: _isLoading
@@ -1084,14 +902,11 @@ class _MediaFolderScreenState extends State<MediaFolderScreen> with TickerProvid
               children: [
                 // Saved Images Tab
                 _buildImageGrid(_savedImages),
-                
-                // Gallery Images Tab
-                _buildGalleryImageGrid(_galleryImages),
-                
+
                 // Received Images Tab
                 _buildReceivedImageGrid(_receivedImages),
               ],
             ),
     );
   }
-} 
+}
