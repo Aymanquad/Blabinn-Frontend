@@ -3,6 +3,8 @@ import '../models/user.dart';
 import '../services/auth_service.dart';
 import '../services/api_service.dart';
 import '../core/constants.dart';
+import '../screens/privacy_security_settings_screen.dart';
+import '../screens/help_support_settings_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({Key? key}) : super(key: key);
@@ -276,9 +278,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         size: 16,
                         color: theme.colorScheme.onSurface.withOpacity(0.5)),
                     onTap: () {
-                      // TODO: Navigate to privacy settings
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Coming soon!')),
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const PrivacySecuritySettingsScreen(),
+                        ),
                       );
                     },
                   ),
@@ -297,9 +301,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         size: 16,
                         color: theme.colorScheme.onSurface.withOpacity(0.5)),
                     onTap: () {
-                      // TODO: Navigate to help
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Coming soon!')),
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const HelpSupportSettingsScreen(),
+                        ),
                       );
                     },
                   ),

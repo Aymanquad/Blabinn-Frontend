@@ -7,6 +7,8 @@ import '../services/firebase_auth_service.dart';
 import 'privacy_settings_screen.dart';
 import 'notifications_settings_screen.dart';
 import 'data_storage_screen.dart';
+import 'privacy_security_settings_screen.dart';
+import 'help_support_settings_screen.dart';
 
 class AccountSettingsScreen extends StatefulWidget {
   const AccountSettingsScreen({super.key});
@@ -364,6 +366,38 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                   context,
                   MaterialPageRoute(
                     builder: (context) => const DataStorageScreen(),
+                  ),
+                );
+              },
+            ),
+
+            // Privacy & Security
+            _buildSettingsItem(
+              icon: Icons.shield_rounded,
+              title: 'Privacy & Security',
+              subtitle: 'Learn about your privacy and data safety',
+              trailing: Icon(Icons.arrow_forward_ios, size: 16),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const PrivacySecuritySettingsScreen(),
+                  ),
+                );
+              },
+            ),
+
+            // Help & Support
+            _buildSettingsItem(
+              icon: Icons.help_outline_rounded,
+              title: 'Help & Support',
+              subtitle: 'Get help and support information',
+              trailing: Icon(Icons.arrow_forward_ios, size: 16),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const HelpSupportSettingsScreen(),
                   ),
                 );
               },
