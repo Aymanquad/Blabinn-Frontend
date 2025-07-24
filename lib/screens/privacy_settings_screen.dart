@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../core/constants.dart';
 import '../services/api_service.dart';
+import '../providers/theme_provider.dart'; // Added import for ThemeProvider
+import 'package:provider/provider.dart'; // Added import for Provider
 
 class PrivacySettingsScreen extends StatefulWidget {
   const PrivacySettingsScreen({super.key});
@@ -419,8 +421,12 @@ class _PrivacySettingsScreenState extends State<PrivacySettingsScreen> {
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         colors: [
-                          AppColors.primary,
-                          AppColors.primary.withOpacity(0.8),
+                          Provider.of<ThemeProvider>(context).isDarkMode
+                              ? AppColors.darkPrimary
+                              : AppColors.primary,
+                          Provider.of<ThemeProvider>(context).isDarkMode
+                              ? AppColors.darkPrimary.withOpacity(0.8)
+                              : AppColors.primary.withOpacity(0.8),
                         ],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,

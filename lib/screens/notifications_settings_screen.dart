@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../core/constants.dart';
 import '../services/api_service.dart';
+import '../providers/theme_provider.dart'; // Added import for ThemeProvider
+import 'package:provider/provider.dart';
 
 class NotificationsSettingsScreen extends StatefulWidget {
   const NotificationsSettingsScreen({super.key});
@@ -242,8 +244,12 @@ class _NotificationsSettingsScreenState extends State<NotificationsSettingsScree
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         colors: [
-                          AppColors.primary,
-                          AppColors.primary.withOpacity(0.8),
+                          Provider.of<ThemeProvider>(context).isDarkMode
+                              ? AppColors.darkPrimary
+                              : AppColors.primary,
+                          Provider.of<ThemeProvider>(context).isDarkMode
+                              ? AppColors.darkPrimary.withOpacity(0.8)
+                              : AppColors.primary.withOpacity(0.8),
                         ],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,

@@ -229,8 +229,12 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: [
-                    AppColors.primary,
-                    AppColors.primary.withOpacity(0.8),
+                    Provider.of<ThemeProvider>(context).isDarkMode
+                        ? AppColors.darkPrimary
+                        : AppColors.primary,
+                    Provider.of<ThemeProvider>(context).isDarkMode
+                        ? AppColors.darkPrimary.withOpacity(0.8)
+                        : AppColors.primary.withOpacity(0.8),
                   ],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
