@@ -41,7 +41,7 @@ class MediaFolderScreen extends StatefulWidget {
 
   // Function to save received images from friends (called from chat system)
   static Future<void> saveReceivedImage(
-      File imageFile, String friendId, String friendName) async {
+      File imageFile, String friendId, String friendName, {String? messageId, String? imageUrl}) async {
     try {
       final directory = await getApplicationDocumentsDirectory();
       final mediaDir = Directory('${directory.path}/media');
@@ -56,9 +56,9 @@ class MediaFolderScreen extends StatefulWidget {
 
       await imageFile.copy(savedFile.path);
 
-      // Save metadata with friend info
+      // Save metadata with friend info, messageId, and imageUrl
       await _saveImageMetadataStatic(fileName, 'received', timestamp,
-          friendId: friendId, friendName: friendName);
+          friendId: friendId, friendName: friendName, messageId: messageId, imageUrl: imageUrl);
 
       print('✅ Received image saved successfully: $friendName -> $fileName');
     } catch (e) {
@@ -68,7 +68,7 @@ class MediaFolderScreen extends StatefulWidget {
 
   static Future<void> _saveImageMetadataStatic(
       String fileName, String source, DateTime timestamp,
-      {String? friendId, String? friendName}) async {
+      {String? friendId, String? friendName, String? messageId, String? imageUrl}) async {
     try {
       final directory = await getApplicationDocumentsDirectory();
       final metadataFile = File('${directory.path}/media_metadata.json');
@@ -92,6 +92,12 @@ class MediaFolderScreen extends StatefulWidget {
       }
       if (friendName != null) {
         imageMetadata['friendName'] = friendName;
+      }
+      if (messageId != null) {
+        imageMetadata['messageId'] = messageId;
+      }
+      if (imageUrl != null) {
+        imageMetadata['imageUrl'] = imageUrl;
       }
 
       metadata[fileName] = imageMetadata;

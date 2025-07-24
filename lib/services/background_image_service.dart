@@ -7,6 +7,7 @@ import '../models/message.dart';
 import '../models/user.dart';
 import '../screens/media_folder_screen.dart';
 import 'api_service.dart';
+import 'dart:convert';
 
 class BackgroundImageService {
   static final BackgroundImageService _instance = BackgroundImageService._internal();
@@ -23,7 +24,7 @@ class BackgroundImageService {
   Future<void> handleReceivedImageMessage(Message message, {String? senderName}) async {
     try {
       print('🖼️ [BACKGROUND IMAGE SERVICE] handleReceivedImageMessage called');
-      print('   📦 Message ID: ${message.id}');
+      print('   📦 Message ID:  [33m${message.id} [0m');
       print('   🔗 Image URL: ${message.imageUrl}');
       print('   👤 Sender ID: ${message.senderId}');
       print('   👤 Sender Name: $senderName');
@@ -32,6 +33,16 @@ class BackgroundImageService {
       // Validate that this is an image message
       if (message.type != MessageType.image || message.imageUrl == null || message.imageUrl!.isEmpty) {
         print('❌ [BACKGROUND IMAGE SERVICE] Not a valid image message');
+        return;
+      }
+      
+      // Check if image is already received
+      final alreadyReceived = await BackgroundImageService.isImageAlreadyReceived(
+        imageUrl: message.imageUrl!,
+        messageId: message.id,
+      );
+      if (alreadyReceived) {
+        print('⏭️ [BACKGROUND IMAGE SERVICE] Image already received, skipping save');
         return;
       }
       
@@ -133,11 +144,13 @@ class BackgroundImageService {
       
       print('✅ [BACKGROUND IMAGE SERVICE] Temporary file created: ${tempFile.path}');
       
-      // Save to media folder using MediaFolderScreen method
+      // Save to media folder using MediaFolderScreen method, pass messageId and imageUrl
       await MediaFolderScreen.saveReceivedImage(
-        tempFile, 
-        message.senderId, 
+        tempFile,
+        message.senderId,
         senderName,
+        messageId: message.id,
+        imageUrl: message.imageUrl,
       );
       
       // Clean up temp file
@@ -209,5 +222,34 @@ class BackgroundImageService {
     _imageQueue.clear();
     _isProcessing = false;
     print('🗑️ [BACKGROUND IMAGE SERVICE] Queue cleared');
+  }
+
+  /// Check if a received image (by imageUrl or messageId) is already present in the received folder
+  static Future<bool> isImageAlreadyReceived({required String imageUrl, String? messageId}) async {
+    try {
+      final directory = await getApplicationDocumentsDirectory();
+      final metadataFile = File('${directory.path}/media_metadata.json');
+      if (!await metadataFile.exists()) return false;
+      final content = await metadataFile.readAsString();
+      if (content.isEmpty) return false;
+      final Map<String, dynamic> metadata = json.decode(content);
+      for (final entry in metadata.entries) {
+        final value = entry.value;
+        if (value['source'] == 'received') {
+          // Check by messageId if available
+          if (messageId != null && value['messageId'] == messageId) {
+            return true;
+          }
+          // Fallback: check by imageUrl if available
+          if (value['imageUrl'] == imageUrl) {
+            return true;
+          }
+        }
+      }
+      return false;
+    } catch (e) {
+      print('[isImageAlreadyReceived] Error: $e');
+      return false;
+    }
   }
 } 

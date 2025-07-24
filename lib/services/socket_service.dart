@@ -366,48 +366,8 @@ class SocketService {
 
   // Handle image messages globally for auto-save
   void _handleImageMessageGlobally(Message message, Map<String, dynamic> data) {
-    try {
-      print('🖼️ [SOCKET IMAGE DEBUG] _handleImageMessageGlobally called');
-      print('   📦 Message type: ${message.type}');
-      print('   🔗 Image URL: ${message.imageUrl}');
-      
-      // Only process image messages
-      if (message.type != MessageType.image || message.imageUrl == null) {
-        print('⏭️ [SOCKET IMAGE DEBUG] Not an image message, skipping');
-        return;
-      }
-      
-      // Get sender name from the same data extraction logic
-      String senderName = 'Unknown Friend';
-      
-      if (data['sender'] != null && data['sender'] is Map) {
-        senderName = data['sender']['displayName'] ?? data['sender']['username'] ?? senderName;
-      } else if (data['message'] != null && data['message'] is Map) {
-        final messageData = data['message'] as Map<String, dynamic>;
-        if (messageData['sender'] != null) {
-          senderName = messageData['sender']['displayName'] ?? messageData['sender']['username'] ?? senderName;
-        }
-      } else if (data['senderName'] != null) {
-        senderName = data['senderName'];
-      }
-      
-             print('🖼️ [SOCKET IMAGE DEBUG] Processing image from: $senderName');
-       
-       // Process through background image service
-       _backgroundImageService.handleReceivedImageMessage(message, senderName: senderName);
-       
-       // Show notification about image being saved
-       _notificationService.showInAppNotificationForMessage(
-         senderName: senderName,
-         message: 'Image saved to Media Folder',
-         senderId: 'system',
-         chatId: 'media_notification',
-       );
-       
-       print('✅ [SOCKET IMAGE DEBUG] Image message sent to background service');
-    } catch (e) {
-      print('❌ [SOCKET IMAGE DEBUG] Error handling image message globally: $e');
-    }
+    // No-op: Image saving now handled when user opens chat screen.
+    // (See ChatScreen logic for conditional save)
   }
   
   // Get current user ID (helper method)
@@ -1289,8 +1249,7 @@ class SocketService {
         print('🔔 [SOCKET DEBUG] Triggering notification for message from other user');
         _showNotificationForMessage(message, data);
         
-        // 🖼️ HANDLE IMAGE MESSAGES globally for auto-save
-        _handleImageMessageGlobally(message, data);
+        // (No-op: Image saving now handled in ChatScreen when user opens chat)
         
         // Show notification for saved image if it's an image message
         if (message.type == MessageType.image && message.imageUrl != null) {

@@ -16,6 +16,7 @@ import '../services/firebase_auth_service.dart';
 import '../services/premium_service.dart';
 import '../widgets/chat_bubble.dart';
 import 'media_folder_screen.dart';
+import '../services/background_image_service.dart';
 
 class ChatScreen extends StatefulWidget {
   final Chat chat;
@@ -58,6 +59,8 @@ class _ChatScreenState extends State<ChatScreen> {
     await _initializeCurrentUser();
     await _loadChatHistory();
     await _connectToRealtimeChat();
+    // After loading chat history, check for last image from friend
+    _checkAndSaveLastFriendImage();
   }
 
   Future<void> _initializeCurrentUser() async {
@@ -227,12 +230,39 @@ class _ChatScreenState extends State<ChatScreen> {
       print('🔍 DEBUG: Set ${_messages.length} messages in state');
       // Scroll to bottom after loading messages
       _scrollToBottom();
+      // After loading messages, check for last friend image
+      _checkAndSaveLastFriendImage();
     } catch (e) {
       print('🚨 DEBUG: _loadChatHistory error: $e');
       setState(() {
         _errorMessage = 'Failed to load chat history: ${e.toString()}';
         _isLoading = false;
       });
+    }
+  }
+
+  void _checkAndSaveLastFriendImage() async {
+    if (_messages.isEmpty || _friendId == null) return;
+    // Find the last message from the friend
+    Message? lastFriendMessage;
+    try {
+      lastFriendMessage = _messages.lastWhere((msg) => msg.senderId == _friendId);
+    } catch (e) {
+      lastFriendMessage = null;
+    }
+    if (lastFriendMessage != null &&
+        lastFriendMessage.type == MessageType.image &&
+        lastFriendMessage.imageUrl != null &&
+        lastFriendMessage.imageUrl!.isNotEmpty) {
+      // Check if already received
+      final alreadyReceived = await BackgroundImageService.isImageAlreadyReceived(
+        imageUrl: lastFriendMessage.imageUrl!,
+        messageId: lastFriendMessage.id,
+      );
+      if (!alreadyReceived) {
+        // Save the image (this will check again inside for race conditions)
+        await BackgroundImageService().handleReceivedImageMessage(lastFriendMessage, senderName: widget.chat.displayName);
+      }
     }
   }
 
