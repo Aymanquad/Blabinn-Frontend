@@ -70,9 +70,11 @@ class _SplashScreenState extends State<SplashScreen>
 
   void _startSplashSequence() async {
     // Initialize UserProvider
+    bool isAuthenticated = false;
     try {
       final userProvider = Provider.of<UserProvider>(context, listen: false);
       await userProvider.initialize();
+      isAuthenticated = userProvider.currentUser != null;
     } catch (e) {
       print('UserProvider initialization failed: $e');
     }
@@ -86,11 +88,19 @@ class _SplashScreenState extends State<SplashScreen>
 
     // Wait for total splash duration, then navigate
     await Future.delayed(const Duration(milliseconds: 1500));
-    _navigateToHome();
+    if (isAuthenticated) {
+      _navigateToHome();
+    } else {
+      _navigateToLogin();
+    }
   }
 
   void _navigateToHome() {
     Navigator.of(context).pushReplacementNamed('/home');
+  }
+
+  void _navigateToLogin() {
+    Navigator.of(context).pushReplacementNamed('/login');
   }
 
   @override
