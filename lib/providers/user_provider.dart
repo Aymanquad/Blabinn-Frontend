@@ -31,6 +31,21 @@ class UserProvider with ChangeNotifier {
   // Load current user
   Future<void> _loadCurrentUser() async {
     _currentUser = _authService.currentUser;
+    
+    // If user exists, try to fetch complete profile data from backend
+    if (_currentUser != null) {
+      try {
+        final profileData = await _apiService.getMyProfile();
+        if (profileData != null && profileData['profile'] != null) {
+          // Update current user with complete profile data
+          _currentUser = User.fromJson(profileData['profile']);
+        }
+      } catch (e) {
+        print('Failed to load complete profile data: $e');
+        // Keep the basic user data from AuthService if profile fetch fails
+      }
+    }
+    
     notifyListeners();
   }
 

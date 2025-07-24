@@ -30,12 +30,14 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
   final _ageController = TextEditingController();
 
   // Form state
-  String _selectedGender = 'male'; // Initialize with male instead of prefer-not-to-say
+  String _selectedGender =
+      'male'; // Initialize with male instead of prefer-not-to-say
   List<String> _interests = [];
   File? _profilePicture;
   String? _existingProfilePictureUrl;
   List<File> _galleryImages = []; // New images to upload
-  List<Map<String, dynamic>> _existingGalleryImages = []; // Existing gallery images from backend
+  List<Map<String, dynamic>> _existingGalleryImages =
+      []; // Existing gallery images from backend
   bool _isLoading = false;
   bool _isUsernameAvailable = false;
   bool _isCheckingUsername = false;
@@ -135,7 +137,7 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
     _displayNameController.text = profile['displayName'] ?? '';
     _usernameController.text = profile['username'] ?? '';
     _bioController.text = profile['bio'] ?? '';
-    
+
     // Handle age properly
     final age = profile['age'];
     _ageController.text = age != null ? age.toString() : '';
@@ -145,7 +147,8 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
       // Handle gender properly - default to male if invalid or missing
       final gender = profile['gender']?.toString().toLowerCase().trim() ?? '';
       _selectedGender = ['male', 'female'].contains(gender) ? gender : 'male';
-      print('🔍 [PROFILE DEBUG] Setting gender: $gender (normalized to: $_selectedGender)');
+      print(
+          '🔍 [PROFILE DEBUG] Setting gender: $gender (normalized to: $_selectedGender)');
 
       // Set existing profile picture URL if available
       _existingProfilePictureUrl = profile['profilePicture'] as String? ??
@@ -156,34 +159,42 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
       }
 
       // Load existing gallery images
-      if (profile['profilePictures'] != null && profile['profilePictures'] is List) {
+      if (profile['profilePictures'] != null &&
+          profile['profilePictures'] is List) {
         _existingGalleryImages = List<Map<String, dynamic>>.from(
           profile['profilePictures'].map((pic) => {
-            'url': pic['url'],
-            'filename': pic['filename'],
-          }),
+                'url': pic['url'],
+                'filename': pic['filename'],
+              }),
         );
-        print('🔍 [PROFILE DEBUG] Loaded ${_existingGalleryImages.length} existing gallery images');
+        print(
+            '🔍 [PROFILE DEBUG] Loaded ${_existingGalleryImages.length} existing gallery images');
       } else {
         _existingGalleryImages = [];
       }
 
       // Filter interests to only include valid predefined ones
       final existingInterests = List<String>.from(profile['interests'] ?? []);
-      print('🔍 [PROFILE DEBUG] Loading existing interests: $existingInterests');
-      print('🔍 [PROFILE DEBUG] Available predefined interests: ${AppConstants.availableInterests}');
+      print(
+          '🔍 [PROFILE DEBUG] Loading existing interests: $existingInterests');
+      print(
+          '🔍 [PROFILE DEBUG] Available predefined interests: ${AppConstants.availableInterests}');
 
       _interests = existingInterests
-          .where((interest) => AppConstants.availableInterests.contains(interest))
+          .where(
+              (interest) => AppConstants.availableInterests.contains(interest))
           .toList();
 
       print('🔍 [PROFILE DEBUG] Filtered interests: $_interests');
 
       // Log if user had invalid interests that were cleared
       if (_interests.length != existingInterests.length) {
-        print('🔄 [PROFILE DEBUG] Cleared ${existingInterests.length - _interests.length} invalid interests');
-        print('🔄 [PROFILE DEBUG] Interests that were removed: ${existingInterests.where((i) => !AppConstants.availableInterests.contains(i)).toList()}');
-        print('🔄 [PROFILE DEBUG] User will need to select new interests from predefined list');
+        print(
+            '🔄 [PROFILE DEBUG] Cleared ${existingInterests.length - _interests.length} invalid interests');
+        print(
+            '🔄 [PROFILE DEBUG] Interests that were removed: ${existingInterests.where((i) => !AppConstants.availableInterests.contains(i)).toList()}');
+        print(
+            '🔄 [PROFILE DEBUG] User will need to select new interests from predefined list');
       }
 
       // Clear new gallery image selections
@@ -229,9 +240,10 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Profile Management'),
+        title: const Text('Complete Your Profile'),
         backgroundColor: Theme.of(context).colorScheme.primary,
         foregroundColor: Colors.white,
+        automaticallyImplyLeading: false, // Prevent back button for new users
       ),
       body: _currentUser == null
           ? const Center(child: CircularProgressIndicator())
@@ -250,20 +262,33 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
                         color: Theme.of(context).colorScheme.primary,
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: const Text(
-                        '👤 Profile Management',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            '👤 Complete Your Profile',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Please fill out the required information to continue',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.white.withOpacity(0.9),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                     const SizedBox(height: 24),
 
                     // Create/Update Profile Section
                     Text(
-                      'Create/Update Profile',
+                      'Required Information',
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
@@ -278,6 +303,15 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
                       label: 'Display Name',
                       hint: 'Enter display name',
                       maxLength: 50,
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return 'Display name is required';
+                        }
+                        if (value.trim().length < 2) {
+                          return 'Display name must be at least 2 characters';
+                        }
+                        return null;
+                      },
                     ),
                     const SizedBox(height: 16),
 
@@ -425,24 +459,35 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Age:',
-          style: TextStyle(
-            fontWeight: FontWeight.w600,
-            color: Theme.of(context).colorScheme.onSurface,
-          ),
+        Row(
+          children: [
+            Text(
+              'Age:',
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                color: Theme.of(context).colorScheme.onSurface,
+              ),
+            ),
+            const Text(
+              ' *',
+              style: TextStyle(
+                color: Colors.red,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
         ),
         const SizedBox(height: 8),
         TextFormField(
           controller: _ageController,
           keyboardType: TextInputType.number,
           decoration: const InputDecoration(
-            hintText: 'Enter your age (optional)',
+            hintText: 'Enter your age',
             border: OutlineInputBorder(),
           ),
           validator: (value) {
             if (value == null || value.isEmpty) {
-              return null; // Age is optional
+              return 'Age is required';
             }
             final age = int.tryParse(value);
             if (age == null) {
@@ -481,7 +526,7 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
                           height: 20,
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
-                      : const Text('Create Profile'),
+                      : const Text('Complete Profile'),
                 ),
               ),
             ] else ...[
@@ -503,18 +548,20 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
                 ),
               ),
             ],
-            const SizedBox(width: 16),
-            Expanded(
-              child: ElevatedButton(
-                onPressed: _isLoading ? null : _loadExistingProfile,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.grey,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
+            if (_hasExistingProfile) ...[
+              const SizedBox(width: 16),
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: _isLoading ? null : _loadExistingProfile,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.grey,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                  ),
+                  child: const Text('Get My Profile'),
                 ),
-                child: const Text('Get My Profile'),
               ),
-            ),
+            ],
           ],
         ),
       ],
@@ -524,16 +571,31 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
   Future<void> _createProfile() async {
     if (!_formKey.currentState!.validate()) return;
 
+    // Validate mandatory fields
+    if (_displayNameController.text.trim().isEmpty) {
+      _showError('Display name is required');
+      return;
+    }
+
+    if (_usernameController.text.trim().isEmpty) {
+      _showError('Username is required');
+      return;
+    }
+
+    if (_ageController.text.trim().isEmpty) {
+      _showError('Age is required');
+      return;
+    }
+
+    if (_selectedGender.isEmpty) {
+      _showError('Gender is required');
+      return;
+    }
+
     // Validate interests selection
     if (_interests.length < AppConstants.minInterestsRequired) {
       _showError(
           'Please select at least ${AppConstants.minInterestsRequired} interests to continue');
-      return;
-    }
-
-    // Validate gender selection
-    if (_selectedGender.isEmpty) {
-      _showError('Please select your gender');
       return;
     }
 
@@ -547,7 +609,7 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
         'username': _usernameController.text.trim(),
         'bio': _bioController.text.trim(),
         'gender': _selectedGender,
-        'age': _ageController.text.isEmpty ? null : int.parse(_ageController.text.trim()),
+        'age': int.parse(_ageController.text.trim()),
         'interests': _interests,
       };
 
@@ -576,6 +638,10 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
       setState(() {
         _hasExistingProfile = true;
       });
+      
+      // Redirect to home screen after successful profile creation
+      await Future.delayed(const Duration(seconds: 1));
+      Navigator.of(context).pushReplacementNamed('/home');
     } catch (e) {
       _showError('Error creating profile: $e');
     } finally {
@@ -588,16 +654,31 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
   Future<void> _updateProfile() async {
     if (!_formKey.currentState!.validate()) return;
 
+    // Validate mandatory fields
+    if (_displayNameController.text.trim().isEmpty) {
+      _showError('Display name is required');
+      return;
+    }
+
+    if (_usernameController.text.trim().isEmpty) {
+      _showError('Username is required');
+      return;
+    }
+
+    if (_ageController.text.trim().isEmpty) {
+      _showError('Age is required');
+      return;
+    }
+
+    if (_selectedGender.isEmpty) {
+      _showError('Gender is required');
+      return;
+    }
+
     // Validate interests selection
     if (_interests.length < AppConstants.minInterestsRequired) {
       _showError(
           'Please select at least ${AppConstants.minInterestsRequired} interests to continue');
-      return;
-    }
-
-    // Validate gender selection
-    if (_selectedGender.isEmpty) {
-      _showError('Please select your gender');
       return;
     }
 
@@ -611,7 +692,7 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
         'username': _usernameController.text.trim(),
         'bio': _bioController.text.trim(),
         'gender': _selectedGender,
-        'age': _ageController.text.isEmpty ? null : int.parse(_ageController.text.trim()),
+        'age': int.parse(_ageController.text.trim()),
         'interests': _interests,
       };
 
@@ -643,6 +724,10 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
       // Reload profile to verify changes
       print('🔄 [PROFILE DEBUG] Reloading profile to verify changes...');
       await _loadExistingProfile();
+      
+      // Redirect to home screen after successful profile update
+      await Future.delayed(const Duration(seconds: 1));
+      Navigator.of(context).pushReplacementNamed('/home');
     } catch (e) {
       _showError('Error updating profile: $e');
     } finally {
@@ -838,7 +923,8 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
                             if (loadingProgress == null) return child;
                             return Center(
                               child: CircularProgressIndicator(
-                                value: loadingProgress.expectedTotalBytes != null
+                                value: loadingProgress.expectedTotalBytes !=
+                                        null
                                     ? loadingProgress.cumulativeBytesLoaded /
                                         loadingProgress.expectedTotalBytes!
                                     : null,
@@ -875,7 +961,8 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
                           bottom: 4,
                           right: 4,
                           child: GestureDetector(
-                            onTap: () => _setAsMainProfilePicture(image['filename']),
+                            onTap: () =>
+                                _setAsMainProfilePicture(image['filename']),
                             child: Container(
                               width: 20,
                               height: 20,
@@ -932,7 +1019,8 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
                           top: 4,
                           right: 4,
                           child: GestureDetector(
-                            onTap: () => setState(() => _galleryImages.removeAt(index)),
+                            onTap: () =>
+                                setState(() => _galleryImages.removeAt(index)),
                             child: Container(
                               width: 20,
                               height: 20,
@@ -1175,14 +1263,14 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
   Future<void> _removeExistingGalleryImage(int index) async {
     try {
       setState(() => _isLoading = true);
-      
+
       final image = _existingGalleryImages[index];
       await _apiService.removeGalleryPicture(image['filename']);
-      
+
       setState(() {
         _existingGalleryImages.removeAt(index);
       });
-      
+
       _showSuccess('Gallery image removed successfully');
     } catch (e) {
       _showError('Failed to remove gallery image: $e');
@@ -1194,12 +1282,12 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
   Future<void> _setAsMainProfilePicture(String filename) async {
     try {
       setState(() => _isLoading = true);
-      
+
       await _apiService.setMainPicture(filename);
-      
+
       // Reload profile to get updated profile picture URL
       await _loadExistingProfile();
-      
+
       _showSuccess('Main profile picture updated successfully');
     } catch (e) {
       _showError('Failed to update main profile picture: $e');

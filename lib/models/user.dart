@@ -17,6 +17,8 @@ class User {
   final bool isBlocked;
   final bool isFriend;
   final String? deviceId; // For guest users
+  final int? age; // New field for age
+  final String? gender; // New field for gender
 
   User({
     required this.id,
@@ -37,6 +39,8 @@ class User {
     this.isBlocked = false,
     this.isFriend = false,
     this.deviceId,
+    this.age,
+    this.gender,
   });
 
   User copyWith({
@@ -58,6 +62,8 @@ class User {
     bool? isBlocked,
     bool? isFriend,
     String? deviceId,
+    int? age,
+    String? gender,
   }) {
     return User(
       id: id ?? this.id,
@@ -78,6 +84,8 @@ class User {
       isBlocked: isBlocked ?? this.isBlocked,
       isFriend: isFriend ?? this.isFriend,
       deviceId: deviceId ?? this.deviceId,
+      age: age ?? this.age,
+      gender: gender ?? this.gender,
     );
   }
 
@@ -101,6 +109,8 @@ class User {
       'isBlocked': isBlocked,
       'isFriend': isFriend,
       'deviceId': deviceId,
+      'age': age,
+      'gender': gender,
     };
   }
 
@@ -221,6 +231,8 @@ class User {
         isBlocked: json['isBlocked'] as bool? ?? false,
         isFriend: json['isFriend'] as bool? ?? false,
         deviceId: json['deviceId'] as String?,
+        age: json['age'] as int?,
+        gender: json['gender'] as String?,
       );
     } catch (e) {
       print('❌ ERROR: User.fromJson failed - $e');
@@ -248,6 +260,14 @@ class User {
   bool get hasProfileImage => profileImage != null && profileImage!.isNotEmpty;
   bool get hasLocation => latitude != null && longitude != null;
   String get displayName => username;
+  
+  // Check if user has completed mandatory profile fields
+  bool get hasCompletedProfile {
+    return username.isNotEmpty && 
+           age != null && 
+           gender != null && 
+           gender!.isNotEmpty;
+  }
   
   String get statusText {
     if (isOnline) return 'Online';

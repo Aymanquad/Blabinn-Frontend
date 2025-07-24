@@ -71,10 +71,14 @@ class _SplashScreenState extends State<SplashScreen>
   void _startSplashSequence() async {
     // Initialize UserProvider
     bool isAuthenticated = false;
+    bool hasCompletedProfile = false;
     try {
       final userProvider = Provider.of<UserProvider>(context, listen: false);
       await userProvider.initialize();
       isAuthenticated = userProvider.currentUser != null;
+      if (isAuthenticated) {
+        hasCompletedProfile = userProvider.currentUser!.hasCompletedProfile;
+      }
     } catch (e) {
       print('UserProvider initialization failed: $e');
     }
@@ -89,7 +93,11 @@ class _SplashScreenState extends State<SplashScreen>
     // Wait for total splash duration, then navigate
     await Future.delayed(const Duration(milliseconds: 1500));
     if (isAuthenticated) {
-      _navigateToHome();
+      if (hasCompletedProfile) {
+        _navigateToHome();
+      } else {
+        _navigateToProfileCompletion();
+      }
     } else {
       _navigateToLogin();
     }
@@ -101,6 +109,10 @@ class _SplashScreenState extends State<SplashScreen>
 
   void _navigateToLogin() {
     Navigator.of(context).pushReplacementNamed('/login');
+  }
+
+  void _navigateToProfileCompletion() {
+    Navigator.of(context).pushReplacementNamed('/profile-management');
   }
 
   @override
