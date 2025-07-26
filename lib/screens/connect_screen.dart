@@ -15,7 +15,7 @@ class ConnectScreen extends StatefulWidget {
   State<ConnectScreen> createState() => _ConnectScreenState();
 }
 
-class _ConnectScreenState extends State<ConnectScreen> {
+class _ConnectScreenState extends State<ConnectScreen> with SingleTickerProviderStateMixin {
   bool _isMatching = false;
   bool _isConnected = false;
   Map<String, dynamic> _filters = {};
@@ -28,6 +28,8 @@ class _ConnectScreenState extends State<ConnectScreen> {
   late SocketService _socketService;
   late StreamSubscription _matchSubscription;
   late StreamSubscription _errorSubscription;
+  late AnimationController _animationController;
+  late Animation<double> _scaleAnimation;
 
   @override
   void initState() {
@@ -35,6 +37,7 @@ class _ConnectScreenState extends State<ConnectScreen> {
     _initializeFilters();
     _initializeServices();
     _setupSocketListeners();
+    _initializeAnimations();
     // Load user interests after services are initialized
     _loadUserInterests();
   }
@@ -43,12 +46,25 @@ class _ConnectScreenState extends State<ConnectScreen> {
   void dispose() {
     _cleanupSocketListeners();
     _stopMatching();
+    _animationController.dispose();
     super.dispose();
   }
 
   void _initializeServices() {
     _apiService = ApiService();
     _socketService = SocketService();
+  }
+
+  void _initializeAnimations() {
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    );
+    _scaleAnimation = CurvedAnimation(
+      parent: _animationController,
+      curve: Curves.elasticOut,
+    );
+    _animationController.forward();
   }
 
   void _initializeFilters() {
@@ -702,24 +718,46 @@ class _ConnectScreenState extends State<ConnectScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Container(
-              width: 120,
-              height: 120,
-              decoration: BoxDecoration(
-                color: theme.colorScheme.primary.withValues(alpha: 0.1),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                Icons.people,
-                size: 60,
-                color: theme.colorScheme.primary,
+            ScaleTransition(
+              scale: _scaleAnimation,
+              child: Container(
+                width: 140,
+                height: 140,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      theme.colorScheme.primary.withValues(alpha: 0.2),
+                      theme.colorScheme.secondary.withValues(alpha: 0.2),
+                    ],
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: theme.colorScheme.primary.withOpacity(0.3),
+                      blurRadius: 15,
+                      offset: const Offset(0, 6),
+                    ),
+                  ],
+                ),
+                child: ClipOval(
+                  child: Image.asset(
+                    'assets/images/search-people-removebg-preview.png',
+                    fit: BoxFit.contain,
+                    width: 100,
+                    height: 100,
+                  ),
+                ),
               ),
             ),
             const SizedBox(height: 24),
             Text(
               'Find New People',
               style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 28,
+                    letterSpacing: 0.5,
                   ),
             ),
             const SizedBox(height: 8),
@@ -728,7 +766,9 @@ class _ConnectScreenState extends State<ConnectScreen> {
               child: Text(
                 'Connect with people within your preferred distance range',
                 style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      color: theme.colorScheme.onSurface.withOpacity(0.7),
+                      color: theme.colorScheme.onSurface.withOpacity(0.8),
+                      fontSize: 16,
+                      height: 1.4,
                     ),
                 textAlign: TextAlign.center,
               ),

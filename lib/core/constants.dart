@@ -50,7 +50,7 @@ class AppConstants {
   static const String wsUrl = 'wss://your-backend-url.railway.app';
 
   // App Settings
-  static const String appName = 'Global Chat';
+  static const String appName = 'Chatify';
   static const String appVersion = '1.0.0';
 
   // Timeouts - Reduced for faster failures
@@ -137,7 +137,7 @@ class SuccessMessages {
 
 class AppStrings {
   // General
-  static const String appTitle = 'Global Chat';
+  static const String appTitle = 'Chatify';
   static const String loading = 'Loading...';
   static const String error = 'Error';
   static const String success = 'Success';

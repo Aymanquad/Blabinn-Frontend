@@ -1,0 +1,16 @@
+{
+	"folders": [
+		{
+			"path": "C:/Users/MOHMMED AYMAN QUADRI/Desktop/blabbin/blabbin-backend"
+		},
+		{
+			"path": ".."
+		},
+		{
+			"path": "C:/Users/MOHMMED AYMAN QUADRI/Desktop/blabbin/blabbin-redis"
+		}
+	],
+	"settings": {
+		"liveServer.settings.multiRootWorkspaceName": "blabbin-backend"
+	}
+}

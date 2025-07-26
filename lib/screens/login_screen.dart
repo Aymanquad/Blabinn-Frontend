@@ -184,13 +184,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     height: 20,
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
-                : Image.asset(
-                    'assets/images/google_logo.png', // You'll need to add this
-                    width: 24,
-                    height: 24,
-                    errorBuilder: (context, error, stackTrace) =>
-                        const Icon(Icons.g_mobiledata),
-                  ),
+                : const Icon(Icons.g_mobiledata, size: 24),
             label: Text(isFirebaseAvailable
                 ? 'Continue with Google'
                 : 'Google (Requires Firebase)'),

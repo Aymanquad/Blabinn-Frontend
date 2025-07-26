@@ -88,7 +88,7 @@ class HelpSupportSettingsScreen extends StatelessWidget {
                   children: [
                     ListTile(
                       leading: Icon(Icons.email, color: iconColor),
-                      title: Text('For any questions or issues, please contact our support team at support@blabbin.com.',
+                      title: Text('For any questions or issues, please contact our support team at support@chatify.com.',
                         style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: textColor)),
                     ),
                     Divider(),
@@ -106,7 +106,7 @@ class HelpSupportSettingsScreen extends StatelessWidget {
                     Divider(),
                     ListTile(
                       leading: Icon(Icons.favorite, color: iconColor),
-                      title: Text('Thank you for being a part of the Blabbin community!',
+                      title: Text('Thank you for being a part of the Chatify community!',
                         style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: textColor)),
                     ),
                   ],

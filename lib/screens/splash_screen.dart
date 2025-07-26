@@ -182,7 +182,7 @@ class _SplashScreenState extends State<SplashScreen>
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(10),
                         child: Image.asset(
-                          'assets/images/—Pngtree—red bull head simple logo_8478528.png',
+                          'assets/images/chatify_logo2.png',
                           fit: BoxFit.contain,
                         ),
                       ),

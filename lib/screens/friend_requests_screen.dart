@@ -371,16 +371,24 @@ class _FriendRequestsScreenState extends State<FriendRequestsScreen>
           'Friend Requests',
           style: TextStyle(
             fontWeight: FontWeight.bold,
-            color: AppColors.text,
           ),
         ),
-        backgroundColor: AppColors.background,
+        backgroundColor: AppColors.darkPrimary, // Use violet background
+        foregroundColor: AppColors.darkText, // Use soft cream for text/icons
         elevation: 0,
+        iconTheme: const IconThemeData(
+          color: AppColors.darkText, // Ensure back button is visible
+        ),
+        titleTextStyle: const TextStyle(
+          color: AppColors.darkText,
+          fontSize: 20,
+          fontWeight: FontWeight.bold,
+        ),
         bottom: TabBar(
           controller: _tabController,
-          labelColor: AppColors.primary,
-          unselectedLabelColor: Colors.grey,
-          indicatorColor: AppColors.primary,
+          labelColor: Colors.white, // Use white for selected tabs on violet background
+          unselectedLabelColor: Colors.white70, // Use slightly transparent white for unselected
+          indicatorColor: Colors.white, // Use white indicator
           tabs: [
             Tab(
               child: Row(

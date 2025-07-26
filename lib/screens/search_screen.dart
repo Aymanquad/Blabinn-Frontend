@@ -456,11 +456,19 @@ class _SearchScreenState extends State<SearchScreen> {
           'Search People',
           style: TextStyle(
             fontWeight: FontWeight.bold,
-            color: AppColors.text,
           ),
         ),
-        backgroundColor: AppColors.background,
+        backgroundColor: AppColors.darkPrimary, // Use violet background
+        foregroundColor: AppColors.darkText, // Use soft cream for text/icons
         elevation: 0,
+        iconTheme: const IconThemeData(
+          color: AppColors.darkText, // Ensure back button is visible
+        ),
+        titleTextStyle: const TextStyle(
+          color: AppColors.darkText,
+          fontSize: 20,
+          fontWeight: FontWeight.bold,
+        ),
       ),
       body: Column(
         children: [
