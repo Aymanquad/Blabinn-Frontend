@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'background_image_service.dart';
+import 'api_service.dart';
 
 class NotificationService {
   static final NotificationService _instance = NotificationService._internal();
@@ -25,6 +26,7 @@ class NotificationService {
   
   bool _isAppInForeground = true; // Start as foreground
   String? _fcmToken;
+  final ApiService _apiService = ApiService();
   
   // Initialize the notification service
   Future<void> initialize() async {
@@ -40,6 +42,18 @@ class NotificationService {
       print('✅ [NOTIFICATION DEBUG] Notification service initialized successfully');
     } catch (e) {
       print('❌ [NOTIFICATION DEBUG] Failed to initialize notifications: $e');
+    }
+  }
+  
+  // Send FCM token to backend
+  Future<void> _sendFcmTokenToBackend(String token) async {
+    try {
+      print('🔔 [NOTIFICATION DEBUG] Sending FCM token to backend...');
+      await _apiService.updateFcmToken(token);
+      print('✅ [NOTIFICATION DEBUG] FCM token sent to backend successfully');
+    } catch (e) {
+      print('❌ [NOTIFICATION DEBUG] Failed to send FCM token to backend: $e');
+      // Don't rethrow - this shouldn't break the app
     }
   }
   
@@ -70,6 +84,10 @@ class NotificationService {
           .resolvePlatformSpecificImplementation<IOSFlutterLocalNotificationsPlugin>()
           ?.requestPermissions(alert: true, badge: true, sound: true);
     }
+    
+    // Check if notifications are enabled
+    final areEnabled = await areNotificationsEnabled();
+    print('🔔 [NOTIFICATION DEBUG] Notifications enabled: $areEnabled');
   }
   
   // Initialize Firebase messaging
@@ -88,16 +106,25 @@ class NotificationService {
     );
     
     print('🔔 [NOTIFICATION DEBUG] Permission granted: ${settings.authorizationStatus}');
+    print('🔔 [NOTIFICATION DEBUG] Alert permission: ${settings.alert}');
+    print('🔔 [NOTIFICATION DEBUG] Badge permission: ${settings.badge}');
+    print('🔔 [NOTIFICATION DEBUG] Sound permission: ${settings.sound}');
     
     // Get FCM token
     _fcmToken = await _firebaseMessaging.getToken();
     print('🔔 [NOTIFICATION DEBUG] FCM Token: $_fcmToken');
     
+    // Send initial token to backend
+    if (_fcmToken != null) {
+      _sendFcmTokenToBackend(_fcmToken!);
+    }
+    
     // Listen for token refresh
     _firebaseMessaging.onTokenRefresh.listen((token) {
       print('🔔 [NOTIFICATION DEBUG] FCM Token refreshed: $token');
       _fcmToken = token;
-      // TODO: Send updated token to backend
+      // Send updated token to backend
+      _sendFcmTokenToBackend(token);
     });
     
     // Handle foreground messages
@@ -333,6 +360,16 @@ class NotificationService {
       senderId: 'test_id',
       chatId: 'test_chat',
     );
+  }
+  
+  // Test method to manually update FCM token
+  Future<void> testFcmTokenUpdate() async {
+    print('🔔 [NOTIFICATION SERVICE TEST] Testing FCM token update');
+    if (_fcmToken != null) {
+      await _sendFcmTokenToBackend(_fcmToken!);
+    } else {
+      print('❌ [NOTIFICATION SERVICE TEST] No FCM token available');
+    }
   }
   
   // Dispose

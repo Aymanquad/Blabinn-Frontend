@@ -738,18 +738,6 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
           ),
         ),
         actions: [
-          // Test notification button (temporary)
-          IconButton(
-            icon: Icon(
-              Icons.notifications_active,
-              color: theme.colorScheme.secondary,
-            ),
-            onPressed: () {
-              print('🔔 [TEST] Test notification button pressed');
-              _notificationService.testNotification();
-            },
-            tooltip: 'Test Notification',
-          ),
           IconButton(
             icon: Icon(
               AppIcons.profile,

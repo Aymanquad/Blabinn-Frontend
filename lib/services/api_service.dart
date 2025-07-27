@@ -159,6 +159,20 @@ class ApiService {
     return _handleResponse(response);
   }
 
+  // Update FCM token for push notifications
+  Future<Map<String, dynamic>> updateFcmToken(String fcmToken) async {
+    try {
+      print('🔔 [API DEBUG] Updating FCM token: ${fcmToken.substring(0, 20)}...');
+      final response = await _put('/auth/fcm-token', {'fcmToken': fcmToken});
+      final result = _handleResponse(response);
+      print('✅ [API DEBUG] FCM token updated successfully');
+      return result;
+    } catch (e) {
+      print('❌ [API DEBUG] Failed to update FCM token: $e');
+      rethrow;
+    }
+  }
+
   Future<Map<String, dynamic>> deleteAccount() async {
     final response = await _delete('/profiles/me');
     return _handleResponse(response);
