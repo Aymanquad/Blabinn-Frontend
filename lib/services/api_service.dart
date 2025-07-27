@@ -162,7 +162,8 @@ class ApiService {
   // Update FCM token for push notifications
   Future<Map<String, dynamic>> updateFcmToken(String fcmToken) async {
     try {
-      print('🔔 [API DEBUG] Updating FCM token: ${fcmToken.substring(0, 20)}...');
+      print(
+          '🔔 [API DEBUG] Updating FCM token: ${fcmToken.substring(0, 20)}...');
       final response = await _put('/auth/fcm-token', {'fcmToken': fcmToken});
       final result = _handleResponse(response);
       print('✅ [API DEBUG] FCM token updated successfully');
@@ -224,12 +225,13 @@ class ApiService {
   Future<Map<String, dynamic>> uploadProfilePicture(File imageFile) async {
     try {
       // Use Firebase Storage endpoint like chat images
-      final request = http.MultipartRequest('POST', Uri.parse('$_baseUrl/upload/profile-picture'));
-      
+      final request = http.MultipartRequest(
+          'POST', Uri.parse('$_baseUrl/upload/profile-picture'));
+
       // Add headers
       final headers = await _headers;
       request.headers.addAll(headers);
-      
+
       // Determine content type based on file extension
       String contentType = 'image/jpeg'; // Default
       final extension = imageFile.path.split('.').last.toLowerCase();
@@ -250,19 +252,20 @@ class ApiService {
         default:
           contentType = 'image/jpeg'; // Fallback
       }
-      
-      print('📤 DEBUG: Uploading profile picture with content type: $contentType, file: ${imageFile.path}');
-      
+
+      print(
+          '📤 DEBUG: Uploading profile picture with content type: $contentType, file: ${imageFile.path}');
+
       // Add image file with explicit content type
       request.files.add(await http.MultipartFile.fromPath(
         'profilePicture',
         imageFile.path,
         contentType: MediaType.parse(contentType),
       ));
-      
+
       final streamedResponse = await request.send();
       final response = await http.Response.fromStream(streamedResponse);
-      
+
       final data = _handleResponse(response);
       return data;
     } catch (e) {
@@ -366,19 +369,8 @@ class ApiService {
   }
 
   Future<Map<String, dynamic>> getConnectionStatus(String targetUserId) async {
-    try {
-      print('🔍 DEBUG: getConnectionStatus() called with targetUserId: $targetUserId');
-      final response = await _get('/connections/status/$targetUserId');
-      print('🔍 DEBUG: Connection status response status: ${response.statusCode}');
-      print('🔍 DEBUG: Connection status response body: ${response.body}');
-
-      final result = _handleResponse(response);
-      print('🔍 DEBUG: Processed connection status result: $result');
-      return result;
-    } catch (e) {
-      print('🚨 DEBUG: getConnectionStatus error: $e');
-      rethrow;
-    }
+    final response = await _get('/connections/status/$targetUserId');
+    return _handleResponse(response);
   }
 
   Future<Map<String, dynamic>> getUserProfile(String userId) async {
@@ -556,12 +548,13 @@ class ApiService {
   // Image upload methods
   Future<String> uploadChatImage(File imageFile) async {
     try {
-      final request = http.MultipartRequest('POST', Uri.parse('$_baseUrl/upload/chat-image'));
-      
+      final request = http.MultipartRequest(
+          'POST', Uri.parse('$_baseUrl/upload/chat-image'));
+
       // Add headers
       final headers = await _headers;
       request.headers.addAll(headers);
-      
+
       // Determine content type based on file extension
       String contentType = 'image/jpeg'; // Default
       final extension = imageFile.path.split('.').last.toLowerCase();
@@ -582,19 +575,20 @@ class ApiService {
         default:
           contentType = 'image/jpeg'; // Fallback
       }
-      
-      print('📤 DEBUG: Uploading image with content type: $contentType, file: ${imageFile.path}');
-      
+
+      print(
+          '📤 DEBUG: Uploading image with content type: $contentType, file: ${imageFile.path}');
+
       // Add image file with explicit content type
       request.files.add(await http.MultipartFile.fromPath(
         'image',
         imageFile.path,
         contentType: MediaType.parse(contentType),
       ));
-      
+
       final streamedResponse = await request.send();
       final response = await http.Response.fromStream(streamedResponse);
-      
+
       final data = _handleResponse(response);
       return data['imageUrl'] as String;
     } catch (e) {

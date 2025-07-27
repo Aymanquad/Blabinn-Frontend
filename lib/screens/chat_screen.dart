@@ -42,7 +42,6 @@ class _ChatScreenState extends State<ChatScreen> {
   String? _errorMessage;
   String? _currentUserId;
   String? _friendId;
-  String? _connectionStatus; // Add connection status tracking
 
   // Stream subscriptions for real-time events
   StreamSubscription<Message>? _messageSubscription;
@@ -60,7 +59,6 @@ class _ChatScreenState extends State<ChatScreen> {
     await _initializeCurrentUser();
     await _loadChatHistory();
     await _connectToRealtimeChat();
-    await _checkConnectionStatus(); // Add connection status check
     // After loading chat history, check for last image from friend
     _checkAndSaveLastFriendImage();
   }
@@ -81,30 +79,6 @@ class _ChatScreenState extends State<ChatScreen> {
     print('🔍 DEBUG: Friend ID set to: $_friendId');
   }
 
-  // Add method to check connection status
-  Future<void> _checkConnectionStatus() async {
-    if (_friendId == null) return;
-    
-    try {
-      print('🔍 DEBUG: Checking connection status with $_friendId');
-      final response = await _apiService.getConnectionStatus(_friendId!);
-      setState(() {
-        _connectionStatus = response['status'] ?? 'none';
-      });
-      print('🔍 DEBUG: Connection status: $_connectionStatus');
-    } catch (e) {
-      print('🚨 DEBUG: Error checking connection status: $e');
-      setState(() {
-        _connectionStatus = 'none';
-      });
-    }
-  }
-
-  // Add getter to check if messaging is allowed
-  bool get _canSendMessages {
-    return _connectionStatus == 'accepted';
-  }
-
   Future<void> _connectToRealtimeChat() async {
     print('🔌 DEBUG: Connecting to socket service...');
     final authService = FirebaseAuthService();
@@ -123,21 +97,20 @@ class _ChatScreenState extends State<ChatScreen> {
       print('💬 DEBUG: Received real-time message: ${message.content}');
 
       // Add the message if it's for this chat (either from friend or current user)
-      if (widget.chat.isFriendChat && 
+      if (widget.chat.isFriendChat &&
           (message.senderId == _friendId || message.receiverId == _friendId)) {
-        
         // Check if this message already exists to avoid duplicates
         bool messageExists = _messages.any((msg) => msg.id == message.id);
-        
+
         if (!messageExists) {
-        setState(() {
-          _messages.add(message);
-          _messages.sort((a, b) => a.timestamp.compareTo(b.timestamp));
-        });
-        _scrollToBottom();
-        
-        // Note: Image auto-saving is now handled globally by BackgroundImageService
-        // through the SocketService, so no need to handle it here specifically
+          setState(() {
+            _messages.add(message);
+            _messages.sort((a, b) => a.timestamp.compareTo(b.timestamp));
+          });
+          _scrollToBottom();
+
+          // Note: Image auto-saving is now handled globally by BackgroundImageService
+          // through the SocketService, so no need to handle it here specifically
         }
       }
     });
@@ -272,7 +245,8 @@ class _ChatScreenState extends State<ChatScreen> {
     // Find the last message from the friend
     Message? lastFriendMessage;
     try {
-      lastFriendMessage = _messages.lastWhere((msg) => msg.senderId == _friendId);
+      lastFriendMessage =
+          _messages.lastWhere((msg) => msg.senderId == _friendId);
     } catch (e) {
       lastFriendMessage = null;
     }
@@ -281,13 +255,16 @@ class _ChatScreenState extends State<ChatScreen> {
         lastFriendMessage.imageUrl != null &&
         lastFriendMessage.imageUrl!.isNotEmpty) {
       // Check if already received
-      final alreadyReceived = await BackgroundImageService.isImageAlreadyReceived(
+      final alreadyReceived =
+          await BackgroundImageService.isImageAlreadyReceived(
         imageUrl: lastFriendMessage.imageUrl!,
         messageId: lastFriendMessage.id,
       );
       if (!alreadyReceived) {
         // Save the image (this will check again inside for race conditions)
-        await BackgroundImageService().handleReceivedImageMessage(lastFriendMessage, senderName: widget.chat.displayName);
+        await BackgroundImageService().handleReceivedImageMessage(
+            lastFriendMessage,
+            senderName: widget.chat.displayName);
       }
     }
   }
@@ -298,18 +275,6 @@ class _ChatScreenState extends State<ChatScreen> {
 
     if (_friendId == null) {
       print('❌ DEBUG: Cannot send message - friendId is null');
-      return;
-    }
-
-    // Check if messaging is allowed based on connection status
-    if (!_canSendMessages) {
-      print('❌ DEBUG: Cannot send message - connection status: $_connectionStatus');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Cannot send message - friendship was removed'),
-          backgroundColor: Colors.orange,
-        ),
-      );
       return;
     }
 
@@ -331,7 +296,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
       _messageController.clear();
       _stopTyping();
-      
+
       // The message will be received via socket and added to the UI automatically
     } catch (e) {
       print('🚨 DEBUG: Error sending message: $e');
@@ -420,23 +385,8 @@ class _ChatScreenState extends State<ChatScreen> {
                   ),
                   Row(
                     children: [
-                      // Show connection status when not accepted
-                      if (_connectionStatus != null && _connectionStatus != 'accepted') ...[
-                        Icon(
-                          Icons.person_remove,
-                          size: 12,
-                          color: Colors.orange,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          'Friendship removed',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.orange,
-                            fontStyle: FontStyle.italic,
-                          ),
-                        ),
-                      ] else if (_isTyping) ...[
+                      // Removed the online status display completely
+                      if (_isTyping) ...[
                         Text(
                           'typing...',
                           style: TextStyle(
@@ -578,7 +528,7 @@ class _ChatScreenState extends State<ChatScreen> {
       itemCount: _messages.length,
       itemBuilder: (context, index) {
         final message = _messages[index];
-        
+
         return ChatBubble(
           message: message,
           currentUserId: _currentUserId,
@@ -604,7 +554,6 @@ class _ChatScreenState extends State<ChatScreen> {
 
   Widget _buildMessageInput() {
     final theme = Theme.of(context);
-    final isMessagingDisabled = !_canSendMessages;
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -618,93 +567,45 @@ class _ChatScreenState extends State<ChatScreen> {
           ),
         ],
       ),
-      child: Column(
+      child: Row(
         children: [
-          // Show warning message when messaging is disabled
-          if (isMessagingDisabled) ...[
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              margin: const EdgeInsets.only(bottom: 8),
-              decoration: BoxDecoration(
-                color: Colors.orange.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.orange.withOpacity(0.3)),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.info_outline,
-                    color: Colors.orange,
-                    size: 16,
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'Friendship was removed. You can view chat history but cannot send new messages.',
-                      style: TextStyle(
-                        color: Colors.orange[700],
-                        fontSize: 12,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-          Row(
-            children: [
-              IconButton(
-                icon: Icon(
-                  Icons.attach_file, 
-                  color: isMessagingDisabled 
-                    ? theme.colorScheme.onSurface.withOpacity(0.3)
-                    : theme.colorScheme.onSurface
-                ),
-                onPressed: isMessagingDisabled ? null : () {
-                  _showAttachmentOptions();
-                },
-              ),
-              Expanded(
-                child: TextField(
-                  controller: _messageController,
-                  onChanged: isMessagingDisabled ? null : _onMessageChanged,
-                  enabled: !isMessagingDisabled,
-                  decoration: InputDecoration(
-                    hintText: isMessagingDisabled 
-                      ? 'Messaging disabled'
-                      : AppStrings.typeMessage,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(24),
-                      borderSide: BorderSide.none,
-                    ),
-                    filled: true,
-                    fillColor: isMessagingDisabled 
-                      ? theme.colorScheme.surface.withOpacity(0.5)
-                      : theme.colorScheme.surface,
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 12,
-                    ),
-                  ),
-                  maxLines: null,
-                  textCapitalization: TextCapitalization.sentences,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Container(
-                decoration: BoxDecoration(
-                  color: isMessagingDisabled 
-                    ? theme.colorScheme.primary.withOpacity(0.3)
-                    : theme.colorScheme.primary,
+          IconButton(
+            icon: Icon(Icons.attach_file, color: theme.colorScheme.onSurface),
+            onPressed: () {
+              _showAttachmentOptions();
+            },
+          ),
+          Expanded(
+            child: TextField(
+              controller: _messageController,
+              onChanged: _onMessageChanged,
+              decoration: InputDecoration(
+                hintText: AppStrings.typeMessage,
+                border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(24),
+                  borderSide: BorderSide.none,
                 ),
-                child: IconButton(
-                  icon: const Icon(Icons.send, color: Colors.white),
-                  onPressed: isMessagingDisabled ? null : _sendMessage,
+                filled: true,
+                fillColor: theme.colorScheme.surface,
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
                 ),
               ),
-            ],
+              maxLines: null,
+              textCapitalization: TextCapitalization.sentences,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Container(
+            decoration: BoxDecoration(
+              color: theme.colorScheme.primary,
+              borderRadius: BorderRadius.circular(24),
+            ),
+            child: IconButton(
+              icon: const Icon(Icons.send, color: Colors.white),
+              onPressed: _sendMessage,
+            ),
           ),
         ],
       ),
@@ -717,22 +618,23 @@ class _ChatScreenState extends State<ChatScreen> {
     if (!hasPremium) {
       return; // User doesn't have premium, popup already shown
     }
-    
+
     try {
       print('📸 DEBUG: Starting camera capture');
-      
+
       // Request camera permission
       final status = await Permission.camera.request();
       if (status != PermissionStatus.granted) {
         _showError('Camera permission is required to take photos');
-        
+
         // Check if permission is permanently denied
         if (status == PermissionStatus.permanentlyDenied) {
           final shouldOpenSettings = await showDialog<bool>(
             context: context,
             builder: (context) => AlertDialog(
               title: const Text('Camera Permission Required'),
-              content: const Text('Please grant camera permission in app settings to take photos.'),
+              content: const Text(
+                  'Please grant camera permission in app settings to take photos.'),
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(context, false),
@@ -745,7 +647,7 @@ class _ChatScreenState extends State<ChatScreen> {
               ],
             ),
           );
-          
+
           if (shouldOpenSettings == true) {
             await openAppSettings();
           }
@@ -773,10 +675,10 @@ class _ChatScreenState extends State<ChatScreen> {
     if (!hasPremium) {
       return; // User doesn't have premium, popup already shown
     }
-    
+
     try {
       print('🖼️ DEBUG: Starting gallery picker');
-      
+
       // Request storage permission (use photos permission for Android 13+)
       PermissionStatus status;
       if (Platform.isAndroid) {
@@ -784,17 +686,18 @@ class _ChatScreenState extends State<ChatScreen> {
       } else {
         status = await Permission.storage.request();
       }
-      
+
       if (status != PermissionStatus.granted) {
         _showError('Gallery permission is required to select photos');
-        
+
         // Check if permission is permanently denied
         if (status == PermissionStatus.permanentlyDenied) {
           final shouldOpenSettings = await showDialog<bool>(
             context: context,
             builder: (context) => AlertDialog(
               title: const Text('Gallery Permission Required'),
-              content: const Text('Please grant gallery permission in app settings to select photos.'),
+              content: const Text(
+                  'Please grant gallery permission in app settings to select photos.'),
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(context, false),
@@ -807,7 +710,7 @@ class _ChatScreenState extends State<ChatScreen> {
               ],
             ),
           );
-          
+
           if (shouldOpenSettings == true) {
             await openAppSettings();
           }
@@ -906,18 +809,6 @@ class _ChatScreenState extends State<ChatScreen> {
       return;
     }
 
-    // Check if messaging is allowed based on connection status
-    if (!_canSendMessages) {
-      print('❌ DEBUG: Cannot send image - connection status: $_connectionStatus');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Cannot send image - friendship was removed'),
-          backgroundColor: Colors.orange,
-        ),
-      );
-      return;
-    }
-
     setState(() {
       _isSending = true;
     });
@@ -927,7 +818,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
       // Upload image to backend
       final imageUrl = await _apiService.uploadChatImage(imageFile);
-      
+
       // Save image to media folder
       await _saveImageToMediaFolder(imageFile);
 
@@ -953,22 +844,20 @@ class _ChatScreenState extends State<ChatScreen> {
     try {
       final directory = await getApplicationDocumentsDirectory();
       final mediaDir = Directory('${directory.path}/media');
-      
+
       if (!await mediaDir.exists()) {
         await mediaDir.create(recursive: true);
       }
 
       final fileName = '${DateTime.now().millisecondsSinceEpoch}_sent.jpg';
       final savedFile = File('${mediaDir.path}/$fileName');
-      
+
       await imageFile.copy(savedFile.path);
       print('✅ DEBUG: Sent image saved to media folder');
     } catch (e) {
       print('⚠️ DEBUG: Failed to save sent image to media folder: $e');
     }
   }
-
-
 
   void _showSuccess(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -989,17 +878,6 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   void _showAttachmentOptions() {
-    // Don't show attachment options if messaging is disabled
-    if (!_canSendMessages) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Cannot send attachments - friendship was removed'),
-          backgroundColor: Colors.orange,
-        ),
-      );
-      return;
-    }
-
     showModalBottomSheet(
       context: context,
       builder: (context) => Container(
@@ -1037,8 +915,6 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
-
-
   /// Block the current friend user
   Future<void> _blockUser() async {
     try {
@@ -1047,7 +923,8 @@ class _ChatScreenState extends State<ChatScreen> {
         context: context,
         builder: (context) => AlertDialog(
           title: const Text('Block User'),
-          content: Text('Are you sure you want to block ${widget.chat.name}? You will no longer be able to see their messages or find them in search.'),
+          content: Text(
+              'Are you sure you want to block ${widget.chat.name}? You will no longer be able to see their messages or find them in search.'),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context, false),
@@ -1102,7 +979,7 @@ class _ChatScreenState extends State<ChatScreen> {
     } catch (e) {
       // Close loading dialog if it's open
       Navigator.pop(context);
-      
+
       // Show error message
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
