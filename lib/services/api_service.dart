@@ -366,8 +366,19 @@ class ApiService {
   }
 
   Future<Map<String, dynamic>> getConnectionStatus(String targetUserId) async {
-    final response = await _get('/connections/status/$targetUserId');
-    return _handleResponse(response);
+    try {
+      print('🔍 DEBUG: getConnectionStatus() called with targetUserId: $targetUserId');
+      final response = await _get('/connections/status/$targetUserId');
+      print('🔍 DEBUG: Connection status response status: ${response.statusCode}');
+      print('🔍 DEBUG: Connection status response body: ${response.body}');
+
+      final result = _handleResponse(response);
+      print('🔍 DEBUG: Processed connection status result: $result');
+      return result;
+    } catch (e) {
+      print('🚨 DEBUG: getConnectionStatus error: $e');
+      rethrow;
+    }
   }
 
   Future<Map<String, dynamic>> getUserProfile(String userId) async {

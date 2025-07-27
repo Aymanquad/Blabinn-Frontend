@@ -42,6 +42,7 @@ class _ChatScreenState extends State<ChatScreen> {
   String? _errorMessage;
   String? _currentUserId;
   String? _friendId;
+  String? _connectionStatus; // Add connection status tracking
 
   // Stream subscriptions for real-time events
   StreamSubscription<Message>? _messageSubscription;
@@ -59,6 +60,7 @@ class _ChatScreenState extends State<ChatScreen> {
     await _initializeCurrentUser();
     await _loadChatHistory();
     await _connectToRealtimeChat();
+    await _checkConnectionStatus(); // Add connection status check
     // After loading chat history, check for last image from friend
     _checkAndSaveLastFriendImage();
   }
@@ -77,6 +79,30 @@ class _ChatScreenState extends State<ChatScreen> {
       }
     }
     print('🔍 DEBUG: Friend ID set to: $_friendId');
+  }
+
+  // Add method to check connection status
+  Future<void> _checkConnectionStatus() async {
+    if (_friendId == null) return;
+    
+    try {
+      print('🔍 DEBUG: Checking connection status with $_friendId');
+      final response = await _apiService.getConnectionStatus(_friendId!);
+      setState(() {
+        _connectionStatus = response['status'] ?? 'none';
+      });
+      print('🔍 DEBUG: Connection status: $_connectionStatus');
+    } catch (e) {
+      print('🚨 DEBUG: Error checking connection status: $e');
+      setState(() {
+        _connectionStatus = 'none';
+      });
+    }
+  }
+
+  // Add getter to check if messaging is allowed
+  bool get _canSendMessages {
+    return _connectionStatus == 'accepted';
   }
 
   Future<void> _connectToRealtimeChat() async {
@@ -275,6 +301,18 @@ class _ChatScreenState extends State<ChatScreen> {
       return;
     }
 
+    // Check if messaging is allowed based on connection status
+    if (!_canSendMessages) {
+      print('❌ DEBUG: Cannot send message - connection status: $_connectionStatus');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Cannot send message - friendship was removed'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
     setState(() {
       _isSending = true;
     });
@@ -382,8 +420,23 @@ class _ChatScreenState extends State<ChatScreen> {
                   ),
                   Row(
                     children: [
-                      // Removed the online status display completely
-                      if (_isTyping) ...[
+                      // Show connection status when not accepted
+                      if (_connectionStatus != null && _connectionStatus != 'accepted') ...[
+                        Icon(
+                          Icons.person_remove,
+                          size: 12,
+                          color: Colors.orange,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          'Friendship removed',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.orange,
+                            fontStyle: FontStyle.italic,
+                          ),
+                        ),
+                      ] else if (_isTyping) ...[
                         Text(
                           'typing...',
                           style: TextStyle(
@@ -551,6 +604,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
   Widget _buildMessageInput() {
     final theme = Theme.of(context);
+    final isMessagingDisabled = !_canSendMessages;
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -564,45 +618,93 @@ class _ChatScreenState extends State<ChatScreen> {
           ),
         ],
       ),
-      child: Row(
+      child: Column(
         children: [
-          IconButton(
-            icon: Icon(Icons.attach_file, color: theme.colorScheme.onSurface),
-            onPressed: () {
-              _showAttachmentOptions();
-            },
-          ),
-          Expanded(
-            child: TextField(
-              controller: _messageController,
-              onChanged: _onMessageChanged,
-              decoration: InputDecoration(
-                hintText: AppStrings.typeMessage,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(24),
-                  borderSide: BorderSide.none,
+          // Show warning message when messaging is disabled
+          if (isMessagingDisabled) ...[
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              margin: const EdgeInsets.only(bottom: 8),
+              decoration: BoxDecoration(
+                color: Colors.orange.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.orange.withOpacity(0.3)),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.info_outline,
+                    color: Colors.orange,
+                    size: 16,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Friendship was removed. You can view chat history but cannot send new messages.',
+                      style: TextStyle(
+                        color: Colors.orange[700],
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+          Row(
+            children: [
+              IconButton(
+                icon: Icon(
+                  Icons.attach_file, 
+                  color: isMessagingDisabled 
+                    ? theme.colorScheme.onSurface.withOpacity(0.3)
+                    : theme.colorScheme.onSurface
                 ),
-                filled: true,
-                fillColor: theme.colorScheme.surface,
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 12,
+                onPressed: isMessagingDisabled ? null : () {
+                  _showAttachmentOptions();
+                },
+              ),
+              Expanded(
+                child: TextField(
+                  controller: _messageController,
+                  onChanged: isMessagingDisabled ? null : _onMessageChanged,
+                  enabled: !isMessagingDisabled,
+                  decoration: InputDecoration(
+                    hintText: isMessagingDisabled 
+                      ? 'Messaging disabled'
+                      : AppStrings.typeMessage,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(24),
+                      borderSide: BorderSide.none,
+                    ),
+                    filled: true,
+                    fillColor: isMessagingDisabled 
+                      ? theme.colorScheme.surface.withOpacity(0.5)
+                      : theme.colorScheme.surface,
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                  ),
+                  maxLines: null,
+                  textCapitalization: TextCapitalization.sentences,
                 ),
               ),
-              maxLines: null,
-              textCapitalization: TextCapitalization.sentences,
-            ),
-          ),
-          const SizedBox(width: 8),
-          Container(
-            decoration: BoxDecoration(
-              color: theme.colorScheme.primary,
-              borderRadius: BorderRadius.circular(24),
-            ),
-            child: IconButton(
-              icon: const Icon(Icons.send, color: Colors.white),
-              onPressed: _sendMessage,
-            ),
+              const SizedBox(width: 8),
+              Container(
+                decoration: BoxDecoration(
+                  color: isMessagingDisabled 
+                    ? theme.colorScheme.primary.withOpacity(0.3)
+                    : theme.colorScheme.primary,
+                  borderRadius: BorderRadius.circular(24),
+                ),
+                child: IconButton(
+                  icon: const Icon(Icons.send, color: Colors.white),
+                  onPressed: isMessagingDisabled ? null : _sendMessage,
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -804,6 +906,18 @@ class _ChatScreenState extends State<ChatScreen> {
       return;
     }
 
+    // Check if messaging is allowed based on connection status
+    if (!_canSendMessages) {
+      print('❌ DEBUG: Cannot send image - connection status: $_connectionStatus');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Cannot send image - friendship was removed'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
     setState(() {
       _isSending = true;
     });
@@ -875,6 +989,17 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   void _showAttachmentOptions() {
+    // Don't show attachment options if messaging is disabled
+    if (!_canSendMessages) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Cannot send attachments - friendship was removed'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
     showModalBottomSheet(
       context: context,
       builder: (context) => Container(
