@@ -8,13 +8,13 @@ import '../services/auth_service.dart';
 import '../services/api_service.dart';
 import '../services/premium_service.dart';
 import '../providers/user_provider.dart';
+import '../widgets/simple_image_cropper.dart';
 
 class ProfileManagementScreen extends StatefulWidget {
   const ProfileManagementScreen({Key? key}) : super(key: key);
 
   @override
-  State<ProfileManagementScreen> createState() =>
-      _ProfileManagementScreenState();
+  State<ProfileManagementScreen> createState() => _ProfileManagementScreenState();
 }
 
 class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
@@ -30,14 +30,12 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
   final _ageController = TextEditingController();
 
   // Form state
-  String _selectedGender =
-      'male'; // Initialize with male instead of prefer-not-to-say
+  String _selectedGender = 'male'; // Initialize with male instead of prefer-not-to-say
   List<String> _interests = [];
   File? _profilePicture;
   String? _existingProfilePictureUrl;
   List<File> _galleryImages = []; // New images to upload
-  List<Map<String, dynamic>> _existingGalleryImages =
-      []; // Existing gallery images from backend
+  List<Map<String, dynamic>> _existingGalleryImages = []; // Existing gallery images from backend
   bool _isLoading = false;
   bool _isUsernameAvailable = false;
   bool _isCheckingUsername = false;
@@ -58,8 +56,7 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
     super.didChangeDependencies();
 
     // Check if this is a guest user and pre-fill form
-    final arguments =
-        ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+    final arguments = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
     if (arguments != null && arguments['isGuestUser'] == true) {
       _prefillGuestUserForm();
     }
@@ -71,8 +68,7 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
       _displayNameController.text = 'Guest User';
     }
     if (_usernameController.text.isEmpty) {
-      _usernameController.text =
-          'username${DateTime.now().millisecondsSinceEpoch.toString().substring(8)}';
+      _usernameController.text = 'username${DateTime.now().millisecondsSinceEpoch.toString().substring(8)}';
     }
     if (_bioController.text.isEmpty) {
       _bioController.text = 'Hey there! I\'m new to this app.';
@@ -85,8 +81,7 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
       _selectedGender = 'prefer-not-to-say';
       // Add some default interests
       _interests = ['Movies & TV', 'Music & Arts']
-          .where(
-              (interest) => AppConstants.availableInterests.contains(interest))
+          .where((interest) => AppConstants.availableInterests.contains(interest))
           .toList();
     });
 
@@ -147,54 +142,43 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
       // Handle gender properly - default to male if invalid or missing
       final gender = profile['gender']?.toString().toLowerCase().trim() ?? '';
       _selectedGender = ['male', 'female'].contains(gender) ? gender : 'male';
-      print(
-          '🔍 [PROFILE DEBUG] Setting gender: $gender (normalized to: $_selectedGender)');
+      print('🔍 [PROFILE DEBUG] Setting gender: $gender (normalized to: $_selectedGender)');
 
       // Set existing profile picture URL if available
-      _existingProfilePictureUrl = profile['profilePicture'] as String? ??
-          profile['profileImage'] as String?;
+      _existingProfilePictureUrl = profile['profilePicture'] as String? ?? profile['profileImage'] as String?;
       if (_existingProfilePictureUrl != null) {
-        print(
-            '🔍 [PROFILE DEBUG] Found existing profile picture: $_existingProfilePictureUrl');
+        print('🔍 [PROFILE DEBUG] Found existing profile picture: $_existingProfilePictureUrl');
       }
 
       // Load existing gallery images
-      if (profile['profilePictures'] != null &&
-          profile['profilePictures'] is List) {
+      if (profile['profilePictures'] != null && profile['profilePictures'] is List) {
         _existingGalleryImages = List<Map<String, dynamic>>.from(
           profile['profilePictures'].map((pic) => {
                 'url': pic['url'],
                 'filename': pic['filename'],
               }),
         );
-        print(
-            '🔍 [PROFILE DEBUG] Loaded ${_existingGalleryImages.length} existing gallery images');
+        print('🔍 [PROFILE DEBUG] Loaded ${_existingGalleryImages.length} existing gallery images');
       } else {
         _existingGalleryImages = [];
       }
 
       // Filter interests to only include valid predefined ones
       final existingInterests = List<String>.from(profile['interests'] ?? []);
-      print(
-          '🔍 [PROFILE DEBUG] Loading existing interests: $existingInterests');
-      print(
-          '🔍 [PROFILE DEBUG] Available predefined interests: ${AppConstants.availableInterests}');
+      print('🔍 [PROFILE DEBUG] Loading existing interests: $existingInterests');
+      print('🔍 [PROFILE DEBUG] Available predefined interests: ${AppConstants.availableInterests}');
 
       _interests = existingInterests
-          .where(
-              (interest) => AppConstants.availableInterests.contains(interest))
+          .where((interest) => AppConstants.availableInterests.contains(interest))
           .toList();
 
       print('🔍 [PROFILE DEBUG] Filtered interests: $_interests');
 
       // Log if user had invalid interests that were cleared
       if (_interests.length != existingInterests.length) {
-        print(
-            '🔄 [PROFILE DEBUG] Cleared ${existingInterests.length - _interests.length} invalid interests');
-        print(
-            '🔄 [PROFILE DEBUG] Interests that were removed: ${existingInterests.where((i) => !AppConstants.availableInterests.contains(i)).toList()}');
-        print(
-            '🔄 [PROFILE DEBUG] User will need to select new interests from predefined list');
+        print('🔄 [PROFILE DEBUG] Cleared ${existingInterests.length - _interests.length} invalid interests');
+        print('🔄 [PROFILE DEBUG] Interests that were removed: ${existingInterests.where((i) => !AppConstants.availableInterests.contains(i)).toList()}');
+        print('🔄 [PROFILE DEBUG] User will need to select new interests from predefined list');
       }
 
       // Clear new gallery image selections
@@ -1164,31 +1148,180 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
   }
 
   Future<void> _pickProfilePicture() async {
-    // Check if user has premium
-    final hasPremium = await PremiumService.checkProfilePictureUpload(context);
-    if (!hasPremium) {
-      return; // User doesn't have premium, popup already shown
-    }
-
     try {
-      final XFile? image = await _imagePicker.pickImage(
+      final picker = ImagePicker();
+      final pickedFile = await picker.pickImage(
         source: ImageSource.gallery,
-        maxWidth: 1024,
-        maxHeight: 1024,
         imageQuality: 80,
       );
 
-      if (image != null) {
-        setState(() {
-          _profilePicture = File(image.path);
-        });
-
-        // Upload profile picture immediately and update user profile
-        await _uploadProfilePicture(File(image.path));
+      if (pickedFile != null) {
+        final imageFile = File(pickedFile.path);
+        
+        // Show editing options
+        final editedFile = await _showImageEditingOptions(imageFile, true);
+        
+        if (editedFile != null) {
+          await _uploadProfilePicture(editedFile);
+        }
       }
     } catch (e) {
-      _showError('Error picking image: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error picking image: $e')),
+      );
     }
+  }
+
+  Future<void> _pickGalleryImages() async {
+    try {
+      final picker = ImagePicker();
+      final pickedFiles = await picker.pickMultiImage(
+        imageQuality: 80,
+      );
+
+      if (pickedFiles.isNotEmpty) {
+        for (final pickedFile in pickedFiles) {
+          final imageFile = File(pickedFile.path);
+          
+          // Show editing options for each image
+          final editedFile = await _showGalleryImageEditingOptions(imageFile);
+          
+          if (editedFile != null) {
+            await _uploadGalleryImage(editedFile);
+          }
+        }
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error picking images: $e')),
+      );
+    }
+  }
+
+  Future<File?> _showImageEditingOptions(File imageFile, bool isProfilePicture) async {
+    return showDialog<File?>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(isProfilePicture ? 'Edit Profile Picture' : 'Edit Image'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 200,
+              height: 200,
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.grey),
+                borderRadius: BorderRadius.circular(isProfilePicture ? 100 : 8),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(isProfilePicture ? 100 : 8),
+                child: Image.file(
+                  imageFile,
+                  fit: BoxFit.cover,
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Choose an option:',
+              style: TextStyle(fontSize: 16),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop(imageFile);
+            },
+            child: const Text('Use As Is'),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.of(context).pop();
+              // Show rotation editor
+              final rotatedFile = await SimpleImageCropper.showImageEditor(
+                context: context,
+                imageFile: imageFile,
+                title: 'Rotate Image',
+              );
+              if (rotatedFile != null) {
+                Navigator.of(context).pop(rotatedFile);
+              } else {
+                Navigator.of(context).pop(imageFile);
+              }
+            },
+            child: const Text('Rotate'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<File?> _showGalleryImageEditingOptions(File imageFile) async {
+    return showDialog<File?>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Edit Gallery Image'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 200,
+              height: 150,
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.grey),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: Image.file(
+                  imageFile,
+                  fit: BoxFit.cover,
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Choose an option:',
+              style: TextStyle(fontSize: 16),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Skip'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop(imageFile);
+            },
+            child: const Text('Use As Is'),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.of(context).pop();
+              // Show rotation editor
+              final rotatedFile = await SimpleImageCropper.showImageEditor(
+                context: context,
+                imageFile: imageFile,
+                title: 'Rotate Image',
+              );
+              if (rotatedFile != null) {
+                Navigator.of(context).pop(rotatedFile);
+              } else {
+                Navigator.of(context).pop(imageFile);
+              }
+            },
+            child: const Text('Rotate'),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _uploadProfilePicture(File imageFile) async {
@@ -1233,30 +1366,34 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
     }
   }
 
-  Future<void> _pickGalleryImages() async {
-    // Check if user has premium
-    final hasPremium = await PremiumService.checkProfilePictureUpload(context);
-    if (!hasPremium) {
-      return; // User doesn't have premium, popup already shown
-    }
-
+  Future<void> _uploadGalleryImage(File imageFile) async {
     try {
-      final List<XFile> images = await _imagePicker.pickMultiImage(
-        maxWidth: 1024,
-        maxHeight: 1024,
-        imageQuality: 80,
-      );
-
-      // Limit to 5 images total
-      final availableSlots = 5 - _galleryImages.length;
-      final imagesToAdd =
-          images.take(availableSlots).map((xfile) => File(xfile.path)).toList();
-
       setState(() {
-        _galleryImages.addAll(imagesToAdd);
+        _isLoading = true;
       });
+
+      print('📤 DEBUG: Starting gallery image upload...');
+
+      // Upload image to Firebase Storage
+      final uploadResult = await _apiService.addGalleryPicture(imageFile);
+
+      print('✅ DEBUG: Gallery image uploaded successfully');
+      print('🔗 DEBUG: Upload result: $uploadResult');
+      print('🔗 DEBUG: Firebase URL: ${uploadResult['url']}');
+
+      // Update local gallery images
+      setState(() {
+        _galleryImages.add(imageFile);
+      });
+
+      _showSuccess('Gallery image added successfully!');
     } catch (e) {
-      _showError('Error picking images: $e');
+      print('❌ DEBUG: Gallery image upload failed: $e');
+      _showError('Failed to add gallery image: $e');
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
     }
   }
 
