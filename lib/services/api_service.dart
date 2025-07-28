@@ -417,11 +417,14 @@ class ApiService {
   }
 
   Future<Map<String, dynamic>> getChatHistoryWithUser(String userId,
-      {int limit = 100, int offset = 0}) async {
+      {int limit = 50, String? beforeMessageId}) async {
     try {
       print('🔍 DEBUG: getChatHistoryWithUser() called with userId: $userId');
-      final response =
-          await _get('/chat/history/$userId?limit=$limit&offset=$offset');
+      final queryParams = <String>['limit=$limit'];
+      if (beforeMessageId != null) {
+        queryParams.add('beforeMessageId=$beforeMessageId');
+      }
+      final response = await _get('/chat/history/$userId?${queryParams.join('&')}');
       print('🔍 DEBUG: Chat history response status: ${response.statusCode}');
       print('🔍 DEBUG: Chat history response body: ${response.body}');
 

@@ -38,6 +38,9 @@ class _ChatScreenState extends State<ChatScreen> {
   bool _isTyping = false;
   bool _isLoading = false;
   bool _isSending = false;
+  bool _isLoadingEarlier = false;
+  bool _hasMoreMessages = true;
+  String? _earliestMessageId;
   Timer? _typingTimer;
   String? _errorMessage;
   String? _currentUserId;
@@ -106,6 +109,14 @@ class _ChatScreenState extends State<ChatScreen> {
           setState(() {
             _messages.add(message);
             _messages.sort((a, b) => a.timestamp.compareTo(b.timestamp));
+            
+            // Update pagination state if we have more than 50 messages
+            // This ensures we maintain the "recent 50" concept
+            if (_messages.length > 50) {
+              // Keep track of the earliest message ID for pagination
+              _earliestMessageId = _messages.first.id;
+              _hasMoreMessages = true;
+            }
           });
           _scrollToBottom();
 
@@ -191,6 +202,18 @@ class _ChatScreenState extends State<ChatScreen> {
             '🔍 DEBUG: Calling getChatHistoryWithUser with friendId: $friendId');
         response = await _apiService.getChatHistoryWithUser(friendId!);
         print('🔍 DEBUG: Chat history response: $response');
+        
+        // Check if there are more messages to load
+        final hasMore = response['hasMore'] as bool? ?? false;
+        final nextCursor = response['nextCursor'] as String?;
+        
+        print('🔍 DEBUG: Pagination info - hasMore: $hasMore, nextCursor: $nextCursor');
+        
+        // Set pagination state BEFORE processing messages
+        setState(() {
+          _hasMoreMessages = hasMore;
+          _earliestMessageId = nextCursor;
+        });
       } else {
         // Use room-based messaging (legacy)
         response = await _apiService.getChatMessages(widget.chat.id);
@@ -220,6 +243,15 @@ class _ChatScreenState extends State<ChatScreen> {
           _messages = messages;
           _isLoading = false;
           print('🔍 DEBUG: Successfully parsed ${messages.length} messages');
+          
+          // Ensure pagination state is correct after loading messages
+          if (_messages.isNotEmpty) {
+            // If we have exactly 50 messages and hasMore is true, 
+            // we know there are more messages to load
+            if (_messages.length == 50 && _hasMoreMessages) {
+              _earliestMessageId = _messages.first.id;
+            }
+          }
         } catch (e) {
           print('🚨 DEBUG: Error in message parsing: $e');
           _isLoading = false;
@@ -236,6 +268,66 @@ class _ChatScreenState extends State<ChatScreen> {
       setState(() {
         _errorMessage = 'Failed to load chat history: ${e.toString()}';
         _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _loadEarlierMessages() async {
+    if (_isLoadingEarlier || !_hasMoreMessages || _earliestMessageId == null) {
+      return;
+    }
+
+    setState(() {
+      _isLoadingEarlier = true;
+    });
+
+    try {
+      print('🔍 DEBUG: Loading earlier messages with cursor: $_earliestMessageId');
+      
+      final response = await _apiService.getChatHistoryWithUser(
+        _friendId!,
+        beforeMessageId: _earliestMessageId,
+      );
+
+      final messagesData = response['messages'] as List;
+      print('🔍 DEBUG: Loaded ${messagesData.length} earlier messages');
+
+      final earlierMessages = <Message>[];
+      for (int i = 0; i < messagesData.length; i++) {
+        try {
+          final message = Message.fromJson(messagesData[i]);
+          earlierMessages.add(message);
+        } catch (e) {
+          print('🚨 DEBUG: Error parsing earlier message ${i + 1}: $e');
+        }
+      }
+
+      // Sort messages by timestamp (oldest first)
+      earlierMessages.sort((a, b) => a.timestamp.compareTo(b.timestamp));
+
+      setState(() {
+        // Insert earlier messages at the beginning
+        _messages.insertAll(0, earlierMessages);
+        
+        // Update pagination state
+        final hasMore = response['hasMore'] as bool? ?? false;
+        final nextCursor = response['nextCursor'] as String?;
+        
+        print('🔍 DEBUG: Updated pagination - hasMore: $hasMore, nextCursor: $nextCursor');
+        
+        _hasMoreMessages = hasMore;
+        _earliestMessageId = nextCursor;
+        _isLoadingEarlier = false;
+        
+        // Ensure the list is still properly sorted after inserting earlier messages
+        _messages.sort((a, b) => a.timestamp.compareTo(b.timestamp));
+      });
+
+      print('🔍 DEBUG: Total messages after loading earlier: ${_messages.length}');
+    } catch (e) {
+      print('🚨 DEBUG: Error loading earlier messages: $e');
+      setState(() {
+        _isLoadingEarlier = false;
       });
     }
   }
@@ -525,15 +617,52 @@ class _ChatScreenState extends State<ChatScreen> {
     return ListView.builder(
       controller: _scrollController,
       padding: const EdgeInsets.all(16),
-      itemCount: _messages.length,
+      itemCount: _messages.length + (_hasMoreMessages ? 1 : 0),
       itemBuilder: (context, index) {
-        final message = _messages[index];
+        // Show "Load Earlier Messages" button at the top
+        if (index == 0 && _hasMoreMessages) {
+          return _buildLoadEarlierButton();
+        }
+        
+        // Adjust index for messages (subtract 1 if we have the load button)
+        final messageIndex = _hasMoreMessages ? index - 1 : index;
+        final message = _messages[messageIndex];
 
         return ChatBubble(
           message: message,
           currentUserId: _currentUserId,
         );
       },
+    );
+  }
+
+  Widget _buildLoadEarlierButton() {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      child: Center(
+        child: ElevatedButton.icon(
+          onPressed: _isLoadingEarlier ? null : _loadEarlierMessages,
+          icon: _isLoadingEarlier 
+            ? const SizedBox(
+                width: 16,
+                height: 16,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : const Icon(Icons.keyboard_arrow_up),
+          label: Text(
+            _isLoadingEarlier ? 'Loading...' : 'Load Earlier Messages',
+            style: const TextStyle(fontSize: 14),
+          ),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+            foregroundColor: Theme.of(context).colorScheme.onPrimaryContainer,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
+          ),
+        ),
+      ),
     );
   }
 
