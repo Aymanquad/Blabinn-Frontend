@@ -10,6 +10,7 @@ import '../models/chat.dart';
 import '../models/user.dart';
 import 'notification_service.dart';
 import 'background_image_service.dart';
+import '../services/api_service.dart'; // Added import for ApiService
 
 enum SocketEvent {
   connect,
@@ -55,10 +56,12 @@ class SocketService {
 
   // Message deduplication
   final Set<String> _processedMessageIds = {};
-  
+
   // Services
   final NotificationService _notificationService = NotificationService();
-  final BackgroundImageService _backgroundImageService = BackgroundImageService();
+  final BackgroundImageService _backgroundImageService =
+      BackgroundImageService();
+  final ApiService _apiService = ApiService(); // Added ApiService instance
 
   // Stream controllers for different events
   final StreamController<SocketEvent> _eventController =
@@ -107,7 +110,7 @@ class SocketService {
         IO.OptionBuilder()
             .setTransports(['websocket'])
             .setAuth({'token': _authToken})
-            .setTimeout(5000)  // Reduced from 20000 to 5000
+            .setTimeout(5000) // Reduced from 20000 to 5000
             .build(),
       );
 
@@ -299,18 +302,18 @@ class SocketService {
       print('🔍 [SOCKET DEBUG] Raw message data: $data');
       print('🔍 [SOCKET DEBUG] Message type in data: ${data['messageType']}');
       print('🔍 [SOCKET DEBUG] Image URL in data: ${data['imageUrl']}');
-      
+
       final message = Message.fromJson(data);
-      
+
       print('🔍 [SOCKET DEBUG] Parsed message type: ${message.type}');
       print('🔍 [SOCKET DEBUG] Parsed image URL: ${message.imageUrl}');
-      
+
       _messageController.add(message);
       _eventController.add(SocketEvent.message);
-      
+
       // Show in-app notification for the message
       _showNotificationForMessage(message, data);
-      
+
       // Handle image messages through background service
       _handleImageMessageGlobally(message, data);
     } catch (e) {
@@ -318,46 +321,82 @@ class SocketService {
       _handleError(e);
     }
   }
-  
+
   // Show notification for received message
-  void _showNotificationForMessage(Message message, Map<String, dynamic> data) {
+  void _showNotificationForMessage(
+      Message message, Map<String, dynamic> data) async {
     try {
-      print('🔔 [SOCKET NOTIFICATION DEBUG] _showNotificationForMessage called');
+      print(
+          '🔔 [SOCKET NOTIFICATION DEBUG] _showNotificationForMessage called');
       print('   📦 Raw data: $data');
       print('   📦 Message: ${message.toString()}');
-      
+
       // Get sender information from multiple possible locations in the data
       String senderName = 'Unknown';
-      
+
       // Try different data structures to find sender name
       if (data['sender'] != null && data['sender'] is Map) {
-        senderName = data['sender']['displayName'] ?? data['sender']['username'] ?? senderName;
+        senderName = data['sender']['displayName'] ??
+            data['sender']['username'] ??
+            senderName;
       } else if (data['message'] != null && data['message'] is Map) {
         final messageData = data['message'] as Map<String, dynamic>;
         if (messageData['sender'] != null) {
-          senderName = messageData['sender']['displayName'] ?? messageData['sender']['username'] ?? senderName;
+          senderName = messageData['sender']['displayName'] ??
+              messageData['sender']['username'] ??
+              senderName;
         }
       } else if (data['senderName'] != null) {
         senderName = data['senderName'];
       }
-      
+
       final senderId = message.senderId;
-      
+
+      // Try to get the correct sender name from the profile API
+      try {
+        final profileData = await _apiService.getUserProfile(senderId);
+        if (profileData['displayName'] != null &&
+            profileData['displayName'].toString().isNotEmpty) {
+          senderName = profileData['displayName'];
+          print(
+              '🔔 [SOCKET NOTIFICATION DEBUG] Using profile display name: $senderName');
+        } else if (profileData['username'] != null &&
+            profileData['username'].toString().isNotEmpty) {
+          senderName = profileData['username'];
+          print(
+              '🔔 [SOCKET NOTIFICATION DEBUG] Using profile username: $senderName');
+        }
+      } catch (e) {
+        print(
+            '⚠️ [SOCKET NOTIFICATION DEBUG] Could not get profile for sender $senderId: $e');
+        // Keep the senderName from socket data as fallback
+      }
+
       print('🔔 [SOCKET NOTIFICATION DEBUG] Extracted sender info:');
       print('   👤 Sender Name: $senderName');
       print('   👤 Sender ID: $senderId');
       print('   💬 Message Content: ${message.content}');
-      
-      // Show in-app notification
-      print('🔔 [SOCKET NOTIFICATION DEBUG] Calling NotificationService.showInAppNotificationForMessage');
-      _notificationService.showInAppNotificationForMessage(
-        senderName: senderName,
-        message: message.content.isNotEmpty ? message.content : 'Sent an image',
-        senderId: senderId,
-        chatId: message.receiverId, // Using receiverId as chatId for friend chats
-      );
-      
-      print('✅ [SOCKET NOTIFICATION DEBUG] Notification service called successfully');
+
+      // Check if app is in foreground - only show in-app notification if app is active
+      // Backend push notifications handle background notifications
+      if (_notificationService.isAppInForeground) {
+        print(
+            '🔔 [SOCKET NOTIFICATION DEBUG] App in foreground - showing in-app notification');
+        _notificationService.showInAppNotificationForMessage(
+          senderName: senderName,
+          message:
+              message.content.isNotEmpty ? message.content : 'Sent an image',
+          senderId: senderId,
+          chatId:
+              message.receiverId, // Using receiverId as chatId for friend chats
+        );
+      } else {
+        print(
+            '🔔 [SOCKET NOTIFICATION DEBUG] App in background - backend push notification will handle this');
+      }
+
+      print(
+          '✅ [SOCKET NOTIFICATION DEBUG] Notification service called successfully');
     } catch (e) {
       print('❌ [SOCKET NOTIFICATION DEBUG] Error showing notification: $e');
       print('   📦 Stack trace: ${e.toString()}');
@@ -369,7 +408,7 @@ class SocketService {
     // No-op: Image saving now handled when user opens chat screen.
     // (See ChatScreen logic for conditional save)
   }
-  
+
   // Get current user ID (helper method)
   String? _getCurrentUserId() {
     try {
@@ -724,20 +763,22 @@ class SocketService {
 
     print('📤 [SOCKET DEBUG] Sending friend message via socket');
     print('   📦 Message data: $message');
-    
+
     // Use the Socket.IO emit method directly for friend messages
     _socket!.emit('message', message);
   }
 
   // Send image message to friend
-  Future<void> sendFriendImageMessage(String receiverId, String imageUrl) async {
+  Future<void> sendFriendImageMessage(
+      String receiverId, String imageUrl) async {
     print('📤 [SOCKET DEBUG] sendFriendImageMessage called');
     print('   🎯 Receiver ID: $receiverId');
     print('   🖼️ Image URL: $imageUrl');
     print('   🔗 Connected: $_isConnected');
 
     if (!_isConnected) {
-      print('❌ [SOCKET DEBUG] Cannot send friend image message - not connected');
+      print(
+          '❌ [SOCKET DEBUG] Cannot send friend image message - not connected');
       throw Exception('WebSocket not connected');
     }
 
@@ -751,7 +792,7 @@ class SocketService {
 
     print('📤 [SOCKET DEBUG] Sending friend image message via socket');
     print('   📦 Message data: $message');
-    
+
     // Use the Socket.IO emit method directly for friend image messages
     _socket!.emit('message', message);
   }
@@ -836,24 +877,32 @@ class SocketService {
     print('   🗣️ language: $language');
     print('   💫 interests: $interests');
     print('   👤 genderPreference: $genderPreference');
-    
-    print('🎯 [INTEREST MATCH DEBUG] ===============================================');
+
+    print(
+        '🎯 [INTEREST MATCH DEBUG] ===============================================');
     print('🎯 [INTEREST MATCH DEBUG] USER JOINING RANDOM CHAT QUEUE');
-    print('🎯 [INTEREST MATCH DEBUG] ===============================================');
+    print(
+        '🎯 [INTEREST MATCH DEBUG] ===============================================');
     if (interests != null && interests.isNotEmpty) {
       print('🎯 [INTEREST MATCH DEBUG] User interests: $interests');
       print('🎯 [INTEREST MATCH DEBUG] Total interests: ${interests.length}');
-      print('🎯 [INTEREST MATCH DEBUG] Looking for matches with similar interests...');
+      print(
+          '🎯 [INTEREST MATCH DEBUG] Looking for matches with similar interests...');
     } else {
-      print('🎯 [INTEREST MATCH DEBUG] User has no interests - will match with anyone');
+      print(
+          '🎯 [INTEREST MATCH DEBUG] User has no interests - will match with anyone');
     }
     if (genderPreference != null && genderPreference != 'any') {
-      print('🎯 [GENDER MATCH DEBUG] User gender preference: $genderPreference');
-      print('🎯 [GENDER MATCH DEBUG] Looking for matches with $genderPreference gender...');
+      print(
+          '🎯 [GENDER MATCH DEBUG] User gender preference: $genderPreference');
+      print(
+          '🎯 [GENDER MATCH DEBUG] Looking for matches with $genderPreference gender...');
     } else {
-      print('🎯 [GENDER MATCH DEBUG] User has no gender preference - will match with anyone');
+      print(
+          '🎯 [GENDER MATCH DEBUG] User has no gender preference - will match with anyone');
     }
-    print('🎯 [INTEREST MATCH DEBUG] ===============================================');
+    print(
+        '🎯 [INTEREST MATCH DEBUG] ===============================================');
 
     // Check both _isConnected flag AND actual socket state
     final isActuallyConnected = _isConnected && _socket?.connected == true;
@@ -975,7 +1024,7 @@ class SocketService {
 
     print('📤 [SOCKET DEBUG] Sending end_random_chat_session event');
     print('   📦 Message data: $message');
-    
+
     // Use the Socket.IO emit method directly
     _socket!.emit('end_random_chat_session', message);
   }
@@ -996,11 +1045,13 @@ class SocketService {
 
   // Handle match found event
   void _handleMatchFoundEvent(Map<String, dynamic> data) {
-    print('🎯 [INTEREST MATCH DEBUG] ===============================================');
+    print(
+        '🎯 [INTEREST MATCH DEBUG] ===============================================');
     print('🎯 [INTEREST MATCH DEBUG] MATCH FOUND EVENT RECEIVED!');
-    print('🎯 [INTEREST MATCH DEBUG] ===============================================');
+    print(
+        '🎯 [INTEREST MATCH DEBUG] ===============================================');
     print('   📦 Full data: $data');
-    
+
     // Extract match information
     final matchType = data['matchType'] ?? 'unknown';
     final interestSimilarity = data['interestSimilarity'] ?? 0.0;
@@ -1008,37 +1059,41 @@ class SocketService {
     final user2 = data['user2'];
     final user1Interests = data['user1Interests'] ?? [];
     final user2Interests = data['user2Interests'] ?? [];
-    
+
     print('🎯 [INTEREST MATCH DEBUG] Match Type: $matchType');
-    print('🎯 [INTEREST MATCH DEBUG] Interest Similarity: ${(interestSimilarity * 100).toStringAsFixed(1)}%');
+    print(
+        '🎯 [INTEREST MATCH DEBUG] Interest Similarity: ${(interestSimilarity * 100).toStringAsFixed(1)}%');
     print('🎯 [INTEREST MATCH DEBUG] User 1: ${user1?['userId'] ?? 'Unknown'}');
     print('🎯 [INTEREST MATCH DEBUG] User 1 Interests: $user1Interests');
     print('🎯 [INTEREST MATCH DEBUG] User 2: ${user2?['userId'] ?? 'Unknown'}');
     print('🎯 [INTEREST MATCH DEBUG] User 2 Interests: $user2Interests');
-    
+
     // Show common interests
     if (user1Interests is List && user2Interests is List) {
-      final commonInterests = user1Interests.where((interest) => 
-        user2Interests.any((otherInterest) => 
-          interest.toString().toLowerCase() == otherInterest.toString().toLowerCase()
-        )
-      ).toList();
-      
+      final commonInterests = user1Interests
+          .where((interest) => user2Interests.any((otherInterest) =>
+              interest.toString().toLowerCase() ==
+              otherInterest.toString().toLowerCase()))
+          .toList();
+
       if (commonInterests.isNotEmpty) {
         print('🎯 [INTEREST MATCH DEBUG] Common Interests: $commonInterests');
       } else {
         print('🎯 [INTEREST MATCH DEBUG] No common interests found');
       }
     }
-    
+
     if (matchType == 'interest-based') {
-      print('🎯 [INTEREST MATCH DEBUG] ⭐ SUCCESS: Users matched based on shared interests!');
+      print(
+          '🎯 [INTEREST MATCH DEBUG] ⭐ SUCCESS: Users matched based on shared interests!');
     } else if (matchType == 'fallback') {
-      print('🎯 [INTEREST MATCH DEBUG] ⏰ FALLBACK: Users matched after preference window expired');
+      print(
+          '🎯 [INTEREST MATCH DEBUG] ⏰ FALLBACK: Users matched after preference window expired');
     }
-    
-    print('🎯 [INTEREST MATCH DEBUG] ===============================================');
-    
+
+    print(
+        '🎯 [INTEREST MATCH DEBUG] ===============================================');
+
     _matchController.add(data);
     _eventController.add(SocketEvent.matchFound);
   }
@@ -1083,21 +1138,24 @@ class SocketService {
     print('🎉 [SOCKET DEBUG] Random chat event received!');
     print('   📦 Data type: ${data.runtimeType}');
     print('   📦 Raw data: $data');
-    
+
     // Extract and display match analytics if available
     if (data is Map<String, dynamic>) {
       final matchType = data['matchType'];
       final interestSimilarity = data['interestSimilarity'];
       final user1Interests = data['user1Interests'];
       final user2Interests = data['user2Interests'];
-      
+
       if (matchType != null) {
-        print('🎯 [INTEREST MATCH DEBUG] Chat started with match type: $matchType');
+        print(
+            '🎯 [INTEREST MATCH DEBUG] Chat started with match type: $matchType');
         if (interestSimilarity != null) {
-          print('🎯 [INTEREST MATCH DEBUG] Interest similarity: ${(interestSimilarity * 100).toStringAsFixed(1)}%');
+          print(
+              '🎯 [INTEREST MATCH DEBUG] Interest similarity: ${(interestSimilarity * 100).toStringAsFixed(1)}%');
         }
         if (user1Interests != null && user2Interests != null) {
-          print('🎯 [INTEREST MATCH DEBUG] User interests: $user1Interests vs $user2Interests');
+          print(
+              '🎯 [INTEREST MATCH DEBUG] User interests: $user1Interests vs $user2Interests');
         }
       }
     }
@@ -1154,7 +1212,7 @@ class SocketService {
 
   // Get the latest random chat event data
   Map<String, dynamic>? get latestRandomChatData => _latestRandomChatData;
-  
+
   // Store the latest timeout data for UI access
   Map<String, dynamic>? _latestTimeoutData;
   Map<String, dynamic>? get latestTimeoutData => _latestTimeoutData;
@@ -1162,16 +1220,17 @@ class SocketService {
   // Handle random chat timeout event
   void _handleRandomChatTimeoutEvent(Map<String, dynamic> data) {
     print('⏰ [SOCKET DEBUG] Random chat timeout event received: $data');
-    
+
     // Extract timeout information
     final String reason = data['reason'] ?? 'time_limit_exceeded';
     final String genderPreference = data['genderPreference'] ?? 'any';
-    final String message = data['message'] ?? 'No match found. Please try again later.';
-    
+    final String message =
+        data['message'] ?? 'No match found. Please try again later.';
+
     print('🚫 [TIMEOUT DEBUG] Timeout reason: $reason');
     print('👤 [TIMEOUT DEBUG] Gender preference: $genderPreference');
     print('💬 [TIMEOUT DEBUG] Message: $message');
-    
+
     // Add enhanced timeout data
     final timeoutData = {
       ...data,
@@ -1179,10 +1238,10 @@ class SocketService {
       'genderPreference': genderPreference,
       'message': message,
     };
-    
+
     // Store timeout data for UI access
     _latestTimeoutData = timeoutData;
-    
+
     _matchController.add(timeoutData);
     _eventController.add(SocketEvent.randomChatTimeout);
   }
@@ -1244,27 +1303,32 @@ class SocketService {
         _processedMessageIds.add(message.id);
         _messageController.add(message);
         _eventController.add(SocketEvent.message);
-        
+
         // 🔔 TRIGGER NOTIFICATION for messages from other users
-        print('🔔 [SOCKET DEBUG] Triggering notification for message from other user');
+        print(
+            '🔔 [SOCKET DEBUG] Triggering notification for message from other user');
         _showNotificationForMessage(message, data);
-        
+
         // (No-op: Image saving now handled in ChatScreen when user opens chat)
-        
+
         // Show notification for saved image if it's an image message
         if (message.type == MessageType.image && message.imageUrl != null) {
           String senderName = 'Unknown Friend';
           if (data['sender'] != null && data['sender'] is Map) {
-            senderName = data['sender']['displayName'] ?? data['sender']['username'] ?? senderName;
+            senderName = data['sender']['displayName'] ??
+                data['sender']['username'] ??
+                senderName;
           } else if (data['message'] != null && data['message'] is Map) {
             final messageData = data['message'] as Map<String, dynamic>;
             if (messageData['sender'] != null) {
-              senderName = messageData['sender']['displayName'] ?? messageData['sender']['username'] ?? senderName;
+              senderName = messageData['sender']['displayName'] ??
+                  messageData['sender']['username'] ??
+                  senderName;
             }
           } else if (data['senderName'] != null) {
             senderName = data['senderName'];
           }
-          
+
           _notificationService.showInAppNotificationForMessage(
             senderName: senderName,
             message: 'Image saved to Media Folder',
