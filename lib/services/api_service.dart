@@ -417,7 +417,7 @@ class ApiService {
   }
 
   Future<Map<String, dynamic>> getChatHistoryWithUser(String userId,
-      {int limit = 50, int offset = 0}) async {
+      {int limit = 100, int offset = 0}) async {
     try {
       print('🔍 DEBUG: getChatHistoryWithUser() called with userId: $userId');
       final response =
