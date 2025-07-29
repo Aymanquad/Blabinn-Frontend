@@ -22,6 +22,52 @@ import 'screens/friends_list_screen.dart';
 import 'screens/account_settings_screen.dart';
 import 'screens/media_folder_screen.dart';
 import 'services/socket_service.dart';
+import 'models/chat.dart'; // Added import for Chat model
+import 'screens/chat_screen.dart'; // Added import for ChatScreen
+
+// Global navigator key for navigation from anywhere
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
+// Utility function to navigate to chat from anywhere
+void navigateToChatFromNotification(Map<String, dynamic> notificationData) {
+  try {
+    final senderId = notificationData['senderId'] ?? '';
+    final senderName = notificationData['senderName'] ?? 'Unknown';
+    final chatId = notificationData['chatId'] ?? '';
+    
+    print('🔔 [NAVIGATION DEBUG] Navigating to chat from notification');
+    print('   👤 Sender ID: $senderId');
+    print('   👤 Sender Name: $senderName');
+    print('   💬 Chat ID: $chatId');
+    
+    if (senderId.isEmpty) {
+      print('❌ [NAVIGATION DEBUG] Sender ID is empty, cannot navigate to chat');
+      return;
+    }
+    
+    // Create a Chat object for friend chat
+    final chat = Chat(
+      id: chatId.isNotEmpty ? chatId : senderId, // Use senderId as chatId if chatId is empty
+      name: senderName,
+      participantIds: [senderId], // Add current user ID later
+      type: ChatType.friend,
+      status: ChatStatus.active,
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
+    );
+    
+    // Navigate to chat screen using global navigator
+    navigatorKey.currentState?.push(
+      MaterialPageRoute(
+        builder: (context) => ChatScreen(chat: chat),
+      ),
+    );
+    
+    print('✅ [NAVIGATION DEBUG] Successfully navigated to chat screen');
+  } catch (e) {
+    print('❌ [NAVIGATION DEBUG] Error navigating to chat: $e');
+  }
+}
 
 class ChatApp extends StatelessWidget {
   const ChatApp({super.key});
@@ -38,6 +84,7 @@ class ChatApp extends StatelessWidget {
           return MaterialApp(
             title: AppConstants.appName,
             debugShowCheckedModeBanner: false,
+            navigatorKey: navigatorKey, // Add global navigator key
             theme: _buildLightTheme(),
             darkTheme: _buildDarkTheme(),
             themeMode:
@@ -323,8 +370,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
             chatId: notificationData['chatId'],
             onTap: () {
               print('🔔 [APP DEBUG] In-app notification tapped');
-              // TODO: Navigate to chat screen
-              // You can add navigation logic here
+              navigateToChatFromNotification(notificationData);
             },
           );
           
@@ -413,6 +459,52 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
     Navigator.pushNamed(context, '/profile');
   }
 
+  void _navigateToChatFromNotification(Map<String, dynamic> notificationData) {
+    try {
+      final senderId = notificationData['senderId'] ?? '';
+      final senderName = notificationData['senderName'] ?? 'Unknown';
+      final chatId = notificationData['chatId'] ?? '';
+      
+      print('🔔 [APP DEBUG] Navigating to chat from notification');
+      print('   👤 Sender ID: $senderId');
+      print('   👤 Sender Name: $senderName');
+      print('   💬 Chat ID: $chatId');
+      
+      if (senderId.isEmpty) {
+        print('❌ [APP DEBUG] Sender ID is empty, cannot navigate to chat');
+        return;
+      }
+      
+      // Create a Chat object for friend chat
+      final chat = Chat(
+        id: chatId.isNotEmpty ? chatId : senderId, // Use senderId as chatId if chatId is empty
+        name: senderName,
+        participantIds: [senderId], // Add current user ID later
+        type: ChatType.friend,
+        status: ChatStatus.active,
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      );
+      
+      // Navigate to chat screen
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => ChatScreen(chat: chat),
+        ),
+      );
+      
+      print('✅ [APP DEBUG] Successfully navigated to chat screen');
+    } catch (e) {
+      print('❌ [APP DEBUG] Error navigating to chat: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to open chat: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
 
 
   Widget _buildDrawer(BuildContext context) {

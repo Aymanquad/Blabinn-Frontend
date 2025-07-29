@@ -6,6 +6,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'background_image_service.dart';
 import 'api_service.dart';
+import '../app.dart'; // Import for navigation function
 
 class NotificationService {
   static final NotificationService _instance = NotificationService._internal();
@@ -192,13 +193,26 @@ class NotificationService {
     // Handle image messages for auto-save when notification is tapped
     await _handleImageFromNotification(message);
 
-    // TODO: Navigate to appropriate screen based on message data
+    // Navigate to chat based on message data
     final chatId = message.data['chatId'];
     final senderId = message.data['senderId'];
+    final senderName = message.data['senderName'] ?? 'Unknown';
 
-    if (chatId != null) {
-      print('🔔 [NOTIFICATION DEBUG] Should navigate to chat: $chatId');
-      // Add navigation logic here
+    if (senderId != null) {
+      print('🔔 [NOTIFICATION DEBUG] Should navigate to chat: $senderId');
+      
+      // Create notification data for navigation
+      final notificationData = {
+        'senderId': senderId,
+        'senderName': senderName,
+        'chatId': chatId,
+        'message': message.notification?.body ?? 'New message',
+      };
+      
+      // Navigate to chat using global navigation function
+      navigateToChatFromNotification(notificationData);
+    } else {
+      print('❌ [NOTIFICATION DEBUG] Sender ID not found in notification data');
     }
   }
 
