@@ -90,6 +90,16 @@ class _ChatScreenState extends State<ChatScreen> {
       final token = await user.getIdToken();
       if (token != null) {
         await _socketService.connect(token);
+        
+        // Join the appropriate chat room for friend chats
+        if (widget.chat.isFriendChat && _friendId != null) {
+          print('🔌 DEBUG: Joining friend chat room with friendId: $_friendId');
+          await _socketService.joinChat(_friendId!);
+          
+          // Set current chat user to prevent notifications from this friend
+          _socketService.setCurrentChatUser(_friendId);
+          print('🔔 DEBUG: Set current chat user to: $_friendId');
+        }
       }
     }
   }
@@ -152,6 +162,16 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   void dispose() {
+    // Leave the chat room when disposing
+    if (widget.chat.isFriendChat && _friendId != null) {
+      print('🔌 DEBUG: Leaving friend chat room with friendId: $_friendId');
+      _socketService.leaveChat(_friendId!);
+      
+      // Clear current chat user to resume notifications from this friend
+      _socketService.clearCurrentChatUser();
+      print('🔔 DEBUG: Cleared current chat user on exit');
+    }
+
     _messageController.dispose();
     _scrollController.dispose();
     _typingTimer?.cancel();

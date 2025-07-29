@@ -57,6 +57,24 @@ class SocketService {
   // Message deduplication
   final Set<String> _processedMessageIds = {};
 
+  // Track current chat screen state
+  String? _currentChatWithUserId;
+
+  // Set current chat user (called when entering a chat)
+  void setCurrentChatUser(String? userId) {
+    _currentChatWithUserId = userId;
+    print('🔔 [SOCKET DEBUG] Current chat user set to: $_currentChatWithUserId');
+  }
+
+  // Get current chat user
+  String? get currentChatWithUserId => _currentChatWithUserId;
+
+  // Clear current chat user (called when leaving a chat)
+  void clearCurrentChatUser() {
+    _currentChatWithUserId = null;
+    print('🔔 [SOCKET DEBUG] Current chat user cleared');
+  }
+
   // Services
   final NotificationService _notificationService = NotificationService();
   final BackgroundImageService _backgroundImageService =
@@ -311,8 +329,9 @@ class SocketService {
       _messageController.add(message);
       _eventController.add(SocketEvent.message);
 
-      // Show in-app notification for the message
-      _showNotificationForMessage(message, data);
+      // Disabled notification here to prevent duplicates
+      // Notifications are handled in _handleNewMessageEvent
+      print('🔔 [SOCKET DEBUG] Skipping notification in _handleIncomingMessage to prevent duplicates');
 
       // Handle image messages through background service
       _handleImageMessageGlobally(message, data);
@@ -330,6 +349,21 @@ class SocketService {
           '🔔 [SOCKET NOTIFICATION DEBUG] _showNotificationForMessage called');
       print('   📦 Raw data: $data');
       print('   📦 Message: ${message.toString()}');
+
+      final senderId = message.senderId;
+      final currentUserId = _getCurrentUserId();
+
+      // Don't show notification if this is our own message
+      if (senderId == currentUserId) {
+        print('🔔 [SOCKET NOTIFICATION DEBUG] Skipping notification - own message');
+        return;
+      }
+
+      // Don't show notification if we're currently in a chat with this sender
+      if (_currentChatWithUserId == senderId) {
+        print('🔔 [SOCKET NOTIFICATION DEBUG] Skipping notification - currently in chat with sender');
+        return;
+      }
 
       // Get sender information from multiple possible locations in the data
       String senderName = 'Unknown';
@@ -349,8 +383,6 @@ class SocketService {
       } else if (data['senderName'] != null) {
         senderName = data['senderName'];
       }
-
-      final senderId = message.senderId;
 
       // Try to get the correct sender name from the profile API
       try {
@@ -381,15 +413,13 @@ class SocketService {
       // Backend push notifications handle background notifications
       if (_notificationService.isAppInForeground) {
         print(
-            '🔔 [SOCKET NOTIFICATION DEBUG] App in foreground - showing in-app notification');
-        _notificationService.showInAppNotificationForMessage(
-          senderName: senderName,
-          message:
-              message.content.isNotEmpty ? message.content : 'Sent an image',
-          senderId: senderId,
-          chatId:
-              message.receiverId, // Using receiverId as chatId for friend chats
-        );
+            '🔔 [SOCKET NOTIFICATION DEBUG] App in foreground - SKIPPING socket notification (Firebase will handle)');
+        print('   📍 Called from: _showNotificationForMessage');
+        print('   📍 Message content: ${message.content}');
+        print('   📍 Message type: ${message.type}');
+        print('   📍 Is image message: ${message.type == MessageType.image}');
+        // Disabled socket notification when app is in foreground
+        // Firebase push notifications will handle the notification instead
       } else {
         print(
             '🔔 [SOCKET NOTIFICATION DEBUG] App in background - backend push notification will handle this');
@@ -1260,102 +1290,88 @@ class SocketService {
   }
 
   // Handle new message event
-  void _handleNewMessageEvent(dynamic data) async {
-    print('💬 [SOCKET DEBUG] _handleNewMessageEvent called');
+  void _handleNewMessageEvent(Map<String, dynamic> data) {
+    print('💬 [SOCKET DEBUG] New message event received');
     print('   📦 Data: $data');
 
     try {
-      if (data == null) {
-        print('❌ [SOCKET DEBUG] New message data is null');
-        return;
-      }
-
-      if (data is! Map<String, dynamic>) {
-        print(
-            '❌ [SOCKET DEBUG] Invalid new message data type: ${data.runtimeType}');
-        return;
-      }
-
+      // Extract message from nested data structure
       final messageData = data['message'];
       if (messageData == null) {
-        print('❌ [SOCKET DEBUG] Message data is null in new message event');
+        print('❌ [SOCKET DEBUG] Message data is null in new_message event');
         return;
       }
-
+      
       final message = Message.fromJson(messageData);
+      final senderId = message.senderId;
+      final currentUserId = _getCurrentUserId();
 
-      // Check if we've already processed this message
-      if (_processedMessageIds.contains(message.id)) {
-        print('⏭️ [SOCKET DEBUG] Skipping duplicate message: ${message.id}');
+      print('   👤 Message from: $senderId');
+      print('   👤 Current user: $currentUserId');
+      print('   💬 Message content: ${message.content}');
+
+      // Don't show notification if this is our own message
+      if (senderId == currentUserId) {
+        print('🔔 [SOCKET NOTIFICATION DEBUG] Skipping notification - own message');
+        _messageController.add(message);
         return;
       }
 
-      // Get current user ID to check if this message is from the current user
-      final currentUser = await _getCurrentUser();
-      final currentUserId = currentUser?['uid'];
-
-      print('🔍 [SOCKET DEBUG] Message sender: ${message.senderId}');
-      print('🔍 [SOCKET DEBUG] Current user: $currentUserId');
-
-      // Only add message if it's NOT from the current user (to avoid duplicates)
-      if (currentUserId != null && message.senderId != currentUserId) {
-        print('✅ [SOCKET DEBUG] Adding message from other user');
-        _processedMessageIds.add(message.id);
+      // Don't show notification if we're currently in a chat with this sender
+      if (_currentChatWithUserId == senderId) {
+        print('🔔 [SOCKET NOTIFICATION DEBUG] Skipping notification - currently in chat with sender');
         _messageController.add(message);
-        _eventController.add(SocketEvent.message);
+        return;
+      }
 
-        // 🔔 TRIGGER NOTIFICATION for messages from other users
-        print(
-            '🔔 [SOCKET DEBUG] Triggering notification for message from other user');
-        _showNotificationForMessage(message, data);
+      // Add message to stream
+      _messageController.add(message);
+      print('✅ [SOCKET DEBUG] Message added to stream for real-time update');
+      print('   📝 Message ID: ${message.id}');
+      print('   📝 Content: ${message.content}');
+      print('   📝 Sender: ${message.senderId}');
 
-        // (No-op: Image saving now handled in ChatScreen when user opens chat)
-
-        // Show notification for saved image if it's an image message
-        if (message.type == MessageType.image && message.imageUrl != null) {
-          String senderName = 'Unknown Friend';
-          if (data['sender'] != null && data['sender'] is Map) {
-            senderName = data['sender']['displayName'] ??
-                data['sender']['username'] ??
-                senderName;
-          } else if (data['message'] != null && data['message'] is Map) {
-            final messageData = data['message'] as Map<String, dynamic>;
-            if (messageData['sender'] != null) {
-              senderName = messageData['sender']['displayName'] ??
-                  messageData['sender']['username'] ??
-                  senderName;
-            }
-          } else if (data['senderName'] != null) {
-            senderName = data['senderName'];
+      // Get sender name for notification
+      String senderName = 'Someone';
+      try {
+        // Check if sender data is available in the event
+        if (data.containsKey('sender') && data['sender'] != null) {
+          final senderData = data['sender'];
+          if (senderData.containsKey('displayName') && senderData['displayName'] != null) {
+            senderName = senderData['displayName'];
           }
+        }
+        // Fallback to direct senderName if available
+        else if (data.containsKey('senderName') && data['senderName'] != null) {
+          senderName = data['senderName'];
+        }
+      } catch (e) {
+        print('⚠️ [SOCKET DEBUG] Error getting sender name: $e');
+      }
 
-          _notificationService.showInAppNotificationForMessage(
-            senderName: senderName,
-            message: 'Image saved to Media Folder',
-            senderId: 'system',
-            chatId: 'media_notification',
-          );
-        }
-      } else if (currentUserId != null && message.senderId == currentUserId) {
-        // This is a message from the current user via new_message event
-        // Only add it if we haven't already processed it via message_sent
-        if (!_processedMessageIds.contains(message.id)) {
-          print(
-              '✅ [SOCKET DEBUG] Adding message from current user (via new_message - no message_sent received)');
-          _processedMessageIds.add(message.id);
-          _messageController.add(message);
-          _eventController.add(SocketEvent.message);
-        } else {
-          print(
-              '⏭️ [SOCKET DEBUG] Skipping message from current user (already processed via message_sent)');
-        }
+      print('🔔 [SOCKET NOTIFICATION DEBUG] Preparing notification for: $senderName');
+
+      // Check if app is in foreground - only show in-app notification if app is active
+      // Backend push notifications handle background notifications
+      if (_notificationService.isAppInForeground) {
+        print(
+            '🔔 [SOCKET NOTIFICATION DEBUG] App in foreground - SKIPPING socket notification (Firebase will handle)');
+        print('   📍 Called from: _handleNewMessageEvent');
+        print('   📍 Message content: ${message.content}');
+        print('   📍 Message type: ${message.type}');
+        print('   📍 Is image message: ${message.type == MessageType.image}');
+        // Disabled socket notification when app is in foreground
+        // Firebase push notifications will handle the notification instead
       } else {
         print(
-            '⏭️ [SOCKET DEBUG] Skipping message - current user ID not available');
+            '🔔 [SOCKET NOTIFICATION DEBUG] App in background - backend push notification will handle this');
       }
+
+      print(
+          '✅ [SOCKET NOTIFICATION DEBUG] Notification service called successfully');
     } catch (e) {
-      print('❌ [SOCKET DEBUG] Error handling new message event: $e');
-      print('   📦 Data that caused error: $data');
+      print('❌ [SOCKET NOTIFICATION DEBUG] Error showing notification: $e');
+      print('   📦 Stack trace: ${e.toString()}');
     }
   }
 

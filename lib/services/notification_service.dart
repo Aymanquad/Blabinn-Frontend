@@ -302,6 +302,7 @@ class NotificationService {
     print('   📱 App in foreground: $_isAppInForeground');
     print(
         '   📡 Has stream listeners: ${_inAppNotificationController.hasListener}');
+    print('   📍 Stack trace: ${StackTrace.current}');
 
     if (_isAppInForeground) {
       print('🔔 [NOTIFICATION SERVICE DEBUG] Adding notification to stream');

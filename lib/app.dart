@@ -300,6 +300,18 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
         print('   📦 Notification data: $notificationData');
         print('   📱 Widget mounted: $mounted');
         
+        // Check if user is currently in a chat with the sender
+        final senderId = notificationData['senderId'] ?? '';
+        final currentChatUserId = _socketService.currentChatWithUserId;
+        
+        print('   👤 Sender ID: $senderId');
+        print('   👤 Current chat user: $currentChatUserId');
+        
+        if (currentChatUserId == senderId) {
+          print('🔔 [APP DEBUG] Skipping notification - user is in chat with sender');
+          return;
+        }
+        
         if (mounted) {
           print('🔔 [APP DEBUG] Showing in-app notification widget');
           
@@ -307,7 +319,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
             context: context,
             senderName: notificationData['senderName'] ?? 'Unknown',
             message: notificationData['message'] ?? 'New message',
-            senderId: notificationData['senderId'] ?? '',
+            senderId: senderId,
             chatId: notificationData['chatId'],
             onTap: () {
               print('🔔 [APP DEBUG] In-app notification tapped');
