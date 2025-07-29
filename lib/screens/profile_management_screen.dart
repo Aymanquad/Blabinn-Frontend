@@ -14,7 +14,8 @@ class ProfileManagementScreen extends StatefulWidget {
   const ProfileManagementScreen({Key? key}) : super(key: key);
 
   @override
-  State<ProfileManagementScreen> createState() => _ProfileManagementScreenState();
+  State<ProfileManagementScreen> createState() =>
+      _ProfileManagementScreenState();
 }
 
 class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
@@ -30,18 +31,22 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
   final _ageController = TextEditingController();
 
   // Form state
-  String _selectedGender = 'male'; // Initialize with male instead of prefer-not-to-say
+  String _selectedGender =
+      'male'; // Initialize with male instead of prefer-not-to-say
   List<String> _interests = [];
   File? _profilePicture;
   String? _existingProfilePictureUrl;
   List<File> _galleryImages = []; // New images to upload
-  List<Map<String, dynamic>> _existingGalleryImages = []; // Existing gallery images from backend
+  List<Map<String, dynamic>> _existingGalleryImages =
+      []; // Existing gallery images from backend
   bool _isLoading = false;
   bool _isUsernameAvailable = false;
   bool _isCheckingUsername = false;
   String? _usernameError;
-  bool _isUploadingGallery = false; // Flag to prevent multiple simultaneous uploads
-  bool _isUpdatingProfile = false; // Flag to prevent multiple simultaneous profile updates
+  bool _isUploadingGallery =
+      false; // Flag to prevent multiple simultaneous uploads
+  bool _isUpdatingProfile =
+      false; // Flag to prevent multiple simultaneous profile updates
 
   User? _currentUser;
   bool _hasExistingProfile = false;
@@ -58,7 +63,8 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
     super.didChangeDependencies();
 
     // Check if this is a guest user and pre-fill form
-    final arguments = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+    final arguments =
+        ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
     if (arguments != null && arguments['isGuestUser'] == true) {
       _prefillGuestUserForm();
     }
@@ -70,7 +76,8 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
       _displayNameController.text = 'Guest User';
     }
     if (_usernameController.text.isEmpty) {
-      _usernameController.text = 'username${DateTime.now().millisecondsSinceEpoch.toString().substring(8)}';
+      _usernameController.text =
+          'username${DateTime.now().millisecondsSinceEpoch.toString().substring(8)}';
     }
     if (_bioController.text.isEmpty) {
       _bioController.text = 'Hey there! I\'m new to this app.';
@@ -83,7 +90,8 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
       _selectedGender = 'prefer-not-to-say';
       // Add some default interests
       _interests = ['Movies & TV', 'Music & Arts']
-          .where((interest) => AppConstants.availableInterests.contains(interest))
+          .where(
+              (interest) => AppConstants.availableInterests.contains(interest))
           .toList();
     });
 
@@ -144,43 +152,54 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
       // Handle gender properly - default to male if invalid or missing
       final gender = profile['gender']?.toString().toLowerCase().trim() ?? '';
       _selectedGender = ['male', 'female'].contains(gender) ? gender : 'male';
-      print('🔍 [PROFILE DEBUG] Setting gender: $gender (normalized to: $_selectedGender)');
+      print(
+          '🔍 [PROFILE DEBUG] Setting gender: $gender (normalized to: $_selectedGender)');
 
       // Set existing profile picture URL if available
-      _existingProfilePictureUrl = profile['profilePicture'] as String? ?? profile['profileImage'] as String?;
+      _existingProfilePictureUrl = profile['profilePicture'] as String? ??
+          profile['profileImage'] as String?;
       if (_existingProfilePictureUrl != null) {
-        print('🔍 [PROFILE DEBUG] Found existing profile picture: $_existingProfilePictureUrl');
+        print(
+            '🔍 [PROFILE DEBUG] Found existing profile picture: $_existingProfilePictureUrl');
       }
 
       // Load existing gallery images
-      if (profile['profilePictures'] != null && profile['profilePictures'] is List) {
+      if (profile['profilePictures'] != null &&
+          profile['profilePictures'] is List) {
         _existingGalleryImages = List<Map<String, dynamic>>.from(
           profile['profilePictures'].map((pic) => {
                 'url': pic['url'],
                 'filename': pic['filename'],
               }),
         );
-        print('🔍 [PROFILE DEBUG] Loaded ${_existingGalleryImages.length} existing gallery images');
+        print(
+            '🔍 [PROFILE DEBUG] Loaded ${_existingGalleryImages.length} existing gallery images');
       } else {
         _existingGalleryImages = [];
       }
 
       // Filter interests to only include valid predefined ones
       final existingInterests = List<String>.from(profile['interests'] ?? []);
-      print('🔍 [PROFILE DEBUG] Loading existing interests: $existingInterests');
-      print('🔍 [PROFILE DEBUG] Available predefined interests: ${AppConstants.availableInterests}');
+      print(
+          '🔍 [PROFILE DEBUG] Loading existing interests: $existingInterests');
+      print(
+          '🔍 [PROFILE DEBUG] Available predefined interests: ${AppConstants.availableInterests}');
 
       _interests = existingInterests
-          .where((interest) => AppConstants.availableInterests.contains(interest))
+          .where(
+              (interest) => AppConstants.availableInterests.contains(interest))
           .toList();
 
       print('🔍 [PROFILE DEBUG] Filtered interests: $_interests');
 
       // Log if user had invalid interests that were cleared
       if (_interests.length != existingInterests.length) {
-        print('🔄 [PROFILE DEBUG] Cleared ${existingInterests.length - _interests.length} invalid interests');
-        print('🔄 [PROFILE DEBUG] Interests that were removed: ${existingInterests.where((i) => !AppConstants.availableInterests.contains(i)).toList()}');
-        print('🔄 [PROFILE DEBUG] User will need to select new interests from predefined list');
+        print(
+            '🔄 [PROFILE DEBUG] Cleared ${existingInterests.length - _interests.length} invalid interests');
+        print(
+            '🔄 [PROFILE DEBUG] Interests that were removed: ${existingInterests.where((i) => !AppConstants.availableInterests.contains(i)).toList()}');
+        print(
+            '🔄 [PROFILE DEBUG] User will need to select new interests from predefined list');
       }
 
       // Clear new gallery image selections to prevent duplicate uploads
@@ -229,7 +248,14 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
         title: const Text('Complete Your Profile'),
         backgroundColor: Theme.of(context).colorScheme.primary,
         foregroundColor: Colors.white,
-        automaticallyImplyLeading: false, // Prevent back button for new users
+        automaticallyImplyLeading:
+            _hasExistingProfile, // Show back button for existing users
+        leading: _hasExistingProfile
+            ? IconButton(
+                icon: const Icon(Icons.arrow_back),
+                onPressed: () => Navigator.of(context).pop(),
+              )
+            : null,
       ),
       body: _currentUser == null
           ? const Center(child: CircularProgressIndicator())
@@ -533,6 +559,24 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
                       : const Text('Update Profile'),
                 ),
               ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: _isLoading
+                      ? null
+                      : () {
+                          // Reset form to original values
+                          _loadExistingProfile();
+                          Navigator.of(context).pop();
+                        },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.grey,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                  ),
+                  child: const Text('Cancel'),
+                ),
+              ),
             ],
             if (_hasExistingProfile) ...[
               const SizedBox(width: 16),
@@ -540,11 +584,11 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
                 child: ElevatedButton(
                   onPressed: _isLoading ? null : _loadExistingProfile,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.grey,
+                    backgroundColor: Colors.orange,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                   ),
-                  child: const Text('Get My Profile'),
+                  child: const Text('Reset to Original'),
                 ),
               ),
             ],
@@ -635,7 +679,7 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
       setState(() {
         _hasExistingProfile = true;
       });
-      
+
       // Redirect to home screen after successful profile creation
       await Future.delayed(const Duration(seconds: 1));
       Navigator.of(context).pushReplacementNamed('/home');
@@ -702,8 +746,10 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
       };
 
       print('🔄 [PROFILE DEBUG] Updating profile with data: $profileData');
-      print('🔄 [PROFILE DEBUG] Gallery images count: ${_galleryImages.length}');
-      print('🔄 [PROFILE DEBUG] Existing gallery images count: ${_existingGalleryImages.length}');
+      print(
+          '🔄 [PROFILE DEBUG] Gallery images count: ${_galleryImages.length}');
+      print(
+          '🔄 [PROFILE DEBUG] Existing gallery images count: ${_existingGalleryImages.length}');
 
       final result = await _apiService.updateProfile(profileData);
 
@@ -716,10 +762,12 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
 
       // Upload gallery images if selected
       if (_galleryImages.isNotEmpty) {
-        print('🔄 [PROFILE DEBUG] Uploading ${_galleryImages.length} gallery images');
+        print(
+            '🔄 [PROFILE DEBUG] Uploading ${_galleryImages.length} gallery images');
         for (final imageFile in _galleryImages) {
           try {
-            print('🔄 [PROFILE DEBUG] Uploading gallery image: ${imageFile.path}');
+            print(
+                '🔄 [PROFILE DEBUG] Uploading gallery image: ${imageFile.path}');
             await _apiService.addGalleryPicture(imageFile);
             print('✅ [PROFILE DEBUG] Gallery image uploaded successfully');
           } catch (e) {
@@ -1183,10 +1231,10 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
 
       if (pickedFile != null) {
         final imageFile = File(pickedFile.path);
-        
+
         // Show editing options
         final editedFile = await _showImageEditingOptions(imageFile, true);
-        
+
         if (editedFile != null) {
           await _uploadProfilePicture(editedFile);
         }
@@ -1213,13 +1261,13 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
 
       if (pickedFiles.isNotEmpty) {
         print('📤 DEBUG: Picked ${pickedFiles.length} images for gallery');
-        
+
         for (final pickedFile in pickedFiles) {
           final imageFile = File(pickedFile.path);
-          
+
           // Show editing options for each image
           final editedFile = await _showGalleryImageEditingOptions(imageFile);
-          
+
           if (editedFile != null) {
             await _uploadGalleryImage(editedFile);
           }
@@ -1233,7 +1281,8 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
     }
   }
 
-  Future<File?> _showImageEditingOptions(File imageFile, bool isProfilePicture) async {
+  Future<File?> _showImageEditingOptions(
+      File imageFile, bool isProfilePicture) async {
     return showDialog<File?>(
       context: context,
       builder: (context) => AlertDialog(
@@ -1420,9 +1469,8 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
 
       // Check if this image is already in the gallery (by filename)
       final fileName = imageFile.path.split('/').last;
-      final isAlreadyUploaded = _existingGalleryImages.any((img) => 
-        img['filename'] == fileName || img['url'].contains(fileName)
-      );
+      final isAlreadyUploaded = _existingGalleryImages.any((img) =>
+          img['filename'] == fileName || img['url'].contains(fileName));
 
       if (isAlreadyUploaded) {
         print('⚠️ DEBUG: Image already exists in gallery: $fileName');
@@ -1435,21 +1483,25 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
 
       print('✅ DEBUG: Gallery image uploaded successfully');
       print('🔗 DEBUG: Upload result: $uploadResult');
-      
+
       // Check if upload data exists in the response - handle both response structures
       Map<String, dynamic>? uploadData;
       if (uploadResult['upload'] != null) {
         uploadData = uploadResult['upload'];
         print('🔗 DEBUG: Found upload data in uploadResult[\'upload\']');
-      } else if (uploadResult['data'] != null && uploadResult['data']['upload'] != null) {
+      } else if (uploadResult['data'] != null &&
+          uploadResult['data']['upload'] != null) {
         uploadData = uploadResult['data']['upload'];
-        print('🔗 DEBUG: Found upload data in uploadResult[\'data\'][\'upload\']');
-      } else if (uploadResult['data'] != null && uploadResult['data'] is Map<String, dynamic>) {
+        print(
+            '🔗 DEBUG: Found upload data in uploadResult[\'data\'][\'upload\']');
+      } else if (uploadResult['data'] != null &&
+          uploadResult['data'] is Map<String, dynamic>) {
         // Check if the data itself contains upload info
         final data = uploadResult['data'] as Map<String, dynamic>;
         if (data.containsKey('upload')) {
           uploadData = data['upload'];
-          print('🔗 DEBUG: Found upload data in uploadResult[\'data\'][\'upload\']');
+          print(
+              '🔗 DEBUG: Found upload data in uploadResult[\'data\'][\'upload\']');
         }
       }
 
@@ -1465,7 +1517,8 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
           });
         });
 
-        print('✅ DEBUG: Added to existing gallery images. Total count: ${_existingGalleryImages.length}');
+        print(
+            '✅ DEBUG: Added to existing gallery images. Total count: ${_existingGalleryImages.length}');
       } else {
         print('❌ DEBUG: No upload data found in response: $uploadResult');
         _showError('Invalid response from server');
