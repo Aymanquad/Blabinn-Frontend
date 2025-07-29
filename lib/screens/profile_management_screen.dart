@@ -40,6 +40,8 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
   bool _isUsernameAvailable = false;
   bool _isCheckingUsername = false;
   String? _usernameError;
+  bool _isUploadingGallery = false; // Flag to prevent multiple simultaneous uploads
+  bool _isUpdatingProfile = false; // Flag to prevent multiple simultaneous profile updates
 
   User? _currentUser;
   bool _hasExistingProfile = false;
@@ -181,7 +183,7 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
         print('🔄 [PROFILE DEBUG] User will need to select new interests from predefined list');
       }
 
-      // Clear new gallery image selections
+      // Clear new gallery image selections to prevent duplicate uploads
       _galleryImages.clear();
     });
   }
@@ -555,6 +557,12 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
   Future<void> _createProfile() async {
     if (!_formKey.currentState!.validate()) return;
 
+    // Prevent multiple simultaneous profile creations
+    if (_isUpdatingProfile) {
+      print('⚠️ DEBUG: Profile creation already in progress, skipping...');
+      return;
+    }
+
     // Validate mandatory fields
     if (_displayNameController.text.trim().isEmpty) {
       _showError('Display name is required');
@@ -585,6 +593,7 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
 
     setState(() {
       _isLoading = true;
+      _isUpdatingProfile = true;
     });
 
     try {
@@ -616,6 +625,10 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
             // Continue with other images even if one fails
           }
         }
+        // Clear the gallery images list after successful uploads
+        setState(() {
+          _galleryImages.clear();
+        });
       }
 
       _showSuccess('Profile created successfully!');
@@ -631,12 +644,19 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
     } finally {
       setState(() {
         _isLoading = false;
+        _isUpdatingProfile = false;
       });
     }
   }
 
   Future<void> _updateProfile() async {
     if (!_formKey.currentState!.validate()) return;
+
+    // Prevent multiple simultaneous profile updates
+    if (_isUpdatingProfile) {
+      print('⚠️ DEBUG: Profile update already in progress, skipping...');
+      return;
+    }
 
     // Validate mandatory fields
     if (_displayNameController.text.trim().isEmpty) {
@@ -668,6 +688,7 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
 
     setState(() {
       _isLoading = true;
+      _isUpdatingProfile = true;
     });
 
     try {
@@ -681,6 +702,8 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
       };
 
       print('🔄 [PROFILE DEBUG] Updating profile with data: $profileData');
+      print('🔄 [PROFILE DEBUG] Gallery images count: ${_galleryImages.length}');
+      print('🔄 [PROFILE DEBUG] Existing gallery images count: ${_existingGalleryImages.length}');
 
       final result = await _apiService.updateProfile(profileData);
 
@@ -693,30 +716,33 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
 
       // Upload gallery images if selected
       if (_galleryImages.isNotEmpty) {
+        print('🔄 [PROFILE DEBUG] Uploading ${_galleryImages.length} gallery images');
         for (final imageFile in _galleryImages) {
           try {
+            print('🔄 [PROFILE DEBUG] Uploading gallery image: ${imageFile.path}');
             await _apiService.addGalleryPicture(imageFile);
+            print('✅ [PROFILE DEBUG] Gallery image uploaded successfully');
           } catch (e) {
-            print('Failed to upload gallery image: $e');
+            print('❌ [PROFILE DEBUG] Failed to upload gallery image: $e');
             // Continue with other images even if one fails
           }
         }
+        // Clear the gallery images list after successful uploads
+        setState(() {
+          _galleryImages.clear();
+        });
+        print('🔄 [PROFILE DEBUG] Cleared gallery images list');
+      } else {
+        print('🔄 [PROFILE DEBUG] No new gallery images to upload');
       }
 
       _showSuccess('Profile updated successfully!');
-
-      // Reload profile to verify changes
-      print('🔄 [PROFILE DEBUG] Reloading profile to verify changes...');
-      await _loadExistingProfile();
-      
-      // Redirect to home screen after successful profile update
-      await Future.delayed(const Duration(seconds: 1));
-      Navigator.of(context).pushReplacementNamed('/home');
     } catch (e) {
       _showError('Error updating profile: $e');
     } finally {
       setState(() {
         _isLoading = false;
+        _isUpdatingProfile = false;
       });
     }
   }
@@ -1173,6 +1199,12 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
   }
 
   Future<void> _pickGalleryImages() async {
+    // Prevent multiple simultaneous picks
+    if (_isUploadingGallery || _isLoading) {
+      print('⚠️ DEBUG: Upload already in progress, skipping gallery pick...');
+      return;
+    }
+
     try {
       final picker = ImagePicker();
       final pickedFiles = await picker.pickMultiImage(
@@ -1180,6 +1212,8 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
       );
 
       if (pickedFiles.isNotEmpty) {
+        print('📤 DEBUG: Picked ${pickedFiles.length} images for gallery');
+        
         for (final pickedFile in pickedFiles) {
           final imageFile = File(pickedFile.path);
           
@@ -1192,6 +1226,7 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
         }
       }
     } catch (e) {
+      print('❌ DEBUG: Error picking gallery images: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error picking images: $e')),
       );
@@ -1367,24 +1402,75 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
   }
 
   Future<void> _uploadGalleryImage(File imageFile) async {
+    // Prevent multiple simultaneous uploads
+    if (_isUploadingGallery) {
+      print('⚠️ DEBUG: Gallery upload already in progress, skipping...');
+      return;
+    }
+
     try {
       setState(() {
         _isLoading = true;
+        _isUploadingGallery = true;
       });
 
       print('📤 DEBUG: Starting gallery image upload...');
+      print('📤 DEBUG: Image file path: ${imageFile.path}');
+      print('📤 DEBUG: Image file size: ${await imageFile.length()} bytes');
+
+      // Check if this image is already in the gallery (by filename)
+      final fileName = imageFile.path.split('/').last;
+      final isAlreadyUploaded = _existingGalleryImages.any((img) => 
+        img['filename'] == fileName || img['url'].contains(fileName)
+      );
+
+      if (isAlreadyUploaded) {
+        print('⚠️ DEBUG: Image already exists in gallery: $fileName');
+        _showError('This image is already in your gallery');
+        return;
+      }
 
       // Upload image to Firebase Storage
       final uploadResult = await _apiService.addGalleryPicture(imageFile);
 
       print('✅ DEBUG: Gallery image uploaded successfully');
       print('🔗 DEBUG: Upload result: $uploadResult');
-      print('🔗 DEBUG: Firebase URL: ${uploadResult['url']}');
+      
+      // Check if upload data exists in the response - handle both response structures
+      Map<String, dynamic>? uploadData;
+      if (uploadResult['upload'] != null) {
+        uploadData = uploadResult['upload'];
+        print('🔗 DEBUG: Found upload data in uploadResult[\'upload\']');
+      } else if (uploadResult['data'] != null && uploadResult['data']['upload'] != null) {
+        uploadData = uploadResult['data']['upload'];
+        print('🔗 DEBUG: Found upload data in uploadResult[\'data\'][\'upload\']');
+      } else if (uploadResult['data'] != null && uploadResult['data'] is Map<String, dynamic>) {
+        // Check if the data itself contains upload info
+        final data = uploadResult['data'] as Map<String, dynamic>;
+        if (data.containsKey('upload')) {
+          uploadData = data['upload'];
+          print('🔗 DEBUG: Found upload data in uploadResult[\'data\'][\'upload\']');
+        }
+      }
 
-      // Update local gallery images
-      setState(() {
-        _galleryImages.add(imageFile);
-      });
+      if (uploadData != null) {
+        print('🔗 DEBUG: Firebase URL: ${uploadData?['url'] ?? 'null'}');
+        print('🔗 DEBUG: Filename: ${uploadData?['filename'] ?? 'null'}');
+
+        // Add to existing gallery images instead of _galleryImages to prevent re-upload
+        setState(() {
+          _existingGalleryImages.add({
+            'url': uploadData?['url'] ?? '',
+            'filename': uploadData?['filename'] ?? '',
+          });
+        });
+
+        print('✅ DEBUG: Added to existing gallery images. Total count: ${_existingGalleryImages.length}');
+      } else {
+        print('❌ DEBUG: No upload data found in response: $uploadResult');
+        _showError('Invalid response from server');
+        return;
+      }
 
       _showSuccess('Gallery image added successfully!');
     } catch (e) {
@@ -1393,6 +1479,7 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
     } finally {
       setState(() {
         _isLoading = false;
+        _isUploadingGallery = false;
       });
     }
   }

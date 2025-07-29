@@ -291,7 +291,12 @@ class ApiService {
       final responseData = await response.stream.bytesToString();
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
-        return jsonDecode(responseData);
+        final data = jsonDecode(responseData);
+        // Use _handleResponse logic for consistency
+        if (data is Map<String, dynamic> && data.containsKey('data')) {
+          return data['data'];
+        }
+        return data;
       } else {
         final errorData = jsonDecode(responseData);
         throw Exception(errorData['message'] ?? 'Upload failed');
