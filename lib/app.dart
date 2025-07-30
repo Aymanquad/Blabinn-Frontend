@@ -34,20 +34,22 @@ void navigateToChatFromNotification(Map<String, dynamic> notificationData) {
     final senderId = notificationData['senderId'] ?? '';
     final senderName = notificationData['senderName'] ?? 'Unknown';
     final chatId = notificationData['chatId'] ?? '';
-    
-    print('🔔 [NAVIGATION DEBUG] Navigating to chat from notification');
-    print('   👤 Sender ID: $senderId');
-    print('   👤 Sender Name: $senderName');
-    print('   💬 Chat ID: $chatId');
-    
+
+    // print('🔔 [NAVIGATION DEBUG] Navigating to chat from notification');
+    // print('   👤 Sender ID: $senderId');
+    // print('   👤 Sender Name: $senderName');
+    // print('   💬 Chat ID: $chatId');
+
     if (senderId.isEmpty) {
-      print('❌ [NAVIGATION DEBUG] Sender ID is empty, cannot navigate to chat');
+      // print('❌ [NAVIGATION DEBUG] Sender ID is empty, cannot navigate to chat');
       return;
     }
-    
+
     // Create a Chat object for friend chat
     final chat = Chat(
-      id: chatId.isNotEmpty ? chatId : senderId, // Use senderId as chatId if chatId is empty
+      id: chatId.isNotEmpty
+          ? chatId
+          : senderId, // Use senderId as chatId if chatId is empty
       name: senderName,
       participantIds: [senderId], // Add current user ID later
       type: ChatType.friend,
@@ -55,17 +57,17 @@ void navigateToChatFromNotification(Map<String, dynamic> notificationData) {
       createdAt: DateTime.now(),
       updatedAt: DateTime.now(),
     );
-    
+
     // Navigate to chat screen using global navigator
     navigatorKey.currentState?.push(
       MaterialPageRoute(
         builder: (context) => ChatScreen(chat: chat),
       ),
     );
-    
-    print('✅ [NAVIGATION DEBUG] Successfully navigated to chat screen');
+
+    // print('✅ [NAVIGATION DEBUG] Successfully navigated to chat screen');
   } catch (e) {
-    print('❌ [NAVIGATION DEBUG] Error navigating to chat: $e');
+    // print('❌ [NAVIGATION DEBUG] Error navigating to chat: $e');
   }
 }
 
@@ -265,7 +267,7 @@ class MainNavigationScreen extends StatefulWidget {
   State<MainNavigationScreen> createState() => _MainNavigationScreenState();
 }
 
-class _MainNavigationScreenState extends State<MainNavigationScreen> 
+class _MainNavigationScreenState extends State<MainNavigationScreen>
     with WidgetsBindingObserver, TickerProviderStateMixin {
   final NotificationService _notificationService = NotificationService();
   int _currentIndex = 0;
@@ -311,57 +313,57 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
       if (user != null) {
         final token = await user.getIdToken();
         if (token != null && token.isNotEmpty) {
-          print(
-              '🚀 [APP DEBUG] Initializing socket connection with Firebase token');
+          // print(
+          //     '🚀 [APP DEBUG] Initializing socket connection with Firebase token');
           await _socketService.connect(token);
 
           // Send join event after connection
           await Future.delayed(const Duration(seconds: 1));
-          print('✅ [APP DEBUG] Socket connection completed');
+          // print('✅ [APP DEBUG] Socket connection completed');
         } else {
-          print('❌ [APP DEBUG] Failed to get Firebase token');
+          // print('❌ [APP DEBUG] Failed to get Firebase token');
         }
       } else {
-        print('❌ [APP DEBUG] No Firebase user found, cannot connect socket');
+        // print('❌ [APP DEBUG] No Firebase user found, cannot connect socket');
       }
     } catch (e) {
-      print('❌ [APP DEBUG] Socket connection failed: $e');
+      // print('❌ [APP DEBUG] Socket connection failed: $e');
     }
   }
-  
+
   Future<void> _initializeNotifications() async {
     try {
       await _notificationService.initialize();
-      print('✅ [APP DEBUG] Notifications initialized');
+      // print('✅ [APP DEBUG] Notifications initialized');
     } catch (e) {
-      print('❌ [APP DEBUG] Failed to initialize notifications: $e');
+      // print('❌ [APP DEBUG] Failed to initialize notifications: $e');
     }
   }
-  
+
   void _setupInAppNotificationListener() {
-    print('🔔 [APP DEBUG] Setting up in-app notification listener');
-    
+    // print('🔔 [APP DEBUG] Setting up in-app notification listener');
+
     _notificationService.inAppNotificationStream.listen(
       (notificationData) {
-        print('🔔 [APP DEBUG] *** NOTIFICATION RECEIVED IN STREAM ***');
-        print('   📦 Notification data: $notificationData');
-        print('   📱 Widget mounted: $mounted');
-        
+        // print('🔔 [APP DEBUG] *** NOTIFICATION RECEIVED IN STREAM ***');
+        // print('   📦 Notification data: $notificationData');
+        // print('   📱 Widget mounted: $mounted');
+
         // Check if user is currently in a chat with the sender
         final senderId = notificationData['senderId'] ?? '';
         final currentChatUserId = _socketService.currentChatWithUserId;
-        
-        print('   👤 Sender ID: $senderId');
-        print('   👤 Current chat user: $currentChatUserId');
-        
+
+        // print('   👤 Sender ID: $senderId');
+        // print('   👤 Current chat user: $currentChatUserId');
+
         if (currentChatUserId == senderId) {
-          print('🔔 [APP DEBUG] Skipping notification - user is in chat with sender');
+          // print('🔔 [APP DEBUG] Skipping notification - user is in chat with sender');
           return;
         }
-        
+
         if (mounted) {
-          print('🔔 [APP DEBUG] Showing in-app notification widget');
-          
+          // print('🔔 [APP DEBUG] Showing in-app notification widget');
+
           showInAppNotification(
             context: context,
             senderName: notificationData['senderName'] ?? 'Unknown',
@@ -369,25 +371,25 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
             senderId: senderId,
             chatId: notificationData['chatId'],
             onTap: () {
-              print('🔔 [APP DEBUG] In-app notification tapped');
+              // print('🔔 [APP DEBUG] In-app notification tapped');
               navigateToChatFromNotification(notificationData);
             },
           );
-          
-          print('✅ [APP DEBUG] showInAppNotification called');
+
+          // print('✅ [APP DEBUG] showInAppNotification called');
         } else {
-          print('❌ [APP DEBUG] Widget not mounted, cannot show notification');
+          // print('❌ [APP DEBUG] Widget not mounted, cannot show notification');
         }
       },
       onError: (error) {
-        print('❌ [APP DEBUG] Error in notification stream: $error');
+        // print('❌ [APP DEBUG] Error in notification stream: $error');
       },
       onDone: () {
-        print('🔔 [APP DEBUG] Notification stream closed');
+        // print('🔔 [APP DEBUG] Notification stream closed');
       },
     );
-    
-    print('✅ [APP DEBUG] In-app notification listener setup complete');
+
+    // print('✅ [APP DEBUG] In-app notification listener setup complete');
   }
 
   @override
@@ -407,13 +409,13 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
       case AppLifecycleState.resumed:
         _enableScreenProtection();
         _notificationService.setAppForegroundState(true);
-        print('🔔 [APP DEBUG] App resumed - foreground notifications enabled');
+        // print('🔔 [APP DEBUG] App resumed - foreground notifications enabled');
         break;
       case AppLifecycleState.paused:
       case AppLifecycleState.inactive:
         // Keep security features active even when app is paused/inactive
         _notificationService.setAppForegroundState(false);
-        print('🔔 [APP DEBUG] App paused/inactive - background notifications enabled');
+        // print('🔔 [APP DEBUG] App paused/inactive - background notifications enabled');
         break;
       case AppLifecycleState.detached:
         _disableScreenProtection();
@@ -428,9 +430,9 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
     try {
       await ScreenProtector.preventScreenshotOn();
       await ScreenProtector.protectDataLeakageOn();
-      print('🔒 Screen protection enabled');
+      // print('🔒 Screen protection enabled');
     } catch (e) {
-      print('⚠️ Failed to enable screen protection: $e');
+      // print('⚠️ Failed to enable screen protection: $e');
     }
   }
 
@@ -438,9 +440,9 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
     try {
       await ScreenProtector.preventScreenshotOff();
       await ScreenProtector.protectDataLeakageOff();
-      print('🔓 Screen protection disabled');
+      // print('🔓 Screen protection disabled');
     } catch (e) {
-      print('⚠️ Failed to disable screen protection: $e');
+      // print('⚠️ Failed to disable screen protection: $e');
     }
   }
 
@@ -464,20 +466,22 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
       final senderId = notificationData['senderId'] ?? '';
       final senderName = notificationData['senderName'] ?? 'Unknown';
       final chatId = notificationData['chatId'] ?? '';
-      
-      print('🔔 [APP DEBUG] Navigating to chat from notification');
-      print('   👤 Sender ID: $senderId');
-      print('   👤 Sender Name: $senderName');
-      print('   💬 Chat ID: $chatId');
-      
+
+      // print('🔔 [APP DEBUG] Navigating to chat from notification');
+      // print('   👤 Sender ID: $senderId');
+      // print('   👤 Sender Name: $senderName');
+      // print('   💬 Chat ID: $chatId');
+
       if (senderId.isEmpty) {
-        print('❌ [APP DEBUG] Sender ID is empty, cannot navigate to chat');
+        // print('❌ [APP DEBUG] Sender ID is empty, cannot navigate to chat');
         return;
       }
-      
+
       // Create a Chat object for friend chat
       final chat = Chat(
-        id: chatId.isNotEmpty ? chatId : senderId, // Use senderId as chatId if chatId is empty
+        id: chatId.isNotEmpty
+            ? chatId
+            : senderId, // Use senderId as chatId if chatId is empty
         name: senderName,
         participantIds: [senderId], // Add current user ID later
         type: ChatType.friend,
@@ -485,7 +489,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
       );
-      
+
       // Navigate to chat screen
       Navigator.push(
         context,
@@ -493,10 +497,10 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
           builder: (context) => ChatScreen(chat: chat),
         ),
       );
-      
-      print('✅ [APP DEBUG] Successfully navigated to chat screen');
+
+      // print('✅ [APP DEBUG] Successfully navigated to chat screen');
     } catch (e) {
-      print('❌ [APP DEBUG] Error navigating to chat: $e');
+      // print('❌ [APP DEBUG] Error navigating to chat: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Failed to open chat: ${e.toString()}'),
@@ -505,7 +509,6 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
       );
     }
   }
-
 
   Widget _buildDrawer(BuildContext context) {
     final theme = Theme.of(context);
@@ -523,7 +526,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
         ),
         child: ListView(
           padding: const EdgeInsets.only(top: 40),
-                      children: [
+          children: [
             // Main Navigation
             _buildDrawerSection(
               context,
@@ -661,7 +664,8 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
     );
   }
 
-  Widget _buildDrawerSection(BuildContext context, String title, List<Widget> children) {
+  Widget _buildDrawerSection(
+      BuildContext context, String title, List<Widget> children) {
     final theme = Theme.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -712,7 +716,8 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: (iconColor ?? theme.colorScheme.primary).withOpacity(0.1),
+                  color:
+                      (iconColor ?? theme.colorScheme.primary).withOpacity(0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Icon(
@@ -777,12 +782,14 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
             mainAxisSize: MainAxisSize.min,
             children: [
               ListTile(
-                leading: Icon(Icons.person_add, color: theme.colorScheme.primary),
+                leading:
+                    Icon(Icons.person_add, color: theme.colorScheme.primary),
                 title: const Text('Added a new friend'),
                 subtitle: const Text('2 hours ago'),
               ),
               ListTile(
-                leading: Icon(Icons.message, color: theme.colorScheme.secondary),
+                leading:
+                    Icon(Icons.message, color: theme.colorScheme.secondary),
                 title: const Text('Sent a message'),
                 subtitle: const Text('1 hour ago'),
               ),
