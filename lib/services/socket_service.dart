@@ -63,7 +63,7 @@ class SocketService {
   // Set current chat user (called when entering a chat)
   void setCurrentChatUser(String? userId) {
     _currentChatWithUserId = userId;
-    print('🔔 [SOCKET DEBUG] Current chat user set to: $_currentChatWithUserId');
+    // print('🔔 [SOCKET DEBUG] Current chat user set to: $_currentChatWithUserId');
   }
 
   // Get current chat user
@@ -72,7 +72,7 @@ class SocketService {
   // Clear current chat user (called when leaving a chat)
   void clearCurrentChatUser() {
     _currentChatWithUserId = null;
-    print('🔔 [SOCKET DEBUG] Current chat user cleared');
+    // print('🔔 [SOCKET DEBUG] Current chat user cleared');
   }
 
   // Services
@@ -119,9 +119,9 @@ class SocketService {
     try {
       _authToken = authToken;
 
-      print('🔍 [SOCKET DEBUG] Attempting to connect to Socket.IO server');
-      print('   🌐 URL: ${AppConfig.wsBaseUrl}');
-      print('   🔑 Token length: ${authToken.length}');
+      // print('🔍 [SOCKET DEBUG] Attempting to connect to Socket.IO server');
+      // print('   🌐 URL: ${AppConfig.wsBaseUrl}');
+      // print('   🔑 Token length: ${authToken.length}');
 
       _socket = IO.io(
         AppConfig.wsBaseUrl,
@@ -133,16 +133,16 @@ class SocketService {
       );
 
       _socket!.onConnect((_) {
-        print('✅ [SOCKET DEBUG] Socket.IO connected successfully');
-        print('   🔌 Setting _isConnected = true');
+        // print('✅ [SOCKET DEBUG] Socket.IO connected successfully');
+        // print('   🔌 Setting _isConnected = true');
         _isConnected = true;
         _isConnecting = false;
         _connectionTime = DateTime.now(); // Track connection time
 
         // Log if this was a reconnection before resetting
         if (_reconnectAttempts > 0) {
-          print(
-              '🔄 [SOCKET DEBUG] Successfully reconnected after $_reconnectAttempts attempts');
+          // print(
+          //     '🔄 [SOCKET DEBUG] Successfully reconnected after $_reconnectAttempts attempts');
         }
 
         _reconnectAttempts =
@@ -152,7 +152,7 @@ class SocketService {
         _startHeartbeat();
         _eventController.add(SocketEvent.connect);
 
-        print('📤 [SOCKET DEBUG] About to send join event automatically');
+        // print('📤 [SOCKET DEBUG] About to send join event automatically');
         // Add small delay to ensure connection is stable before sending join event
         Timer(const Duration(milliseconds: 100), () {
           if (_isConnected) {
@@ -162,29 +162,29 @@ class SocketService {
       });
 
       _socket!.onDisconnect((reason) {
-        print('🔌 [SOCKET DEBUG] Socket.IO disconnected');
-        print('   📊 Disconnect reason: $reason');
-        print('   📊 Socket ID: ${_socket?.id}');
-        print(
-            '   📊 Time connected: ${DateTime.now().difference(_connectionTime ?? DateTime.now()).inSeconds}s');
+        // print('🔌 [SOCKET DEBUG] Socket.IO disconnected');
+        // print('   📊 Disconnect reason: $reason');
+        // print('   📊 Socket ID: ${_socket?.id}');
+        // print(
+        //     '   📊 Time connected: ${DateTime.now().difference(_connectionTime ?? DateTime.now()).inSeconds}s');
         _handleDisconnect();
       });
 
       _socket!.onError((error) {
-        print('❌ [SOCKET DEBUG] Socket.IO error: $error');
+        // print('❌ [SOCKET DEBUG] Socket.IO error: $error');
         _handleError(error);
       });
 
       // Handle all events
       _socket!.onAny((event, data) {
-        print('🔍 [SOCKET DEBUG] Received event: $event');
-        print('   📦 Data: $data');
+        // print('🔍 [SOCKET DEBUG] Received event: $event');
+        // print('   📦 Data: $data');
         _handleSocketEvent(event, data);
       });
 
       _socket!.connect();
     } catch (e) {
-      print('❌ [SOCKET DEBUG] Connection failed: $e');
+      // print('❌ [SOCKET DEBUG] Connection failed: $e');
       _isConnecting = false;
       _handleError(e);
     }
@@ -205,7 +205,7 @@ class SocketService {
     _isConnected = false;
     _isConnecting = false;
     _eventController.add(SocketEvent.disconnect);
-    print('🔌 [SOCKET DEBUG] Socket.IO intentionally disconnected');
+    // print('🔌 [SOCKET DEBUG] Socket.IO intentionally disconnected');
   }
 
   // Note: No longer needed with Socket.IO - events are handled directly
@@ -213,15 +213,15 @@ class SocketService {
   // Handle Socket.IO events
   void _handleSocketEvent(String event, dynamic data) {
     try {
-      print('🔍 [SOCKET DEBUG] Processing event: $event');
-      print('   📦 Data type: ${data.runtimeType}');
-      print('   📦 Data value: $data');
+      // print('🔍 [SOCKET DEBUG] Processing event: $event');
+      // print('   📦 Data type: ${data.runtimeType}');
+      // print('   📦 Data value: $data');
 
       // Add null safety check
       if (data != null && data is! Map<String, dynamic> && data is! List) {
-        print(
-            '⚠️ [SOCKET DEBUG] Unexpected data type for event $event: ${data.runtimeType}');
-        print('   📦 Converting to safe format...');
+        // print(
+        //     '⚠️ [SOCKET DEBUG] Unexpected data type for event $event: ${data.runtimeType}');
+        // print('   📦 Converting to safe format...');
         // Convert to safe format if possible
         if (data is String) {
           data = {'message': data};
@@ -304,12 +304,12 @@ class SocketService {
           _handleRandomChatEventReceived(data);
           break;
         default:
-          print('Unknown socket event: $event');
+          // print('Unknown socket event: $event');
       }
     } catch (e) {
-      print('❌ [SOCKET DEBUG] Error processing event $event: $e');
-      print('   📦 Data that caused error: $data');
-      print('   🔍 Stack trace: ${StackTrace.current}');
+      // print('❌ [SOCKET DEBUG] Error processing event $event: $e');
+      // print('   📦 Data that caused error: $data');
+      // print('   🔍 Stack trace: ${StackTrace.current}');
       _handleError(e);
     }
   }
@@ -317,26 +317,26 @@ class SocketService {
   // Handle incoming message
   void _handleIncomingMessage(Map<String, dynamic> data) {
     try {
-      print('🔍 [SOCKET DEBUG] Raw message data: $data');
-      print('🔍 [SOCKET DEBUG] Message type in data: ${data['messageType']}');
-      print('🔍 [SOCKET DEBUG] Image URL in data: ${data['imageUrl']}');
+      // print('🔍 [SOCKET DEBUG] Raw message data: $data');
+      // print('🔍 [SOCKET DEBUG] Message type in data: ${data['messageType']}');
+      // print('🔍 [SOCKET DEBUG] Image URL in data: ${data['imageUrl']}');
 
       final message = Message.fromJson(data);
 
-      print('🔍 [SOCKET DEBUG] Parsed message type: ${message.type}');
-      print('🔍 [SOCKET DEBUG] Parsed image URL: ${message.imageUrl}');
+      // print('🔍 [SOCKET DEBUG] Parsed message type: ${message.type}');
+      // print('🔍 [SOCKET DEBUG] Parsed image URL: ${message.imageUrl}');
 
       _messageController.add(message);
       _eventController.add(SocketEvent.message);
 
       // Disabled notification here to prevent duplicates
       // Notifications are handled in _handleNewMessageEvent
-      print('🔔 [SOCKET DEBUG] Skipping notification in _handleIncomingMessage to prevent duplicates');
+      // print('🔔 [SOCKET DEBUG] Skipping notification in _handleIncomingMessage to prevent duplicates');
 
       // Handle image messages through background service
       _handleImageMessageGlobally(message, data);
     } catch (e) {
-      print('❌ [SOCKET DEBUG] Error parsing message: $e');
+      // print('❌ [SOCKET DEBUG] Error parsing message: $e');
       _handleError(e);
     }
   }
@@ -345,23 +345,23 @@ class SocketService {
   void _showNotificationForMessage(
       Message message, Map<String, dynamic> data) async {
     try {
-      print(
-          '🔔 [SOCKET NOTIFICATION DEBUG] _showNotificationForMessage called');
-      print('   📦 Raw data: $data');
-      print('   📦 Message: ${message.toString()}');
+      // print(
+      //     '🔔 [SOCKET NOTIFICATION DEBUG] _showNotificationForMessage called');
+      // print('   📦 Raw data: $data');
+      // print('   📦 Message: ${message.toString()}');
 
       final senderId = message.senderId;
       final currentUserId = _getCurrentUserId();
 
       // Don't show notification if this is our own message
       if (senderId == currentUserId) {
-        print('🔔 [SOCKET NOTIFICATION DEBUG] Skipping notification - own message');
+        // print('🔔 [SOCKET NOTIFICATION DEBUG] Skipping notification - own message');
         return;
       }
 
       // Don't show notification if we're currently in a chat with this sender
       if (_currentChatWithUserId == senderId) {
-        print('🔔 [SOCKET NOTIFICATION DEBUG] Skipping notification - currently in chat with sender');
+        // print('🔔 [SOCKET NOTIFICATION DEBUG] Skipping notification - currently in chat with sender');
         return;
       }
 
@@ -390,46 +390,46 @@ class SocketService {
         if (profileData['displayName'] != null &&
             profileData['displayName'].toString().isNotEmpty) {
           senderName = profileData['displayName'];
-          print(
-              '🔔 [SOCKET NOTIFICATION DEBUG] Using profile display name: $senderName');
+          // print(
+          //     '🔔 [SOCKET NOTIFICATION DEBUG] Using profile display name: $senderName');
         } else if (profileData['username'] != null &&
             profileData['username'].toString().isNotEmpty) {
           senderName = profileData['username'];
-          print(
-              '🔔 [SOCKET NOTIFICATION DEBUG] Using profile username: $senderName');
+          // print(
+          //     '🔔 [SOCKET NOTIFICATION DEBUG] Using profile username: $senderName');
         }
       } catch (e) {
-        print(
-            '⚠️ [SOCKET NOTIFICATION DEBUG] Could not get profile for sender $senderId: $e');
+        // print(
+        //     '⚠️ [SOCKET NOTIFICATION DEBUG] Could not get profile for sender $senderId: $e');
         // Keep the senderName from socket data as fallback
       }
 
-      print('🔔 [SOCKET NOTIFICATION DEBUG] Extracted sender info:');
-      print('   👤 Sender Name: $senderName');
-      print('   👤 Sender ID: $senderId');
-      print('   💬 Message Content: ${message.content}');
+      // print('🔔 [SOCKET NOTIFICATION DEBUG] Extracted sender info:');
+      // print('   👤 Sender Name: $senderName');
+      // print('   👤 Sender ID: $senderId');
+      // print('   💬 Message Content: ${message.content}');
 
       // Check if app is in foreground - only show in-app notification if app is active
       // Backend push notifications handle background notifications
       if (_notificationService.isAppInForeground) {
-        print(
-            '🔔 [SOCKET NOTIFICATION DEBUG] App in foreground - SKIPPING socket notification (Firebase will handle)');
-        print('   📍 Called from: _showNotificationForMessage');
-        print('   📍 Message content: ${message.content}');
-        print('   📍 Message type: ${message.type}');
-        print('   📍 Is image message: ${message.type == MessageType.image}');
+        // print(
+        //     '🔔 [SOCKET NOTIFICATION DEBUG] App in foreground - SKIPPING socket notification (Firebase will handle)');
+        // print('   📍 Called from: _showNotificationForMessage');
+        // print('   📍 Message content: ${message.content}');
+        // print('   📍 Message type: ${message.type}');
+        // print('   📍 Is image message: ${message.type == MessageType.image}');
         // Disabled socket notification when app is in foreground
         // Firebase push notifications will handle the notification instead
       } else {
-        print(
-            '🔔 [SOCKET NOTIFICATION DEBUG] App in background - backend push notification will handle this');
+        // print(
+        //     '🔔 [SOCKET NOTIFICATION DEBUG] App in background - backend push notification will handle this');
       }
 
-      print(
-          '✅ [SOCKET NOTIFICATION DEBUG] Notification service called successfully');
+      // print(
+      //     '✅ [SOCKET NOTIFICATION DEBUG] Notification service called successfully');
     } catch (e) {
-      print('❌ [SOCKET NOTIFICATION DEBUG] Error showing notification: $e');
-      print('   📦 Stack trace: ${e.toString()}');
+      // print('❌ [SOCKET NOTIFICATION DEBUG] Error showing notification: $e');
+      // print('   📦 Stack trace: ${e.toString()}');
     }
   }
 
@@ -460,13 +460,13 @@ class SocketService {
 
   // Handle user online event
   void _handleUserOnlineEvent(dynamic data) {
-    print('👥 [SOCKET DEBUG] User online event received');
-    print('   📦 Data type: ${data.runtimeType}');
-    print('   📦 Data: $data');
+    // print('👥 [SOCKET DEBUG] User online event received');
+    // print('   📦 Data type: ${data.runtimeType}');
+    // print('   📦 Data: $data');
 
     try {
       if (data == null) {
-        print('❌ [SOCKET DEBUG] User online data is null');
+        // print('❌ [SOCKET DEBUG] User online data is null');
         return;
       }
 
@@ -480,31 +480,31 @@ class SocketService {
           userData = data;
         }
       } else {
-        print(
-            '❌ [SOCKET DEBUG] Invalid user online data type: ${data.runtimeType}');
+        // print(
+        //     '❌ [SOCKET DEBUG] Invalid user online data type: ${data.runtimeType}');
         return;
       }
 
-      print('   👤 Processing user data: $userData');
+      // print('   👤 Processing user data: $userData');
       final user = User.fromJson(userData);
       _userController.add(user);
       _eventController.add(SocketEvent.userOnline);
     } catch (e) {
-      print('❌ [SOCKET DEBUG] Error handling user online event: $e');
-      print('   📦 Data that caused error: $data');
+      // print('❌ [SOCKET DEBUG] Error handling user online event: $e');
+      // print('   📦 Data that caused error: $data');
       // Don't call _handleError as this will cause reconnection loop
     }
   }
 
   // Handle user offline event
   void _handleUserOfflineEvent(dynamic data) {
-    print('👥 [SOCKET DEBUG] User offline event received');
-    print('   📦 Data type: ${data.runtimeType}');
-    print('   📦 Data: $data');
+    // print('👥 [SOCKET DEBUG] User offline event received');
+    // print('   📦 Data type: ${data.runtimeType}');
+    // print('   📦 Data: $data');
 
     try {
       if (data == null) {
-        print('❌ [SOCKET DEBUG] User offline data is null');
+        // print('❌ [SOCKET DEBUG] User offline data is null');
         return;
       }
 
@@ -518,18 +518,18 @@ class SocketService {
           userData = data;
         }
       } else {
-        print(
-            '❌ [SOCKET DEBUG] Invalid user offline data type: ${data.runtimeType}');
+        // print(
+        //     '❌ [SOCKET DEBUG] Invalid user offline data type: ${data.runtimeType}');
         return;
       }
 
-      print('   👤 Processing user data: $userData');
+      // print('   👤 Processing user data: $userData');
       final user = User.fromJson(userData);
       _userController.add(user);
       _eventController.add(SocketEvent.userOffline);
     } catch (e) {
-      print('❌ [SOCKET DEBUG] Error handling user offline event: $e');
-      print('   📦 Data that caused error: $data');
+      // print('❌ [SOCKET DEBUG] Error handling user offline event: $e');
+      // print('   📦 Data that caused error: $data');
       // Don't call _handleError as this will cause reconnection loop
     }
   }
@@ -541,25 +541,25 @@ class SocketService {
 
   // Handle new chat event
   void _handleNewChatEvent(dynamic data) {
-    print('💬 [SOCKET DEBUG] New chat event received');
-    print('   📦 Data type: ${data.runtimeType}');
-    print('   📦 Data: $data');
+    // print('💬 [SOCKET DEBUG] New chat event received');
+    // print('   📦 Data type: ${data.runtimeType}');
+    // print('   📦 Data: $data');
 
     try {
       if (data == null) {
-        print('❌ [SOCKET DEBUG] New chat data is null');
+        // print('❌ [SOCKET DEBUG] New chat data is null');
         return;
       }
 
       if (data is! Map<String, dynamic>) {
-        print(
-            '❌ [SOCKET DEBUG] Invalid new chat data type: ${data.runtimeType}');
+        // print(
+        //     '❌ [SOCKET DEBUG] Invalid new chat data type: ${data.runtimeType}');
         return;
       }
 
       final chatData = data['chat'];
       if (chatData == null) {
-        print('❌ [SOCKET DEBUG] Chat data is null in new chat event');
+        // print('❌ [SOCKET DEBUG] Chat data is null in new chat event');
         return;
       }
 
@@ -567,33 +567,33 @@ class SocketService {
       _chatController.add(chat);
       _eventController.add(SocketEvent.newChat);
     } catch (e) {
-      print('❌ [SOCKET DEBUG] Error handling new chat event: $e');
-      print('   📦 Data that caused error: $data');
+      // print('❌ [SOCKET DEBUG] Error handling new chat event: $e');
+      // print('   📦 Data that caused error: $data');
       // Don't call _handleError as this will cause reconnection loop
     }
   }
 
   // Handle chat updated event
   void _handleChatUpdatedEvent(dynamic data) {
-    print('💬 [SOCKET DEBUG] Chat updated event received');
-    print('   📦 Data type: ${data.runtimeType}');
-    print('   📦 Data: $data');
+    // print('💬 [SOCKET DEBUG] Chat updated event received');
+    // print('   📦 Data type: ${data.runtimeType}');
+    // print('   📦 Data: $data');
 
     try {
       if (data == null) {
-        print('❌ [SOCKET DEBUG] Chat updated data is null');
+        // print('❌ [SOCKET DEBUG] Chat updated data is null');
         return;
       }
 
       if (data is! Map<String, dynamic>) {
-        print(
-            '❌ [SOCKET DEBUG] Invalid chat updated data type: ${data.runtimeType}');
+        // print(
+        //     '❌ [SOCKET DEBUG] Invalid chat updated data type: ${data.runtimeType}');
         return;
       }
 
       final chatData = data['chat'];
       if (chatData == null) {
-        print('❌ [SOCKET DEBUG] Chat data is null in chat updated event');
+        // print('❌ [SOCKET DEBUG] Chat data is null in chat updated event');
         return;
       }
 
@@ -601,8 +601,8 @@ class SocketService {
       _chatController.add(chat);
       _eventController.add(SocketEvent.chatUpdated);
     } catch (e) {
-      print('❌ [SOCKET DEBUG] Error handling chat updated event: $e');
-      print('   📦 Data that caused error: $data');
+      // print('❌ [SOCKET DEBUG] Error handling chat updated event: $e');
+      // print('   📦 Data that caused error: $data');
       // Don't call _handleError as this will cause reconnection loop
     }
   }
@@ -619,9 +619,9 @@ class SocketService {
 
   // Handle server error
   void _handleServerError(dynamic data) {
-    print('🔴 [SOCKET DEBUG] Server error received');
-    print('   📦 Error data type: ${data.runtimeType}');
-    print('   📦 Error data: $data');
+    // print('🔴 [SOCKET DEBUG] Server error received');
+    // print('   📦 Error data type: ${data.runtimeType}');
+    // print('   📦 Error data: $data');
 
     String error;
     Map<String, dynamic>? errorData;
@@ -637,7 +637,7 @@ class SocketService {
       error = 'Server error: ${data.toString()}';
     }
 
-    print('   📝 Final error message: $error');
+    // print('   📝 Final error message: $error');
 
     // Add structured error data if available
     if (errorData != null) {
@@ -674,11 +674,11 @@ class SocketService {
 
   // Handle disconnect
   void _handleDisconnect() {
-    print('🔌 [SOCKET DEBUG] _handleDisconnect called');
-    print('   📊 Previous _isConnected: $_isConnected');
-    print('   📊 Previous _isConnecting: $_isConnecting');
-    print('   📊 _intentionalDisconnect: $_intentionalDisconnect');
-    print('   📊 Socket state: ${_socket?.connected}');
+    // print('🔌 [SOCKET DEBUG] _handleDisconnect called');
+    // print('   📊 Previous _isConnected: $_isConnected');
+    // print('   📊 Previous _isConnecting: $_isConnecting');
+    // print('   📊 _intentionalDisconnect: $_intentionalDisconnect');
+    // print('   📊 Socket state: ${_socket?.connected}');
 
     _isConnected = false;
     _isConnecting = false;
@@ -686,11 +686,11 @@ class SocketService {
 
     // Only attempt reconnection if disconnect was not intentional
     if (!_intentionalDisconnect) {
-      print(
-          '🔌 [SOCKET DEBUG] Unexpected disconnect detected, attempting reconnection');
+      // print(
+      //     '🔌 [SOCKET DEBUG] Unexpected disconnect detected, attempting reconnection');
       _attemptReconnect();
     } else {
-      print('🔌 [SOCKET DEBUG] Intentional disconnect, no reconnection needed');
+      // print('🔌 [SOCKET DEBUG] Intentional disconnect, no reconnection needed');
       // Reset intentional disconnect flag for next connection
       _intentionalDisconnect = false;
     }
@@ -704,16 +704,16 @@ class SocketService {
     }
 
     _reconnectAttempts++;
-    print(
-        '🔄 [SOCKET DEBUG] Attempting to reconnect... ($_reconnectAttempts/$_maxReconnectAttempts)');
+    // print(
+    //     '🔄 [SOCKET DEBUG] Attempting to reconnect... ($_reconnectAttempts/$_maxReconnectAttempts)');
 
     _reconnectTimer = Timer(_reconnectDelay, () {
       if (!_isConnected && !_isConnecting && _authToken != null) {
-        print(
-            '🔄 [SOCKET DEBUG] Executing reconnection attempt $_reconnectAttempts');
+        // print(
+        //     '🔄 [SOCKET DEBUG] Executing reconnection attempt $_reconnectAttempts');
         connect(_authToken!).catchError((error) {
-          print(
-              '❌ [SOCKET DEBUG] Reconnection attempt $_reconnectAttempts failed: $error');
+          // print(
+          //     '❌ [SOCKET DEBUG] Reconnection attempt $_reconnectAttempts failed: $error');
           // If this attempt failed, try again after delay
           if (_reconnectAttempts < _maxReconnectAttempts) {
             _attemptReconnect();
@@ -774,13 +774,13 @@ class SocketService {
   // Send message to friend (for friend chat)
   Future<void> sendFriendMessage(String receiverId, String content,
       {MessageType type = MessageType.text}) async {
-    print('📤 [SOCKET DEBUG] sendFriendMessage called');
-    print('   🎯 Receiver ID: $receiverId');
-    print('   💬 Content: $content');
-    print('   🔗 Connected: $_isConnected');
+    // print('📤 [SOCKET DEBUG] sendFriendMessage called');
+    // print('   🎯 Receiver ID: $receiverId');
+    // print('   💬 Content: $content');
+    // print('   🔗 Connected: $_isConnected');
 
     if (!_isConnected) {
-      print('❌ [SOCKET DEBUG] Cannot send friend message - not connected');
+      // print('❌ [SOCKET DEBUG] Cannot send friend message - not connected');
       throw Exception('WebSocket not connected');
     }
 
@@ -791,8 +791,8 @@ class SocketService {
       'timestamp': DateTime.now().toIso8601String(),
     };
 
-    print('📤 [SOCKET DEBUG] Sending friend message via socket');
-    print('   📦 Message data: $message');
+    // print('📤 [SOCKET DEBUG] Sending friend message via socket');
+    // print('   📦 Message data: $message');
 
     // Use the Socket.IO emit method directly for friend messages
     _socket!.emit('message', message);
@@ -801,14 +801,14 @@ class SocketService {
   // Send image message to friend
   Future<void> sendFriendImageMessage(
       String receiverId, String imageUrl) async {
-    print('📤 [SOCKET DEBUG] sendFriendImageMessage called');
-    print('   🎯 Receiver ID: $receiverId');
-    print('   🖼️ Image URL: $imageUrl');
-    print('   🔗 Connected: $_isConnected');
+    // print('📤 [SOCKET DEBUG] sendFriendImageMessage called');
+    // print('   🎯 Receiver ID: $receiverId');
+    // print('   🖼️ Image URL: $imageUrl');
+    // print('   🔗 Connected: $_isConnected');
 
     if (!_isConnected) {
-      print(
-          '❌ [SOCKET DEBUG] Cannot send friend image message - not connected');
+      // print(
+      //     '❌ [SOCKET DEBUG] Cannot send friend image message - not connected');
       throw Exception('WebSocket not connected');
     }
 
@@ -820,8 +820,8 @@ class SocketService {
       'timestamp': DateTime.now().toIso8601String(),
     };
 
-    print('📤 [SOCKET DEBUG] Sending friend image message via socket');
-    print('   📦 Message data: $message');
+    // print('📤 [SOCKET DEBUG] Sending friend image message via socket');
+    // print('   📦 Message data: $message');
 
     // Use the Socket.IO emit method directly for friend image messages
     _socket!.emit('message', message);
@@ -859,11 +859,11 @@ class SocketService {
 
   // Join chat room
   Future<void> joinChat(String chatId) async {
-    print('🔌 [SOCKET DEBUG] joinChat called with chatId: $chatId');
-    print('   🔗 _isConnected: $_isConnected');
+    // print('🔌 [SOCKET DEBUG] joinChat called with chatId: $chatId');
+    // print('   🔗 _isConnected: $_isConnected');
 
     if (!_isConnected) {
-      print('❌ [SOCKET DEBUG] Cannot join chat - not connected');
+      // print('❌ [SOCKET DEBUG] Cannot join chat - not connected');
       return;
     }
 
@@ -874,8 +874,8 @@ class SocketService {
       },
     };
 
-    print('📤 [SOCKET DEBUG] Sending join_chat event');
-    print('   📦 Message: $message');
+    // print('📤 [SOCKET DEBUG] Sending join_chat event');
+    // print('   📦 Message: $message');
     _sendToSocket(message);
   }
 
@@ -900,52 +900,52 @@ class SocketService {
     List<String>? interests,
     String? genderPreference,
   }) async {
-    print('🎯 [SOCKET DEBUG] startRandomConnection called');
-    print('   🔌 _isConnected: $_isConnected');
-    print('   📡 _socket != null: ${_socket != null}');
-    print('   🌍 country: $country');
-    print('   🗣️ language: $language');
-    print('   💫 interests: $interests');
-    print('   👤 genderPreference: $genderPreference');
+    // print('🎯 [SOCKET DEBUG] startRandomConnection called');
+    // print('   🔌 _isConnected: $_isConnected');
+    // print('   📡 _socket != null: ${_socket != null}');
+    // print('   🌍 country: $country');
+    // print('   🗣️ language: $language');
+    // print('   💫 interests: $interests');
+    // print('   👤 genderPreference: $genderPreference');
 
-    print(
-        '🎯 [INTEREST MATCH DEBUG] ===============================================');
-    print('🎯 [INTEREST MATCH DEBUG] USER JOINING RANDOM CHAT QUEUE');
-    print(
-        '🎯 [INTEREST MATCH DEBUG] ===============================================');
+    // print(
+    //     '🎯 [INTEREST MATCH DEBUG] ===============================================');
+    // print('🎯 [INTEREST MATCH DEBUG] USER JOINING RANDOM CHAT QUEUE');
+    // print(
+    //     '🎯 [INTEREST MATCH DEBUG] ===============================================');
     if (interests != null && interests.isNotEmpty) {
-      print('🎯 [INTEREST MATCH DEBUG] User interests: $interests');
-      print('🎯 [INTEREST MATCH DEBUG] Total interests: ${interests.length}');
-      print(
-          '🎯 [INTEREST MATCH DEBUG] Looking for matches with similar interests...');
+      // print('🎯 [INTEREST MATCH DEBUG] User interests: $interests');
+      // print('🎯 [INTEREST MATCH DEBUG] Total interests: ${interests.length}');
+      // print(
+      //     '🎯 [INTEREST MATCH DEBUG] Looking for matches with similar interests...');
     } else {
-      print(
-          '🎯 [INTEREST MATCH DEBUG] User has no interests - will match with anyone');
+      // print(
+      //     '🎯 [INTEREST MATCH DEBUG] User has no interests - will match with anyone');
     }
     if (genderPreference != null && genderPreference != 'any') {
-      print(
-          '🎯 [GENDER MATCH DEBUG] User gender preference: $genderPreference');
-      print(
-          '🎯 [GENDER MATCH DEBUG] Looking for matches with $genderPreference gender...');
+      // print(
+      //     '🎯 [GENDER MATCH DEBUG] User gender preference: $genderPreference');
+      // print(
+      //     '🎯 [GENDER MATCH DEBUG] Looking for matches with $genderPreference gender...');
     } else {
-      print(
-          '🎯 [GENDER MATCH DEBUG] User has no gender preference - will match with anyone');
+      // print(
+      //     '🎯 [GENDER MATCH DEBUG] User has no gender preference - will match with anyone');
     }
-    print(
-        '🎯 [INTEREST MATCH DEBUG] ===============================================');
+    // print(
+    //     '🎯 [INTEREST MATCH DEBUG] ===============================================');
 
     // Check both _isConnected flag AND actual socket state
     final isActuallyConnected = _isConnected && _socket?.connected == true;
-    print('   🔗 Actually connected: $isActuallyConnected');
+    // print('   🔗 Actually connected: $isActuallyConnected');
 
     if (!isActuallyConnected) {
-      print('❌ [SOCKET DEBUG] startRandomConnection aborted - not connected');
-      print('   🔌 _isConnected: $_isConnected');
-      print('   📡 Socket state: ${_socket?.connected}');
+      // print('❌ [SOCKET DEBUG] startRandomConnection aborted - not connected');
+      // print('   🔌 _isConnected: $_isConnected');
+      // print('   📡 Socket state: ${_socket?.connected}');
 
       // If socket is connected but flag is false, fix the flag
       if (_socket?.connected == true && !_isConnected) {
-        print('🔧 [SOCKET DEBUG] Fixing connection flag mismatch');
+        // print('🔧 [SOCKET DEBUG] Fixing connection flag mismatch');
         _isConnected = true;
       } else {
         return;
@@ -962,7 +962,7 @@ class SocketService {
       },
     };
 
-    print('📤 [SOCKET DEBUG] About to send startRandomConnection event');
+    // print('📤 [SOCKET DEBUG] About to send startRandomConnection event');
     _sendToSocket(message);
   }
 
@@ -1037,13 +1037,13 @@ class SocketService {
 
   // End random chat session
   Future<void> endRandomChatSession(String sessionId, String reason) async {
-    print('🚪 [SOCKET DEBUG] endRandomChatSession called');
-    print('   📱 Session ID: $sessionId');
-    print('   💭 Reason: $reason');
-    print('   🔗 Connected: $_isConnected');
+    // print('🚪 [SOCKET DEBUG] endRandomChatSession called');
+    // print('   📱 Session ID: $sessionId');
+    // print('   💭 Reason: $reason');
+    // print('   🔗 Connected: $_isConnected');
 
     if (!_isConnected) {
-      print('❌ [SOCKET DEBUG] Cannot end session - not connected');
+      // print('❌ [SOCKET DEBUG] Cannot end session - not connected');
       throw Exception('Socket not connected');
     }
 
@@ -1052,8 +1052,8 @@ class SocketService {
       'reason': reason,
     };
 
-    print('📤 [SOCKET DEBUG] Sending end_random_chat_session event');
-    print('   📦 Message data: $message');
+    // print('📤 [SOCKET DEBUG] Sending end_random_chat_session event');
+    // print('   📦 Message data: $message');
 
     // Use the Socket.IO emit method directly
     _socket!.emit('end_random_chat_session', message);
@@ -1063,11 +1063,11 @@ class SocketService {
   void _sendToSocket(Map<String, dynamic> message) {
     if (_socket != null && _isConnected) {
       try {
-        print('📤 [SOCKET DEBUG] Sending event: ${message['event']}');
-        print('   📦 Data: ${message['data']}');
+        // print('📤 [SOCKET DEBUG] Sending event: ${message['event']}');
+        // print('   📦 Data: ${message['data']}');
         _socket!.emit(message['event'], message['data']);
       } catch (e) {
-        print('❌ [SOCKET DEBUG] Error sending message: $e');
+        // print('❌ [SOCKET DEBUG] Error sending message: $e');
         _handleConnectionError();
       }
     }
@@ -1075,12 +1075,12 @@ class SocketService {
 
   // Handle match found event
   void _handleMatchFoundEvent(Map<String, dynamic> data) {
-    print(
-        '🎯 [INTEREST MATCH DEBUG] ===============================================');
-    print('🎯 [INTEREST MATCH DEBUG] MATCH FOUND EVENT RECEIVED!');
-    print(
-        '🎯 [INTEREST MATCH DEBUG] ===============================================');
-    print('   📦 Full data: $data');
+    // print(
+    //     '🎯 [INTEREST MATCH DEBUG] ===============================================');
+    // print('🎯 [INTEREST MATCH DEBUG] MATCH FOUND EVENT RECEIVED!');
+    // print(
+    //     '🎯 [INTEREST MATCH DEBUG] ===============================================');
+    // print('   📦 Full data: $data');
 
     // Extract match information
     final matchType = data['matchType'] ?? 'unknown';
@@ -1090,13 +1090,13 @@ class SocketService {
     final user1Interests = data['user1Interests'] ?? [];
     final user2Interests = data['user2Interests'] ?? [];
 
-    print('🎯 [INTEREST MATCH DEBUG] Match Type: $matchType');
-    print(
-        '🎯 [INTEREST MATCH DEBUG] Interest Similarity: ${(interestSimilarity * 100).toStringAsFixed(1)}%');
-    print('🎯 [INTEREST MATCH DEBUG] User 1: ${user1?['userId'] ?? 'Unknown'}');
-    print('🎯 [INTEREST MATCH DEBUG] User 1 Interests: $user1Interests');
-    print('🎯 [INTEREST MATCH DEBUG] User 2: ${user2?['userId'] ?? 'Unknown'}');
-    print('🎯 [INTEREST MATCH DEBUG] User 2 Interests: $user2Interests');
+    // print('🎯 [INTEREST MATCH DEBUG] Match Type: $matchType');
+    // print(
+    //     '🎯 [INTEREST MATCH DEBUG] Interest Similarity: ${(interestSimilarity * 100).toStringAsFixed(1)}%');
+    // print('🎯 [INTEREST MATCH DEBUG] User 1: ${user1?['userId'] ?? 'Unknown'}');
+    // print('🎯 [INTEREST MATCH DEBUG] User 1 Interests: $user1Interests');
+    // print('🎯 [INTEREST MATCH DEBUG] User 2: ${user2?['userId'] ?? 'Unknown'}');
+    // print('🎯 [INTEREST MATCH DEBUG] User 2 Interests: $user2Interests');
 
     // Show common interests
     if (user1Interests is List && user2Interests is List) {
@@ -1107,22 +1107,22 @@ class SocketService {
           .toList();
 
       if (commonInterests.isNotEmpty) {
-        print('🎯 [INTEREST MATCH DEBUG] Common Interests: $commonInterests');
+        // print('🎯 [INTEREST MATCH DEBUG] Common Interests: $commonInterests');
       } else {
-        print('🎯 [INTEREST MATCH DEBUG] No common interests found');
+        // print('🎯 [INTEREST MATCH DEBUG] No common interests found');
       }
     }
 
     if (matchType == 'interest-based') {
-      print(
-          '🎯 [INTEREST MATCH DEBUG] ⭐ SUCCESS: Users matched based on shared interests!');
+      // print(
+      //     '🎯 [INTEREST MATCH DEBUG] ⭐ SUCCESS: Users matched based on shared interests!');
     } else if (matchType == 'fallback') {
-      print(
-          '🎯 [INTEREST MATCH DEBUG] ⏰ FALLBACK: Users matched after preference window expired');
+      // print(
+      //     '🎯 [INTEREST MATCH DEBUG] ⏰ FALLBACK: Users matched after preference window expired');
     }
 
-    print(
-        '🎯 [INTEREST MATCH DEBUG] ===============================================');
+    // print(
+    //     '🎯 [INTEREST MATCH DEBUG] ===============================================');
 
     _matchController.add(data);
     _eventController.add(SocketEvent.matchFound);
@@ -1142,12 +1142,12 @@ class SocketService {
 
   // Handle random connection started event
   void _handleRandomConnectionStartedEvent(dynamic data) {
-    print('🚀 [SOCKET DEBUG] Random connection started event received');
-    print('   📦 Data type: ${data.runtimeType}');
-    print('   📦 Data: $data');
+    // print('🚀 [SOCKET DEBUG] Random connection started event received');
+    // print('   📦 Data type: ${data.runtimeType}');
+    // print('   📦 Data: $data');
 
     if (data == null) {
-      print('❌ [SOCKET DEBUG] Random connection started data is null');
+      // print('❌ [SOCKET DEBUG] Random connection started data is null');
       _errorController.add('Random connection started with null data');
       return;
     }
@@ -1165,9 +1165,9 @@ class SocketService {
 
   // Handle random chat event
   void _handleRandomChatEvent(dynamic data) {
-    print('🎉 [SOCKET DEBUG] Random chat event received!');
-    print('   📦 Data type: ${data.runtimeType}');
-    print('   📦 Raw data: $data');
+    // print('🎉 [SOCKET DEBUG] Random chat event received!');
+    // print('   📦 Data type: ${data.runtimeType}');
+    // print('   📦 Raw data: $data');
 
     // Extract and display match analytics if available
     if (data is Map<String, dynamic>) {
@@ -1177,22 +1177,22 @@ class SocketService {
       final user2Interests = data['user2Interests'];
 
       if (matchType != null) {
-        print(
-            '🎯 [INTEREST MATCH DEBUG] Chat started with match type: $matchType');
+        // print(
+        //     '🎯 [INTEREST MATCH DEBUG] Chat started with match type: $matchType');
         if (interestSimilarity != null) {
-          print(
-              '🎯 [INTEREST MATCH DEBUG] Interest similarity: ${(interestSimilarity * 100).toStringAsFixed(1)}%');
+          // print(
+          //     '🎯 [INTEREST MATCH DEBUG] Interest similarity: ${(interestSimilarity * 100).toStringAsFixed(1)}%');
         }
         if (user1Interests != null && user2Interests != null) {
-          print(
-              '🎯 [INTEREST MATCH DEBUG] User interests: $user1Interests vs $user2Interests');
+          // print(
+          //     '🎯 [INTEREST MATCH DEBUG] User interests: $user1Interests vs $user2Interests');
         }
       }
     }
 
     // Null safety check
     if (data == null) {
-      print('❌ [SOCKET DEBUG] Random chat event data is null');
+      // print('❌ [SOCKET DEBUG] Random chat event data is null');
       _errorController.add('Random chat event received null data');
       return;
     }
@@ -1205,30 +1205,30 @@ class SocketService {
       try {
         eventData = {'message': data};
       } catch (e) {
-        print('❌ [SOCKET DEBUG] Failed to parse random chat event data: $e');
+        // print('❌ [SOCKET DEBUG] Failed to parse random chat event data: $e');
         _errorController.add('Invalid random chat event format');
         return;
       }
     } else {
-      print(
-          '❌ [SOCKET DEBUG] Unexpected random chat event data type: ${data.runtimeType}');
+      // print(
+      //     '❌ [SOCKET DEBUG] Unexpected random chat event data type: ${data.runtimeType}');
       _errorController.add('Invalid random chat event data type');
       return;
     }
 
-    print('   🔍 Event type: ${eventData['event']}');
-    print('   📱 Session ID: ${eventData['sessionId']}');
-    print('   💬 Chat Room ID: ${eventData['chatRoomId']}');
+    // print('   🔍 Event type: ${eventData['event']}');
+    // print('   📱 Session ID: ${eventData['sessionId']}');
+    // print('   💬 Chat Room ID: ${eventData['chatRoomId']}');
 
     // Automatically join the chat room when random chat event is received
     if (eventData['chatRoomId'] != null) {
-      print(
-          '🔌 [SOCKET DEBUG] Auto-joining chat room: ${eventData['chatRoomId']}');
-      print('   📦 Event data: $eventData');
+      // print(
+      //     '🔌 [SOCKET DEBUG] Auto-joining chat room: ${eventData['chatRoomId']}');
+      // print('   📦 Event data: $eventData');
       joinChat(eventData['chatRoomId']);
     } else {
-      print('❌ [SOCKET DEBUG] No chatRoomId in random chat event data');
-      print('   📦 Available keys: ${eventData.keys.toList()}');
+      // print('❌ [SOCKET DEBUG] No chatRoomId in random chat event data');
+      // print('   📦 Available keys: ${eventData.keys.toList()}');
     }
 
     // Store the latest random chat event data
@@ -1249,7 +1249,7 @@ class SocketService {
 
   // Handle random chat timeout event
   void _handleRandomChatTimeoutEvent(Map<String, dynamic> data) {
-    print('⏰ [SOCKET DEBUG] Random chat timeout event received: $data');
+    // print('⏰ [SOCKET DEBUG] Random chat timeout event received: $data');
 
     // Extract timeout information
     final String reason = data['reason'] ?? 'time_limit_exceeded';
@@ -1257,9 +1257,9 @@ class SocketService {
     final String message =
         data['message'] ?? 'No match found. Please try again later.';
 
-    print('🚫 [TIMEOUT DEBUG] Timeout reason: $reason');
-    print('👤 [TIMEOUT DEBUG] Gender preference: $genderPreference');
-    print('💬 [TIMEOUT DEBUG] Message: $message');
+    // print('🚫 [TIMEOUT DEBUG] Timeout reason: $reason');
+    // print('👤 [TIMEOUT DEBUG] Gender preference: $genderPreference');
+    // print('💬 [TIMEOUT DEBUG] Message: $message');
 
     // Add enhanced timeout data
     final timeoutData = {
@@ -1278,12 +1278,12 @@ class SocketService {
 
   // Handle joined event
   void _handleJoinedEvent(dynamic data) {
-    print('✅ [SOCKET DEBUG] Join confirmed by backend');
-    print('   📦 Data type: ${data.runtimeType}');
-    print('   📦 Data: $data');
+    // print('✅ [SOCKET DEBUG] Join confirmed by backend');
+    // print('   📦 Data type: ${data.runtimeType}');
+    // print('   📦 Data: $data');
 
     if (data == null) {
-      print('⚠️ [SOCKET DEBUG] Joined event data is null (but this is OK)');
+      // print('⚠️ [SOCKET DEBUG] Joined event data is null (but this is OK)');
     }
 
     _eventController.add(SocketEvent.userJoined);
@@ -1291,14 +1291,14 @@ class SocketService {
 
   // Handle new message event
   void _handleNewMessageEvent(Map<String, dynamic> data) {
-    print('💬 [SOCKET DEBUG] New message event received');
-    print('   📦 Data: $data');
+    // print('💬 [SOCKET DEBUG] New message event received');
+    // print('   📦 Data: $data');
 
     try {
       // Extract message from nested data structure
       final messageData = data['message'];
       if (messageData == null) {
-        print('❌ [SOCKET DEBUG] Message data is null in new_message event');
+        // print('❌ [SOCKET DEBUG] Message data is null in new_message event');
         return;
       }
       
@@ -1306,30 +1306,30 @@ class SocketService {
       final senderId = message.senderId;
       final currentUserId = _getCurrentUserId();
 
-      print('   👤 Message from: $senderId');
-      print('   👤 Current user: $currentUserId');
-      print('   💬 Message content: ${message.content}');
+      // print('   👤 Message from: $senderId');
+      // print('   👤 Current user: $currentUserId');
+      // print('   💬 Message content: ${message.content}');
 
       // Don't show notification if this is our own message
       if (senderId == currentUserId) {
-        print('🔔 [SOCKET NOTIFICATION DEBUG] Skipping notification - own message');
+        // print('🔔 [SOCKET NOTIFICATION DEBUG] Skipping notification - own message');
         _messageController.add(message);
         return;
       }
 
       // Don't show notification if we're currently in a chat with this sender
       if (_currentChatWithUserId == senderId) {
-        print('🔔 [SOCKET NOTIFICATION DEBUG] Skipping notification - currently in chat with sender');
+        // print('🔔 [SOCKET NOTIFICATION DEBUG] Skipping notification - currently in chat with sender');
         _messageController.add(message);
         return;
       }
 
       // Add message to stream
       _messageController.add(message);
-      print('✅ [SOCKET DEBUG] Message added to stream for real-time update');
-      print('   📝 Message ID: ${message.id}');
-      print('   📝 Content: ${message.content}');
-      print('   📝 Sender: ${message.senderId}');
+      // print('✅ [SOCKET DEBUG] Message added to stream for real-time update');
+      // print('   📝 Message ID: ${message.id}');
+      // print('   📝 Content: ${message.content}');
+      // print('   📝 Sender: ${message.senderId}');
 
       // Get sender name for notification
       String senderName = 'Someone';
@@ -1346,55 +1346,55 @@ class SocketService {
           senderName = data['senderName'];
         }
       } catch (e) {
-        print('⚠️ [SOCKET DEBUG] Error getting sender name: $e');
+        // print('⚠️ [SOCKET DEBUG] Error getting sender name: $e');
       }
 
-      print('🔔 [SOCKET NOTIFICATION DEBUG] Preparing notification for: $senderName');
+      // print('🔔 [SOCKET NOTIFICATION DEBUG] Preparing notification for: $senderName');
 
       // Check if app is in foreground - only show in-app notification if app is active
       // Backend push notifications handle background notifications
       if (_notificationService.isAppInForeground) {
-        print(
-            '🔔 [SOCKET NOTIFICATION DEBUG] App in foreground - SKIPPING socket notification (Firebase will handle)');
-        print('   📍 Called from: _handleNewMessageEvent');
-        print('   📍 Message content: ${message.content}');
-        print('   📍 Message type: ${message.type}');
-        print('   📍 Is image message: ${message.type == MessageType.image}');
+        // print(
+        //     '🔔 [SOCKET NOTIFICATION DEBUG] App in foreground - SKIPPING socket notification (Firebase will handle)');
+        // print('   📍 Called from: _handleNewMessageEvent');
+        // print('   📍 Message content: ${message.content}');
+        // print('   📍 Message type: ${message.type}');
+        // print('   📍 Is image message: ${message.type == MessageType.image}');
         // Disabled socket notification when app is in foreground
         // Firebase push notifications will handle the notification instead
       } else {
-        print(
-            '🔔 [SOCKET NOTIFICATION DEBUG] App in background - backend push notification will handle this');
+        // print(
+        //     '🔔 [SOCKET NOTIFICATION DEBUG] App in background - backend push notification will handle this');
       }
 
-      print(
-          '✅ [SOCKET NOTIFICATION DEBUG] Notification service called successfully');
+      // print(
+      //     '✅ [SOCKET NOTIFICATION DEBUG] Notification service called successfully');
     } catch (e) {
-      print('❌ [SOCKET NOTIFICATION DEBUG] Error showing notification: $e');
-      print('   📦 Stack trace: ${e.toString()}');
+      // print('❌ [SOCKET NOTIFICATION DEBUG] Error showing notification: $e');
+      // print('   📦 Stack trace: ${e.toString()}');
     }
   }
 
   // Handle message sent event
   void _handleMessageSentEvent(dynamic data) async {
-    print('✅ [SOCKET DEBUG] _handleMessageSentEvent called');
-    print('   📦 Data: $data');
+    // print('✅ [SOCKET DEBUG] _handleMessageSentEvent called');
+    // print('   📦 Data: $data');
 
     try {
       if (data == null) {
-        print('❌ [SOCKET DEBUG] Message sent data is null');
+        // print('❌ [SOCKET DEBUG] Message sent data is null');
         return;
       }
 
       if (data is! Map<String, dynamic>) {
-        print(
-            '❌ [SOCKET DEBUG] Invalid message sent data type: ${data.runtimeType}');
+        // print(
+        //     '❌ [SOCKET DEBUG] Invalid message sent data type: ${data.runtimeType}');
         return;
       }
 
       final messageData = data['message'];
       if (messageData == null) {
-        print('❌ [SOCKET DEBUG] Message data is null in message sent event');
+        // print('❌ [SOCKET DEBUG] Message data is null in message sent event');
         return;
       }
 
@@ -1402,7 +1402,7 @@ class SocketService {
 
       // Check if we've already processed this message
       if (_processedMessageIds.contains(message.id)) {
-        print('⏭️ [SOCKET DEBUG] Skipping duplicate message: ${message.id}');
+        // print('⏭️ [SOCKET DEBUG] Skipping duplicate message: ${message.id}');
         return;
       }
 
@@ -1410,44 +1410,44 @@ class SocketService {
       final currentUser = await _getCurrentUser();
       final currentUserId = currentUser?['uid'];
 
-      print('🔍 [SOCKET DEBUG] Message sender: ${message.senderId}');
-      print('🔍 [SOCKET DEBUG] Current user: $currentUserId');
+      // print('🔍 [SOCKET DEBUG] Message sender: ${message.senderId}');
+      // print('🔍 [SOCKET DEBUG] Current user: $currentUserId');
 
       // Only add message if it's from the current user (confirmation)
       if (currentUserId != null && message.senderId == currentUserId) {
-        print(
-            '✅ [SOCKET DEBUG] Adding message from current user (confirmation)');
+        // print(
+        //     '✅ [SOCKET DEBUG] Adding message from current user (confirmation)');
         _processedMessageIds.add(message.id);
         _messageController.add(message);
         _eventController.add(SocketEvent.message);
       } else {
-        print(
-            '⏭️ [SOCKET DEBUG] Skipping message_sent event - not from current user');
+        // print(
+        //     '⏭️ [SOCKET DEBUG] Skipping message_sent event - not from current user');
       }
     } catch (e) {
-      print('❌ [SOCKET DEBUG] Error handling message sent event: $e');
-      print('   📦 Data that caused error: $data');
+      // print('❌ [SOCKET DEBUG] Error handling message sent event: $e');
+      // print('   📦 Data that caused error: $data');
     }
   }
 
   // Handle chat joined event
   void _handleChatJoinedEvent(dynamic data) {
-    print('🔌 [SOCKET DEBUG] _handleChatJoinedEvent called');
-    print('   📦 Data: $data');
+    // print('🔌 [SOCKET DEBUG] _handleChatJoinedEvent called');
+    // print('   📦 Data: $data');
     _eventController.add(SocketEvent.userJoined);
   }
 
   // Handle random chat session ended event
   void _handleRandomChatSessionEndedEvent(dynamic data) {
-    print('🚪 [SOCKET DEBUG] Random chat session ended event received');
-    print('   📦 Data: $data');
+    // print('🚪 [SOCKET DEBUG] Random chat session ended event received');
+    // print('   📦 Data: $data');
     _eventController.add(SocketEvent.randomChatSessionEnded);
   }
 
   // Handle random chat event received
   void _handleRandomChatEventReceived(dynamic data) {
-    print('🎯 [SOCKET DEBUG] Random chat event received');
-    print('   📦 Data: $data');
+    // print('🎯 [SOCKET DEBUG] Random chat event received');
+    // print('   📦 Data: $data');
     _eventController.add(SocketEvent.randomChatEvent);
   }
 
@@ -1475,7 +1475,7 @@ class SocketService {
   // Send join event with Firebase user data
   void _sendJoinEvent() async {
     try {
-      print('🔄 [SOCKET DEBUG] _sendJoinEvent called');
+      // print('🔄 [SOCKET DEBUG] _sendJoinEvent called');
       // Import Firebase Auth at the top if not already imported
       final user = await _getCurrentUser();
       if (user != null) {
@@ -1485,20 +1485,20 @@ class SocketService {
           'photoURL': user['photoURL'],
         };
 
-        print('📤 [SOCKET DEBUG] Sending join event');
-        print('   📦 Data: $joinData');
-        print('   👤 User ID: ${user['uid']}');
-        print('   🏷️ Display Name: ${user['displayName']}');
+        // print('📤 [SOCKET DEBUG] Sending join event');
+        // print('   📦 Data: $joinData');
+        // print('   👤 User ID: ${user['uid']}');
+        // print('   🏷️ Display Name: ${user['displayName']}');
 
         _sendToSocket({
           'event': 'join',
           'data': joinData,
         });
       } else {
-        print('❌ [SOCKET DEBUG] No Firebase user found for join event');
+        // print('❌ [SOCKET DEBUG] No Firebase user found for join event');
       }
     } catch (error) {
-      print('❌ [SOCKET DEBUG] Error sending join event: $error');
+      // print('❌ [SOCKET DEBUG] Error sending join event: $error');
     }
   }
 
@@ -1506,10 +1506,10 @@ class SocketService {
   Future<Map<String, dynamic>?> _getCurrentUser() async {
     try {
       final user = FirebaseAuth.FirebaseAuth.instance.currentUser;
-      print('🔍 [SOCKET DEBUG] Firebase Auth current user: ${user?.uid}');
-      print(
-          '🔍 [SOCKET DEBUG] Firebase Auth user display name: ${user?.displayName}');
-      print('🔍 [SOCKET DEBUG] Firebase Auth user email: ${user?.email}');
+      // print('🔍 [SOCKET DEBUG] Firebase Auth current user: ${user?.uid}');
+      // print(
+      //     '🔍 [SOCKET DEBUG] Firebase Auth user display name: ${user?.displayName}');
+      // print('🔍 [SOCKET DEBUG] Firebase Auth user email: ${user?.email}');
 
       if (user != null) {
         final userData = {
@@ -1517,13 +1517,13 @@ class SocketService {
           'displayName': user.displayName ?? 'User',
           'photoURL': user.photoURL,
         };
-        print('✅ [SOCKET DEBUG] Returning user data: $userData');
+        // print('✅ [SOCKET DEBUG] Returning user data: $userData');
         return userData;
       }
-      print('❌ [SOCKET DEBUG] No Firebase user found');
+      // print('❌ [SOCKET DEBUG] No Firebase user found');
       return null;
     } catch (error) {
-      print('❌ [SOCKET DEBUG] Error getting current user: $error');
+      // print('❌ [SOCKET DEBUG] Error getting current user: $error');
       return null;
     }
   }
