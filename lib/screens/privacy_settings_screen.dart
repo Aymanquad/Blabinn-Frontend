@@ -47,7 +47,7 @@ class _PrivacySettingsScreenState extends State<PrivacySettingsScreen> {
         setState(() {
           _blockedUsers = [];
         });
-        print('Warning: Failed to load blocked users: $e');
+        //print('Warning: Failed to load blocked users: $e');
       }
     } catch (e) {
       _showError('Failed to load privacy settings: $e');

@@ -60,9 +60,9 @@ class MediaFolderScreen extends StatefulWidget {
       await _saveImageMetadataStatic(fileName, 'received', timestamp,
           friendId: friendId, friendName: friendName, messageId: messageId, imageUrl: imageUrl);
 
-      print('✅ Received image saved successfully: $friendName -> $fileName');
+      //print('✅ Received image saved successfully: $friendName -> $fileName');
     } catch (e) {
-      print('Error saving received image: $e');
+      //print('Error saving received image: $e');
     }
   }
 
@@ -104,7 +104,7 @@ class MediaFolderScreen extends StatefulWidget {
 
       await metadataFile.writeAsString(json.encode(metadata));
     } catch (e) {
-      print('Error saving image metadata: $e');
+      //print('Error saving image metadata: $e');
     }
   }
 }
@@ -176,7 +176,7 @@ class _MediaFolderScreenState extends State<MediaFolderScreen>
         });
       }
     } catch (e) {
-      print('Error loading saved images: $e');
+      //print('Error loading saved images: $e');
     }
   }
 
@@ -218,7 +218,7 @@ class _MediaFolderScreenState extends State<MediaFolderScreen>
         }
       }
     } catch (e) {
-      print('Error loading received images: $e');
+      //print('Error loading received images: $e');
     }
   }
 
@@ -306,7 +306,7 @@ class _MediaFolderScreenState extends State<MediaFolderScreen>
 
       await metadataFile.writeAsString(json.encode(metadata));
     } catch (e) {
-      print('Error saving image metadata: $e');
+      //print('Error saving image metadata: $e');
     }
   }
 
@@ -340,7 +340,7 @@ class _MediaFolderScreenState extends State<MediaFolderScreen>
         }
       }
     } catch (e) {
-      print('Error removing image metadata: $e');
+      //print('Error removing image metadata: $e');
     }
   }
 

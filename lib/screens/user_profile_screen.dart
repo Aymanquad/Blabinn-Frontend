@@ -50,7 +50,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       } else {
         // Otherwise fetch from API
         final userData = await _apiService.getUserProfile(widget.userId);
-        print('DEBUG: Received user data: $userData'); // Debug log
+        //print('DEBUG: Received user data: $userData'); // Debug log
         setState(() {
           _userData = userData;
           _isLoading = false;
@@ -86,7 +86,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
             _userData!['profilePictures'].map((pic) => pic['url']));
       }
     } catch (e) {
-      print('Failed to load user gallery: $e');
+      //print('Failed to load user gallery: $e');
       // Don't show error for gallery, it's optional
     } finally {
       setState(() {
@@ -103,7 +103,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       });
     } catch (e) {
       // Connection status is optional, don't show error
-      print('Failed to load connection status: $e');
+      //print('Failed to load connection status: $e');
     }
   }
 
@@ -814,7 +814,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       }
       return 'Unknown';
     } catch (e) {
-      print('DEBUG: Error parsing createdAt: $e');
+      //print('DEBUG: Error parsing createdAt: $e');
       return 'Unknown';
     }
   }

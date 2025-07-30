@@ -62,7 +62,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           _currentUser = updatedUser;
           _isLoading = false;
         });
-        print('✅ Profile loaded successfully for user');
+        //print('✅ Profile loaded successfully for user');
       } else {
         // Fall back to cached user if API fails
         setState(() {
@@ -71,7 +71,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         });
       }
     } catch (e) {
-      print('❌ Error loading profile: $e');
+      //print('❌ Error loading profile: $e');
       // Fall back to cached user if API fails
       setState(() {
         _currentUser = _authService.currentUser;

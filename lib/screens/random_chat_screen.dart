@@ -71,14 +71,14 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
 
     // Listen for socket events (including session end events)
     _socketService.eventStream.listen((event) {
-      print('📡 [RANDOM CHAT DEBUG] Socket event received: $event');
+      //print('📡 [RANDOM CHAT DEBUG] Socket event received: $event');
       switch (event) {
         case SocketEvent.randomChatSessionEnded:
-          print('🚪 [RANDOM CHAT DEBUG] Session ended by other user');
+          //print('🚪 [RANDOM CHAT DEBUG] Session ended by other user');
           _handlePartnerEndedSession();
           break;
         case SocketEvent.randomChatEvent:
-          print('🎯 [RANDOM CHAT DEBUG] Random chat event received');
+          //print('🎯 [RANDOM CHAT DEBUG] Random chat event received');
           // Handle other random chat events if needed
           break;
         default:
@@ -90,18 +90,18 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
   void _joinChatRoom() {
     try {
       _socketService.joinChat(widget.chatRoomId);
-      print('🔌 [RANDOM CHAT DEBUG] Joined chat room: ${widget.chatRoomId}');
+      //print('🔌 [RANDOM CHAT DEBUG] Joined chat room: ${widget.chatRoomId}');
     } catch (e) {
-      print('❌ [RANDOM CHAT DEBUG] Failed to join chat room: $e');
+      //print('❌ [RANDOM CHAT DEBUG] Failed to join chat room: $e');
     }
   }
 
   void _leaveChatRoom() {
     try {
       _socketService.leaveChat(widget.chatRoomId);
-      print('🚪 [RANDOM CHAT DEBUG] Left chat room: ${widget.chatRoomId}');
+      //print('🚪 [RANDOM CHAT DEBUG] Left chat room: ${widget.chatRoomId}');
     } catch (e) {
-      print('❌ [RANDOM CHAT DEBUG] Failed to leave chat room: $e');
+      //print('❌ [RANDOM CHAT DEBUG] Failed to leave chat room: $e');
     }
   }
 
@@ -123,17 +123,17 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
     try {
       final user = FirebaseAuth.FirebaseAuth.instance.currentUser;
       currentUserId = user?.uid;
-      print('🔍 [RANDOM CHAT DEBUG] Current user ID: $currentUserId');
-      print('🔍 [RANDOM CHAT DEBUG] Message sender ID: $messageSenderId');
+      //print('🔍 [RANDOM CHAT DEBUG] Current user ID: $currentUserId');
+      //print('🔍 [RANDOM CHAT DEBUG] Message sender ID: $messageSenderId');
     } catch (e) {
-      print('❌ [RANDOM CHAT DEBUG] Error getting current user: $e');
+      //print('❌ [RANDOM CHAT DEBUG] Error getting current user: $e');
     }
 
     // Check if this is a message from the current user
     final isFromCurrentUser =
         currentUserId != null && messageSenderId == currentUserId;
 
-    print('🔍 [RANDOM CHAT DEBUG] Is from current user: $isFromCurrentUser');
+    //print('🔍 [RANDOM CHAT DEBUG] Is from current user: $isFromCurrentUser');
 
     // Check if we have a temporary message with the same content from current user
     final tempMessageIndex = _messages.indexWhere((msg) =>
@@ -143,7 +143,7 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
 
     if (tempMessageIndex != -1 && isFromCurrentUser) {
       // Replace temporary message with real message
-      print(
+      //print(
           '🔄 [RANDOM CHAT DEBUG] Replacing temp message with real message: $messageId');
       setState(() {
         _messages[tempMessageIndex] = {
@@ -160,7 +160,7 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
           _messages.indexWhere((msg) => msg['id'] == messageId);
 
       if (existingMessageIndex != -1) {
-        print(
+        //print(
             '⏭️ [RANDOM CHAT DEBUG] Message already in UI, skipping: $messageId');
         return;
       }
@@ -178,7 +178,7 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
 
       _scrollToBottom();
 
-      print(
+      //print(
           '✅ [RANDOM CHAT DEBUG] Added new message to UI: $messageContent (from current user: $isFromCurrentUser)');
     }
   }
@@ -197,7 +197,7 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
   void _handlePartnerEndedSession() {
     if (!mounted || !_isSessionActive) return;
 
-    print('🚪 [RANDOM CHAT DEBUG] Partner ended session, handling locally');
+    //print('🚪 [RANDOM CHAT DEBUG] Partner ended session, handling locally');
 
     setState(() {
       _isSessionActive = false;
@@ -269,7 +269,7 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
 
       _scrollToBottom();
 
-      print('📤 [RANDOM CHAT DEBUG] Added optimistic message to UI: $content');
+      //print('📤 [RANDOM CHAT DEBUG] Added optimistic message to UI: $content');
 
       _messageController.clear();
 
@@ -296,7 +296,7 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
     });
 
     try {
-      print('🚪 [RANDOM CHAT DEBUG] Ending session with reason: $reason');
+      //print('🚪 [RANDOM CHAT DEBUG] Ending session with reason: $reason');
 
       // End session via socket (this will notify both users)
       await _socketService.endRandomChatSession(widget.sessionId, reason);
@@ -307,7 +307,7 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
       // Show end session dialog
       _showSessionEndDialog(reason);
     } catch (e) {
-      print('❌ [RANDOM CHAT DEBUG] Error ending session: $e');
+      //print('❌ [RANDOM CHAT DEBUG] Error ending session: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Error ending session: ${e.toString()}'),

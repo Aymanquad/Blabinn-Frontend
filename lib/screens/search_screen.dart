@@ -50,8 +50,8 @@ class _SearchScreenState extends State<SearchScreen> {
         'limit': 20,
       });
 
-      print('🔍 DEBUG: Search results received: ${results.length} users');
-      print('🔍 DEBUG: Current user ID: $currentUserId');
+      //print('🔍 DEBUG: Search results received: ${results.length} users');
+      //print('🔍 DEBUG: Current user ID: $currentUserId');
       
       // Filter out current user from results
       final filteredResults = results.where((user) {
@@ -59,7 +59,7 @@ class _SearchScreenState extends State<SearchScreen> {
         return userId != currentUserId;
       }).toList();
 
-      print('🔍 DEBUG: Filtered results: ${filteredResults.length} users (removed current user)');
+      //print('🔍 DEBUG: Filtered results: ${filteredResults.length} users (removed current user)');
       
       // Check connection status for each user
       final resultsWithStatus = <Map<String, dynamic>>[];
@@ -69,12 +69,12 @@ class _SearchScreenState extends State<SearchScreen> {
           final connectionStatus = await _apiService.getConnectionStatus(userId);
           user['connectionStatus'] = connectionStatus['status'] ?? 'none';
           user['connectionType'] = connectionStatus['type'] ?? 'none';
-          print('🔍 DEBUG: User ${user['username']} - Connection status: ${user['connectionStatus']}');
+          //print('🔍 DEBUG: User ${user['username']} - Connection status: ${user['connectionStatus']}');
         } catch (e) {
           // If connection status check fails, assume no connection
           user['connectionStatus'] = 'none';
           user['connectionType'] = 'none';
-          print('🔍 DEBUG: Failed to get connection status for ${user['username']}: $e');
+          //print('🔍 DEBUG: Failed to get connection status for ${user['username']}: $e');
         }
         resultsWithStatus.add(user);
       }
@@ -85,7 +85,7 @@ class _SearchScreenState extends State<SearchScreen> {
         _hasSearched = true;
       });
     } catch (e) {
-      print('❌ ERROR: Search failed: $e');
+      //print('❌ ERROR: Search failed: $e');
       setState(() {
         _errorMessage = 'Failed to search: ${e.toString()}';
         _isLoading = false;
@@ -96,7 +96,7 @@ class _SearchScreenState extends State<SearchScreen> {
 
   Future<void> _sendFriendRequest(String targetUserId) async {
     try {
-      print('🔍 DEBUG: Sending friend request to user: $targetUserId');
+      //print('🔍 DEBUG: Sending friend request to user: $targetUserId');
 
       if (targetUserId.isEmpty) {
         throw Exception('Invalid user ID: User ID cannot be empty');
@@ -113,7 +113,7 @@ class _SearchScreenState extends State<SearchScreen> {
         );
       }
     } catch (e) {
-      print('❌ ERROR: Failed to send friend request: $e');
+      //print('❌ ERROR: Failed to send friend request: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

@@ -80,7 +80,7 @@ class _SplashScreenState extends State<SplashScreen>
         hasCompletedProfile = userProvider.currentUser!.hasCompletedProfile;
       }
     } catch (e) {
-      print('UserProvider initialization failed: $e');
+      //print('UserProvider initialization failed: $e');
     }
 
     // Start logo animation
