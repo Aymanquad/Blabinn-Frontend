@@ -31,7 +31,7 @@ class UserProvider with ChangeNotifier {
   // Load current user
   Future<void> _loadCurrentUser() async {
     _currentUser = _authService.currentUser;
-    
+
     // If user exists, try to fetch complete profile data from backend
     if (_currentUser != null) {
       try {
@@ -41,11 +41,11 @@ class UserProvider with ChangeNotifier {
           _currentUser = User.fromJson(profileData['profile']);
         }
       } catch (e) {
-        print('Failed to load complete profile data: $e');
+        // print('Failed to load complete profile data: $e');
         // Keep the basic user data from AuthService if profile fetch fails
       }
     }
-    
+
     notifyListeners();
   }
 
@@ -122,11 +122,11 @@ class UserProvider with ChangeNotifier {
 
   // Logout
   Future<void> logout() async {
-      await _authService.logout();
-      _currentUser = null;
-      _friends.clear();
-      _blockedUsers.clear();
-      notifyListeners();
+    await _authService.logout();
+    _currentUser = null;
+    _friends.clear();
+    _blockedUsers.clear();
+    notifyListeners();
   }
 
   // Update profile
@@ -156,7 +156,7 @@ class UserProvider with ChangeNotifier {
       notifyListeners();
     } catch (e) {
       // Don't set error for friends loading failure
-      print('Failed to load friends: $e');
+      // print('Failed to load friends: $e');
     }
   }
 
@@ -164,11 +164,12 @@ class UserProvider with ChangeNotifier {
   Future<void> _loadBlockedUsers() async {
     try {
       final blockedUsersData = await _apiService.getBlockedUsers();
-      _blockedUsers = blockedUsersData.map((data) => User.fromJson(data)).toList();
+      _blockedUsers =
+          blockedUsersData.map((data) => User.fromJson(data)).toList();
       notifyListeners();
     } catch (e) {
       // Don't set error for blocked users loading failure
-      print('Failed to load blocked users: $e');
+      // print('Failed to load blocked users: $e');
     }
   }
 
@@ -246,21 +247,25 @@ class UserProvider with ChangeNotifier {
   }
 
   // Profile completion
-  bool get hasProfileImage => _currentUser != null && _currentUser!.profileImage != null;
-  bool get hasCompletedProfile => _currentUser != null && _currentUser!.username.isNotEmpty;
+  bool get hasProfileImage =>
+      _currentUser != null && _currentUser!.profileImage != null;
+  bool get hasCompletedProfile =>
+      _currentUser != null && _currentUser!.username.isNotEmpty;
 
   double get profileCompletionPercentage {
     if (_currentUser == null) return 0.0;
-    
+
     int totalFields = 5;
     int completedFields = 0;
-    
+
     if (_currentUser!.username.isNotEmpty) completedFields++;
-    if (_currentUser!.email != null && _currentUser!.email!.isNotEmpty) completedFields++;
-    if (_currentUser!.bio != null && _currentUser!.bio!.isNotEmpty) completedFields++;
+    if (_currentUser!.email != null && _currentUser!.email!.isNotEmpty)
+      completedFields++;
+    if (_currentUser!.bio != null && _currentUser!.bio!.isNotEmpty)
+      completedFields++;
     if (_currentUser!.profileImage != null) completedFields++;
     if (_currentUser!.interests.isNotEmpty) completedFields++;
-    
+
     return completedFields / totalFields;
   }
 
@@ -273,8 +278,8 @@ class UserProvider with ChangeNotifier {
           latitude: latitude,
           longitude: longitude,
         );
-    notifyListeners();
-  }
+        notifyListeners();
+      }
     } catch (e) {
       setError('Failed to update location: $e');
     }
@@ -303,7 +308,8 @@ class UserProvider with ChangeNotifier {
     return username.length >= 3;
   }
 
-  List<String> getRegistrationErrors(String username, String email, String password) {
+  List<String> getRegistrationErrors(
+      String username, String email, String password) {
     List<String> errors = [];
     if (!isValidUsername(username)) {
       errors.add('Username must be at least 3 characters long');
@@ -363,4 +369,4 @@ class UserProvider with ChangeNotifier {
       setError('Failed to update settings: $e');
     }
   }
-} 
+}

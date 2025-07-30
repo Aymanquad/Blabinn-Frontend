@@ -17,7 +17,7 @@ class ThemeProvider extends ChangeNotifier {
       _isDarkMode = prefs.getBool(_themeKey) ?? false;
       notifyListeners();
     } catch (e) {
-      print('Error loading theme mode: $e');
+      // print('Error loading theme mode: $e');
     }
   }
 
@@ -28,7 +28,7 @@ class ThemeProvider extends ChangeNotifier {
       await prefs.setBool(_themeKey, _isDarkMode);
       notifyListeners();
     } catch (e) {
-      print('Error saving theme mode: $e');
+      // print('Error saving theme mode: $e');
     }
   }
 
@@ -40,7 +40,7 @@ class ThemeProvider extends ChangeNotifier {
         await prefs.setBool(_themeKey, _isDarkMode);
         notifyListeners();
       } catch (e) {
-        print('Error saving theme mode: $e');
+        // print('Error saving theme mode: $e');
       }
     }
   }
