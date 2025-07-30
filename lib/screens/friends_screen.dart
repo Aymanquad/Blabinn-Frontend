@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../core/constants.dart';
 import '../services/api_service.dart';
+import '../providers/theme_provider.dart';
+import '../models/chat.dart';
+import '../screens/chat_screen.dart';
 
 class FriendsScreen extends StatefulWidget {
   const FriendsScreen({super.key});
@@ -38,6 +42,37 @@ class _FriendsScreenState extends State<FriendsScreen> {
         _errorMessage = 'Failed to load friends: ${e.toString()}';
         _isLoading = false;
       });
+    }
+  }
+
+  Future<void> _openChatWithFriend(Map<String, dynamic> friend) async {
+    try {
+      final currentUserId = await _apiService.getCurrentUserId();
+      if (currentUserId == null) {
+        throw Exception('User not logged in');
+      }
+
+      // Create a chat object for the friend
+      final chat = Chat.friend(
+        id: friend['uid'] ?? friend['id'],
+        name: friend['displayName'] ?? friend['username'] ?? 'Unknown',
+        participantIds: [currentUserId, friend['uid'] ?? friend['id']],
+      );
+
+      // Navigate to chat screen
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => ChatScreen(chat: chat),
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to open chat: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
@@ -173,13 +208,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
               onSelected: (value) {
                 switch (value) {
                   case 'chat':
-                    // TODO: Navigate to chat
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Chat feature coming soon!'),
-                        backgroundColor: AppColors.primary,
-                      ),
-                    );
+                    _openChatWithFriend(friend);
                     break;
                   case 'profile':
                     final userId = friend['uid'] ?? friend['id'];

@@ -4,6 +4,8 @@ import '../core/constants.dart';
 import '../services/api_service.dart';
 import '../providers/theme_provider.dart';
 import '../widgets/full_screen_image_viewer.dart';
+import '../models/chat.dart';
+import '../screens/chat_screen.dart';
 
 class UserProfileScreen extends StatefulWidget {
   final String userId;
@@ -135,12 +137,11 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   Future<void> _removeFriend() async {
     try {
       await _apiService.removeFriend(widget.userId);
-
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Friend removed'),
-            backgroundColor: Colors.orange,
+            content: Text('Friend removed successfully!'),
+            backgroundColor: Colors.green,
           ),
         );
         await _loadConnectionStatus(); // Refresh status
@@ -150,6 +151,58 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Failed to remove friend: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  void _navigateToChat() async {
+    if (_userData == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Unable to open chat: User data not available'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    try {
+      // Get current user ID
+      final currentUserId = await _apiService.getCurrentUserId();
+      if (currentUserId == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Please log in to send messages'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+
+      // Create a Chat object for friend chat
+      final chat = Chat.friend(
+        id: widget.userId, // Use the user ID as chat ID
+        name: _userData!['displayName'] ?? 'Unknown User',
+        participantIds: [currentUserId, widget.userId],
+      );
+
+      // Navigate to chat screen
+      if (mounted) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ChatScreen(chat: chat),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to open chat: ${e.toString()}'),
             backgroundColor: Colors.red,
           ),
         );
@@ -255,15 +308,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
           children: [
             Expanded(
               child: ElevatedButton.icon(
-                onPressed: () {
-                  // TODO: Navigate to chat
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Chat feature coming soon!'),
-                      backgroundColor: AppColors.primary,
-                    ),
-                  );
-                },
+                onPressed: _navigateToChat,
                 icon: const Icon(Icons.chat),
                 label: const Text('Message'),
                 style: ElevatedButton.styleFrom(
@@ -945,16 +990,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
             title: const Text('Send Message'),
             onTap: () {
               Navigator.pop(context);
-              // Navigate to chat with this user
-              // You'll need to implement proper chat navigation
-              // For now, show a placeholder message
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(
-                      'Opening chat with ${_userData?['displayName'] ?? 'user'}...'),
-                  backgroundColor: AppColors.primary,
-                ),
-              );
+              _navigateToChat();
             },
           ),
           ListTile(

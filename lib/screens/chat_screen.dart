@@ -68,7 +68,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
   Future<void> _initializeCurrentUser() async {
     _currentUserId = await _apiService.getCurrentUserId();
-    print('🔍 DEBUG: Current user ID set to: $_currentUserId');
+    // print('🔍 DEBUG: Current user ID set to: $_currentUserId');
 
     // Get friend ID for this chat
     if (widget.chat.isFriendChat) {
@@ -79,26 +79,26 @@ class _ChatScreenState extends State<ChatScreen> {
         _friendId = widget.chat.id;
       }
     }
-    print('🔍 DEBUG: Friend ID set to: $_friendId');
+    // print('🔍 DEBUG: Friend ID set to: $_friendId');
   }
 
   Future<void> _connectToRealtimeChat() async {
-    print('🔌 DEBUG: Connecting to socket service...');
+    // print('🔌 DEBUG: Connecting to socket service...');
     final authService = FirebaseAuthService();
     final user = authService.currentUser;
     if (user != null) {
       final token = await user.getIdToken();
       if (token != null) {
         await _socketService.connect(token);
-        
+
         // Join the appropriate chat room for friend chats
         if (widget.chat.isFriendChat && _friendId != null) {
-          print('🔌 DEBUG: Joining friend chat room with friendId: $_friendId');
+          // print('🔌 DEBUG: Joining friend chat room with friendId: $_friendId');
           await _socketService.joinChat(_friendId!);
-          
+
           // Set current chat user to prevent notifications from this friend
           _socketService.setCurrentChatUser(_friendId);
-          print('🔔 DEBUG: Set current chat user to: $_friendId');
+          // print('🔔 DEBUG: Set current chat user to: $_friendId');
         }
       }
     }
@@ -107,7 +107,7 @@ class _ChatScreenState extends State<ChatScreen> {
   void _setupRealtimeListeners() {
     // Listen for incoming messages
     _messageSubscription = _socketService.messageStream.listen((message) {
-      print('💬 DEBUG: Received real-time message: ${message.content}');
+      // print('💬 DEBUG: Received real-time message: ${message.content}');
 
       // Add the message if it's for this chat (either from friend or current user)
       if (widget.chat.isFriendChat &&
@@ -119,7 +119,7 @@ class _ChatScreenState extends State<ChatScreen> {
           setState(() {
             _messages.add(message);
             _messages.sort((a, b) => a.timestamp.compareTo(b.timestamp));
-            
+
             // Update pagination state if we have more than 50 messages
             // This ensures we maintain the "recent 50" concept
             if (_messages.length > 50) {
@@ -140,10 +140,10 @@ class _ChatScreenState extends State<ChatScreen> {
     _errorSubscription = _socketService.eventStream.listen((event) {
       switch (event) {
         case SocketEvent.message:
-          print('📨 DEBUG: New message event received');
+          // print('📨 DEBUG: New message event received');
           break;
         case SocketEvent.error:
-          print('🚨 DEBUG: Socket error event');
+          // print('🚨 DEBUG: Socket error event');
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text('Connection error occurred'),
@@ -152,7 +152,7 @@ class _ChatScreenState extends State<ChatScreen> {
           );
           break;
         case SocketEvent.disconnect:
-          print('🔌 DEBUG: Socket disconnected');
+          // print('🔌 DEBUG: Socket disconnected');
           break;
         default:
           break;
@@ -164,12 +164,12 @@ class _ChatScreenState extends State<ChatScreen> {
   void dispose() {
     // Leave the chat room when disposing
     if (widget.chat.isFriendChat && _friendId != null) {
-      print('🔌 DEBUG: Leaving friend chat room with friendId: $_friendId');
+      // print('🔌 DEBUG: Leaving friend chat room with friendId: $_friendId');
       _socketService.leaveChat(_friendId!);
-      
+
       // Clear current chat user to resume notifications from this friend
       _socketService.clearCurrentChatUser();
-      print('🔔 DEBUG: Cleared current chat user on exit');
+      // print('🔔 DEBUG: Cleared current chat user on exit');
     }
 
     _messageController.dispose();
@@ -191,14 +191,14 @@ class _ChatScreenState extends State<ChatScreen> {
     });
 
     try {
-      print('🔍 DEBUG: _loadChatHistory() called');
+      // print('🔍 DEBUG: _loadChatHistory() called');
       Map<String, dynamic> response;
 
       // Check if this is a friend chat (direct messaging)
       if (widget.chat.isFriendChat) {
         // Use direct friend messaging API
         final currentUserId = await _apiService.getCurrentUserId();
-        print('🔍 DEBUG: Current user ID: $currentUserId');
+        // print('🔍 DEBUG: Current user ID: $currentUserId');
 
         if (currentUserId == null) {
           throw Exception('User not logged in');
@@ -212,23 +212,23 @@ class _ChatScreenState extends State<ChatScreen> {
           friendId = widget.chat.id;
         }
 
-        print('🔍 DEBUG: Friend ID: $friendId');
+        // print('🔍 DEBUG: Friend ID: $friendId');
 
         if (friendId == null || friendId.isEmpty) {
           throw Exception('Invalid friend ID');
         }
 
-        print(
-            '🔍 DEBUG: Calling getChatHistoryWithUser with friendId: $friendId');
+        // print(
+        //     '🔍 DEBUG: Calling getChatHistoryWithUser with friendId: $friendId');
         response = await _apiService.getChatHistoryWithUser(friendId!);
-        print('🔍 DEBUG: Chat history response: $response');
-        
+        // print('🔍 DEBUG: Chat history response: $response');
+
         // Check if there are more messages to load
         final hasMore = response['hasMore'] as bool? ?? false;
         final nextCursor = response['nextCursor'] as String?;
-        
-        print('🔍 DEBUG: Pagination info - hasMore: $hasMore, nextCursor: $nextCursor');
-        
+
+        // print('🔍 DEBUG: Pagination info - hasMore: $hasMore, nextCursor: $nextCursor');
+
         // Set pagination state BEFORE processing messages
         setState(() {
           _hasMoreMessages = hasMore;
@@ -240,51 +240,51 @@ class _ChatScreenState extends State<ChatScreen> {
       }
 
       final messagesData = response['messages'] as List;
-      print('🔍 DEBUG: Found ${messagesData.length} messages in history');
+      // print('🔍 DEBUG: Found ${messagesData.length} messages in history');
 
       setState(() {
         try {
           // Sort messages by timestamp (oldest first for chat display)
-          print('🔍 DEBUG: Parsing ${messagesData.length} messages...');
+          // print('🔍 DEBUG: Parsing ${messagesData.length} messages...');
           final messages = <Message>[];
 
           for (int i = 0; i < messagesData.length; i++) {
             try {
               final message = Message.fromJson(messagesData[i]);
               messages.add(message);
-              print('🔍 DEBUG: Parsed message ${i + 1}: ${message.content}');
+              // print('🔍 DEBUG: Parsed message ${i + 1}: ${message.content}');
             } catch (e) {
-              print('🚨 DEBUG: Error parsing message ${i + 1}: $e');
-              print('🚨 DEBUG: Message data: ${messagesData[i]}');
+              // print('🚨 DEBUG: Error parsing message ${i + 1}: $e');
+              // print('🚨 DEBUG: Message data: ${messagesData[i]}');
             }
           }
 
           messages.sort((a, b) => a.timestamp.compareTo(b.timestamp));
           _messages = messages;
           _isLoading = false;
-          print('🔍 DEBUG: Successfully parsed ${messages.length} messages');
-          
+          // print('🔍 DEBUG: Successfully parsed ${messages.length} messages');
+
           // Ensure pagination state is correct after loading messages
           if (_messages.isNotEmpty) {
-            // If we have exactly 50 messages and hasMore is true, 
+            // If we have exactly 50 messages and hasMore is true,
             // we know there are more messages to load
             if (_messages.length == 50 && _hasMoreMessages) {
               _earliestMessageId = _messages.first.id;
             }
           }
         } catch (e) {
-          print('🚨 DEBUG: Error in message parsing: $e');
+          // print('🚨 DEBUG: Error in message parsing: $e');
           _isLoading = false;
         }
       });
 
-      print('🔍 DEBUG: Set ${_messages.length} messages in state');
+      // print('🔍 DEBUG: Set ${_messages.length} messages in state');
       // Scroll to bottom after loading messages
       _scrollToBottom();
       // After loading messages, check for last friend image
       _checkAndSaveLastFriendImage();
     } catch (e) {
-      print('🚨 DEBUG: _loadChatHistory error: $e');
+      // print('🚨 DEBUG: _loadChatHistory error: $e');
       setState(() {
         _errorMessage = 'Failed to load chat history: ${e.toString()}';
         _isLoading = false;
@@ -302,15 +302,15 @@ class _ChatScreenState extends State<ChatScreen> {
     });
 
     try {
-      print('🔍 DEBUG: Loading earlier messages with cursor: $_earliestMessageId');
-      
+      // print('🔍 DEBUG: Loading earlier messages with cursor: $_earliestMessageId');
+
       final response = await _apiService.getChatHistoryWithUser(
         _friendId!,
         beforeMessageId: _earliestMessageId,
       );
 
       final messagesData = response['messages'] as List;
-      print('🔍 DEBUG: Loaded ${messagesData.length} earlier messages');
+      // print('🔍 DEBUG: Loaded ${messagesData.length} earlier messages');
 
       final earlierMessages = <Message>[];
       for (int i = 0; i < messagesData.length; i++) {
@@ -318,7 +318,7 @@ class _ChatScreenState extends State<ChatScreen> {
           final message = Message.fromJson(messagesData[i]);
           earlierMessages.add(message);
         } catch (e) {
-          print('🚨 DEBUG: Error parsing earlier message ${i + 1}: $e');
+          // print('🚨 DEBUG: Error parsing earlier message ${i + 1}: $e');
         }
       }
 
@@ -328,24 +328,24 @@ class _ChatScreenState extends State<ChatScreen> {
       setState(() {
         // Insert earlier messages at the beginning
         _messages.insertAll(0, earlierMessages);
-        
+
         // Update pagination state
         final hasMore = response['hasMore'] as bool? ?? false;
         final nextCursor = response['nextCursor'] as String?;
-        
-        print('🔍 DEBUG: Updated pagination - hasMore: $hasMore, nextCursor: $nextCursor');
-        
+
+        // print('🔍 DEBUG: Updated pagination - hasMore: $hasMore, nextCursor: $nextCursor');
+
         _hasMoreMessages = hasMore;
         _earliestMessageId = nextCursor;
         _isLoadingEarlier = false;
-        
+
         // Ensure the list is still properly sorted after inserting earlier messages
         _messages.sort((a, b) => a.timestamp.compareTo(b.timestamp));
       });
 
-      print('🔍 DEBUG: Total messages after loading earlier: ${_messages.length}');
+      // print('🔍 DEBUG: Total messages after loading earlier: ${_messages.length}');
     } catch (e) {
-      print('🚨 DEBUG: Error loading earlier messages: $e');
+      // print('🚨 DEBUG: Error loading earlier messages: $e');
       setState(() {
         _isLoadingEarlier = false;
       });
@@ -386,7 +386,7 @@ class _ChatScreenState extends State<ChatScreen> {
     if (messageContent.isEmpty || _isSending) return;
 
     if (_friendId == null) {
-      print('❌ DEBUG: Cannot send message - friendId is null');
+      // print('❌ DEBUG: Cannot send message - friendId is null');
       return;
     }
 
@@ -395,9 +395,9 @@ class _ChatScreenState extends State<ChatScreen> {
     });
 
     try {
-      print('📤 DEBUG: Sending message via real-time service');
-      print('📤 DEBUG: Friend ID: $_friendId');
-      print('📤 DEBUG: Message content: $messageContent');
+      // print('📤 DEBUG: Sending message via real-time service');
+      // print('📤 DEBUG: Friend ID: $_friendId');
+      // print('📤 DEBUG: Message content: $messageContent');
 
       // Send message via socket service
       await _socketService.sendFriendMessage(_friendId!, messageContent);
@@ -411,7 +411,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
       // The message will be received via socket and added to the UI automatically
     } catch (e) {
-      print('🚨 DEBUG: Error sending message: $e');
+      // print('🚨 DEBUG: Error sending message: $e');
       setState(() {
         _isSending = false;
       });
@@ -441,7 +441,7 @@ class _ChatScreenState extends State<ChatScreen> {
     // Send typing indicator via real-time service
     if (_friendId != null) {
       // Note: Typing indicator functionality can be added to SocketService if needed
-      print('🔄 DEBUG: Typing indicator - would send to $_friendId');
+      // print('🔄 DEBUG: Typing indicator - would send to $_friendId');
     }
   }
 
@@ -455,7 +455,7 @@ class _ChatScreenState extends State<ChatScreen> {
       // Stop typing indicator via real-time service
       if (_friendId != null) {
         // Note: Stop typing indicator functionality can be added to SocketService if needed
-        print('🔄 DEBUG: Stop typing indicator - would send to $_friendId');
+        // print('🔄 DEBUG: Stop typing indicator - would send to $_friendId');
       }
     });
   }
@@ -643,7 +643,7 @@ class _ChatScreenState extends State<ChatScreen> {
         if (index == 0 && _hasMoreMessages) {
           return _buildLoadEarlierButton();
         }
-        
+
         // Adjust index for messages (subtract 1 if we have the load button)
         final messageIndex = _hasMoreMessages ? index - 1 : index;
         final message = _messages[messageIndex];
@@ -662,13 +662,13 @@ class _ChatScreenState extends State<ChatScreen> {
       child: Center(
         child: ElevatedButton.icon(
           onPressed: _isLoadingEarlier ? null : _loadEarlierMessages,
-          icon: _isLoadingEarlier 
-            ? const SizedBox(
-                width: 16,
-                height: 16,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              )
-            : const Icon(Icons.keyboard_arrow_up),
+          icon: _isLoadingEarlier
+              ? const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Icon(Icons.keyboard_arrow_up),
           label: Text(
             _isLoadingEarlier ? 'Loading...' : 'Load Earlier Messages',
             style: const TextStyle(fontSize: 14),
@@ -769,7 +769,7 @@ class _ChatScreenState extends State<ChatScreen> {
     }
 
     try {
-      print('📸 DEBUG: Starting camera capture');
+      // print('📸 DEBUG: Starting camera capture');
 
       // Request camera permission
       final status = await Permission.camera.request();
@@ -813,7 +813,7 @@ class _ChatScreenState extends State<ChatScreen> {
         await _showImageConfirmation(File(image.path));
       }
     } catch (e) {
-      print('❌ DEBUG: Camera capture error: $e');
+      // print('❌ DEBUG: Camera capture error: $e');
       _showError('Failed to take photo: $e');
     }
   }
@@ -826,7 +826,7 @@ class _ChatScreenState extends State<ChatScreen> {
     }
 
     try {
-      print('🖼️ DEBUG: Starting gallery picker');
+      // print('🖼️ DEBUG: Starting gallery picker');
 
       // Request storage permission (use photos permission for Android 13+)
       PermissionStatus status;
@@ -876,7 +876,7 @@ class _ChatScreenState extends State<ChatScreen> {
         await _showImageConfirmation(File(image.path));
       }
     } catch (e) {
-      print('❌ DEBUG: Gallery picker error: $e');
+      // print('❌ DEBUG: Gallery picker error: $e');
       _showError('Failed to pick image: $e');
     }
   }
@@ -954,7 +954,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
   Future<void> _sendImageMessage(File imageFile) async {
     if (_friendId == null) {
-      print('❌ DEBUG: Cannot send image - friendId is null');
+      // print('❌ DEBUG: Cannot send image - friendId is null');
       return;
     }
 
@@ -963,7 +963,7 @@ class _ChatScreenState extends State<ChatScreen> {
     });
 
     try {
-      print('📤 DEBUG: Uploading and sending image');
+      // print('📤 DEBUG: Uploading and sending image');
 
       // Upload image to backend
       final imageUrl = await _apiService.uploadChatImage(imageFile);
@@ -981,7 +981,7 @@ class _ChatScreenState extends State<ChatScreen> {
       // The message will be received via socket and added to the UI automatically
       _showSuccess('Image sent successfully!');
     } catch (e) {
-      print('🚨 DEBUG: Error sending image: $e');
+      // print('🚨 DEBUG: Error sending image: $e');
       setState(() {
         _isSending = false;
       });
@@ -1002,9 +1002,9 @@ class _ChatScreenState extends State<ChatScreen> {
       final savedFile = File('${mediaDir.path}/$fileName');
 
       await imageFile.copy(savedFile.path);
-      print('✅ DEBUG: Sent image saved to media folder');
+      // print('✅ DEBUG: Sent image saved to media folder');
     } catch (e) {
-      print('⚠️ DEBUG: Failed to save sent image to media folder: $e');
+      // print('⚠️ DEBUG: Failed to save sent image to media folder: $e');
     }
   }
 

@@ -15,7 +15,8 @@ class ConnectScreen extends StatefulWidget {
   State<ConnectScreen> createState() => _ConnectScreenState();
 }
 
-class _ConnectScreenState extends State<ConnectScreen> with SingleTickerProviderStateMixin {
+class _ConnectScreenState extends State<ConnectScreen>
+    with SingleTickerProviderStateMixin {
   bool _isMatching = false;
   bool _isConnected = false;
   Map<String, dynamic> _filters = {};
@@ -80,35 +81,35 @@ class _ConnectScreenState extends State<ConnectScreen> with SingleTickerProvider
 
   Future<void> _loadUserInterests() async {
     try {
-      print('🎯 [CONNECT DEBUG] Loading user interests...');
-      
+      // print('🎯 [CONNECT DEBUG] Loading user interests...');
+
       // Get current user ID
       final currentUserId = await _apiService.getCurrentUserId();
       if (currentUserId == null) {
-        print('❌ [CONNECT DEBUG] No current user ID found');
+        // print('❌ [CONNECT DEBUG] No current user ID found');
         return;
       }
-      
-      print('🎯 [CONNECT DEBUG] Current user ID: $currentUserId');
-      
+
+      // print('🎯 [CONNECT DEBUG] Current user ID: $currentUserId');
+
       // Get user profile data
       final profileData = await _apiService.getUserProfile(currentUserId);
-      print('🎯 [CONNECT DEBUG] Profile data received: $profileData');
-      
+      // print('🎯 [CONNECT DEBUG] Profile data received: $profileData');
+
       // Extract interests from profile
       final userInterests = profileData['interests'];
-      print('🎯 [CONNECT DEBUG] User interests from profile: $userInterests');
-      
+      // print('🎯 [CONNECT DEBUG] User interests from profile: $userInterests');
+
       if (userInterests != null && userInterests is List) {
         setState(() {
           _filters['interests'] = List<String>.from(userInterests);
         });
-        print('🎯 [CONNECT DEBUG] Updated filters with interests: ${_filters['interests']}');
+        // print('🎯 [CONNECT DEBUG] Updated filters with interests: ${_filters['interests']}');
       } else {
-        print('🎯 [CONNECT DEBUG] No interests found in profile or invalid format');
+        // print('🎯 [CONNECT DEBUG] No interests found in profile or invalid format');
       }
     } catch (e) {
-      print('❌ [CONNECT DEBUG] Error loading user interests: $e');
+      // print('❌ [CONNECT DEBUG] Error loading user interests: $e');
       // Keep default empty interests array if loading fails
     }
   }
@@ -121,14 +122,14 @@ class _ConnectScreenState extends State<ConnectScreen> with SingleTickerProvider
     // Listen for random chat events
     _socketService.eventStream.listen((event) {
       if (event == SocketEvent.randomChatEvent) {
-        print(
-            '🎯 [CONNECT DEBUG] randomChatEvent detected, getting latest data...');
+        // print(
+        //     '🎯 [CONNECT DEBUG] randomChatEvent detected, getting latest data...');
         final data = _socketService.latestRandomChatData;
         if (data != null) {
-          print('🎯 [CONNECT DEBUG] Got latest random chat data: $data');
+          // print('🎯 [CONNECT DEBUG] Got latest random chat data: $data');
           _handleRandomChatEvent(data);
         } else {
-          print('❌ [CONNECT DEBUG] No latest random chat data available');
+          // print('❌ [CONNECT DEBUG] No latest random chat data available');
         }
       } else if (event == SocketEvent.randomChatTimeout) {
         _handleRandomChatTimeout();
@@ -160,22 +161,23 @@ class _ConnectScreenState extends State<ConnectScreen> with SingleTickerProvider
       // Navigate to random chat screen
       _navigateToRandomChat(sessionId, chatRoomId);
     } else if (event == 'match_timeout') {
-      print('⏰ [CONNECT DEBUG] Match timeout event received');
-      print('🚫 [CONNECT DEBUG] Timeout reason: ${data['reason']}');
-      print('👤 [CONNECT DEBUG] Gender preference: ${data['genderPreference']}');
-      
+      // print('⏰ [CONNECT DEBUG] Match timeout event received');
+      // print('🚫 [CONNECT DEBUG] Timeout reason: ${data['reason']}');
+      // print('👤 [CONNECT DEBUG] Gender preference: ${data['genderPreference']}');
+
       String timeoutMessage;
       final String reason = data['reason'] ?? 'time_limit_exceeded';
       final String genderPreference = data['genderPreference'] ?? 'any';
-      
+
       if (reason == 'no_gender_compatible_users') {
-        timeoutMessage = 'No $genderPreference users found after 5 minutes. Please try again later.';
+        timeoutMessage =
+            'No $genderPreference users found after 5 minutes. Please try again later.';
       } else {
-        timeoutMessage = genderPreference == 'any' 
+        timeoutMessage = genderPreference == 'any'
             ? 'No match found within 5 minutes. Please try again later.'
             : 'No match found with your gender preference ($genderPreference) within 5 minutes. Please try again later.';
       }
-      
+
       setState(() {
         _isMatching = false;
         _isConnected = false;
@@ -188,7 +190,7 @@ class _ConnectScreenState extends State<ConnectScreen> with SingleTickerProvider
   }
 
   void _handleErrorEvent(String error) {
-    print('🎯 [CONNECT DEBUG] _handleErrorEvent called with: $error');
+    // print('🎯 [CONNECT DEBUG] _handleErrorEvent called with: $error');
     if (!mounted) return;
 
     // Parse structured error data (format: message|code|sessionId|chatRoomId)
@@ -204,18 +206,18 @@ class _ConnectScreenState extends State<ConnectScreen> with SingleTickerProvider
         errorCode = parts[1];
         sessionId = parts[2];
         chatRoomId = parts[3];
-        print('🔍 [CONNECT DEBUG] Parsed error data:');
-        print('   📝 Message: $errorMessage');
-        print('   🏷️ Code: $errorCode');
-        print('   🆔 SessionId: $sessionId');
-        print('   💬 ChatRoomId: $chatRoomId');
+        // print('🔍 [CONNECT DEBUG] Parsed error data:');
+        // print('   📝 Message: $errorMessage');
+        // print('   🏷️ Code: $errorCode');
+        // print('   🆔 SessionId: $sessionId');
+        // print('   💬 ChatRoomId: $chatRoomId');
       }
     }
 
     // Handle specific error codes
     if (errorCode == 'ALREADY_IN_SESSION' ||
         errorMessage.contains('ALREADY_IN_SESSION')) {
-      print('🟡 [CONNECT DEBUG] Handling ALREADY_IN_SESSION error');
+      // print('🟡 [CONNECT DEBUG] Handling ALREADY_IN_SESSION error');
       setState(() {
         _isMatching = false;
         _isConnected = false;
@@ -228,7 +230,7 @@ class _ConnectScreenState extends State<ConnectScreen> with SingleTickerProvider
       return;
     } else if (errorCode == 'ALREADY_IN_QUEUE' ||
         errorMessage.contains('ALREADY_IN_QUEUE')) {
-      print('🟡 [CONNECT DEBUG] Handling ALREADY_IN_QUEUE error');
+      // print('🟡 [CONNECT DEBUG] Handling ALREADY_IN_QUEUE error');
       setState(() {
         _isMatching = true; // Keep matching state since user is in queue
         _isConnected = false;
@@ -247,19 +249,20 @@ class _ConnectScreenState extends State<ConnectScreen> with SingleTickerProvider
   void _handleError(String error) {
     if (!mounted) return;
 
-    print('🔴 [CONNECT DEBUG] Handling general error: $error');
-    
+    // print('🔴 [CONNECT DEBUG] Handling general error: $error');
+
     // Show user-friendly message for connection issues
     if (error.contains('timeout') || error.contains('Max reconnection')) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Connection issue. Please check if the backend server is running.'),
+          content: Text(
+              'Connection issue. Please check if the backend server is running.'),
           backgroundColor: Colors.orange,
           duration: Duration(seconds: 3),
         ),
       );
     }
-    
+
     setState(() {
       _isMatching = false;
       _isConnected = false;
@@ -269,9 +272,9 @@ class _ConnectScreenState extends State<ConnectScreen> with SingleTickerProvider
 
   Future<void> _clearActiveSession() async {
     try {
-      print('🧹 [CONNECT DEBUG] Clearing active session...');
+      // print('🧹 [CONNECT DEBUG] Clearing active session...');
       final result = await _apiService.forceClearActiveSession();
-      print('✅ [CONNECT DEBUG] Session cleared: $result');
+      // print('✅ [CONNECT DEBUG] Session cleared: $result');
 
       setState(() {
         _isMatching = false;
@@ -288,7 +291,7 @@ class _ConnectScreenState extends State<ConnectScreen> with SingleTickerProvider
         ),
       );
     } catch (e) {
-      print('❌ [CONNECT DEBUG] Failed to clear session: $e');
+      // print('❌ [CONNECT DEBUG] Failed to clear session: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Failed to clear session: $e'),
@@ -329,28 +332,28 @@ class _ConnectScreenState extends State<ConnectScreen> with SingleTickerProvider
   }
 
   void _handleRandomChatEvent(Map<String, dynamic> data) {
-    print(
-        '🎯 [CONNECT DEBUG] _handleRandomChatEvent called with mounted: $mounted');
+    // print(
+    //     '🎯 [CONNECT DEBUG] _handleRandomChatEvent called with mounted: $mounted');
     if (!mounted) {
-      print('❌ [CONNECT DEBUG] Widget not mounted, aborting navigation');
+      // print('❌ [CONNECT DEBUG] Widget not mounted, aborting navigation');
       return;
     }
 
-    print('🎯 [CONNECT DEBUG] Random chat event received with data: $data');
+    // print('🎯 [CONNECT DEBUG] Random chat event received with data: $data');
 
     // Extract session data directly from the event
     final event = data['event'];
     final sessionId = data['sessionId'];
     final chatRoomId = data['chatRoomId'];
 
-    print('🎯 [CONNECT DEBUG] Event type: $event');
-    print('🎯 [CONNECT DEBUG] Session ID: $sessionId');
-    print('🎯 [CONNECT DEBUG] Chat Room ID: $chatRoomId');
+    // print('🎯 [CONNECT DEBUG] Event type: $event');
+    // print('🎯 [CONNECT DEBUG] Session ID: $sessionId');
+    // print('🎯 [CONNECT DEBUG] Chat Room ID: $chatRoomId');
 
     if (event == 'session_started' && sessionId != null && chatRoomId != null) {
-      print('✅ [CONNECT DEBUG] Session started! About to navigate to chat...');
-      print('   📱 Session ID: $sessionId');
-      print('   💬 Chat Room ID: $chatRoomId');
+      // print('✅ [CONNECT DEBUG] Session started! About to navigate to chat...');
+      // print('   📱 Session ID: $sessionId');
+      // print('   💬 Chat Room ID: $chatRoomId');
 
       setState(() {
         _currentSessionId = sessionId;
@@ -359,16 +362,16 @@ class _ConnectScreenState extends State<ConnectScreen> with SingleTickerProvider
         _matchMessage = 'Match found! Starting chat...';
       });
 
-      print(
-          '🔄 [CONNECT DEBUG] State updated, calling _navigateToRandomChat...');
+      // print(
+      //     '🔄 [CONNECT DEBUG] State updated, calling _navigateToRandomChat...');
       // Navigate to random chat screen
       _navigateToRandomChat(sessionId, chatRoomId);
     } else {
-      print('⚠️ [CONNECT DEBUG] Unexpected event type or missing data');
-      print('   🎭 Event: $event');
-      print('   📱 Session ID: $sessionId');
-      print('   💬 Chat Room ID: $chatRoomId');
-      print('   📦 Full data: $data');
+      // print('⚠️ [CONNECT DEBUG] Unexpected event type or missing data');
+      // print('   🎭 Event: $event');
+      // print('   📱 Session ID: $sessionId');
+      // print('   💬 Chat Room ID: $chatRoomId');
+      // print('   📦 Full data: $data');
 
       // Handle other event types or show error
       setState(() {
@@ -384,25 +387,27 @@ class _ConnectScreenState extends State<ConnectScreen> with SingleTickerProvider
     // Check if we have timeout data from the socket
     final timeoutData = _socketService.latestTimeoutData;
     String timeoutMessage;
-    
+
     if (timeoutData != null) {
       final String reason = timeoutData['reason'] ?? 'time_limit_exceeded';
-      final String genderPreference = timeoutData['genderPreference'] ?? _genderPreference;
-      
-      print('⏰ [TIMEOUT DEBUG] Using socket timeout data');
-      print('🚫 [TIMEOUT DEBUG] Reason: $reason');
-      print('👤 [TIMEOUT DEBUG] Gender preference: $genderPreference');
-      
+      final String genderPreference =
+          timeoutData['genderPreference'] ?? _genderPreference;
+
+      // print('⏰ [TIMEOUT DEBUG] Using socket timeout data');
+      // print('🚫 [TIMEOUT DEBUG] Reason: $reason');
+      // print('👤 [TIMEOUT DEBUG] Gender preference: $genderPreference');
+
       if (reason == 'no_gender_compatible_users') {
-        timeoutMessage = 'No $genderPreference users found after 5 minutes. Please try again later.';
+        timeoutMessage =
+            'No $genderPreference users found after 5 minutes. Please try again later.';
       } else {
-        timeoutMessage = genderPreference == 'any' 
+        timeoutMessage = genderPreference == 'any'
             ? 'No match found within 5 minutes. Please try again later.'
             : 'No match found with your gender preference ($genderPreference) within 5 minutes. Please try again later.';
       }
     } else {
       // Fallback to local gender preference
-      timeoutMessage = _genderPreference == 'any' 
+      timeoutMessage = _genderPreference == 'any'
           ? 'No match found within 5 minutes. Please try again later.'
           : 'No match found with your gender preference ($_genderPreference) within 5 minutes. Please try again later.';
     }
@@ -418,18 +423,18 @@ class _ConnectScreenState extends State<ConnectScreen> with SingleTickerProvider
   }
 
   void _navigateToRandomChat(String sessionId, String chatRoomId) {
-    print('🚀 [CONNECT DEBUG] _navigateToRandomChat called');
-    print('   📱 Session ID: $sessionId');
-    print('   💬 Chat Room ID: $chatRoomId');
-    print('   🎯 Context available: ${context != null}');
+    // print('🚀 [CONNECT DEBUG] _navigateToRandomChat called');
+    // print('   📱 Session ID: $sessionId');
+    // print('   💬 Chat Room ID: $chatRoomId');
+    // print('   🎯 Context available: ${context != null}');
 
     try {
-      print('🔄 [CONNECT DEBUG] About to call Navigator.push...');
+      // print('🔄 [CONNECT DEBUG] About to call Navigator.push...');
       Navigator.push(
         context,
         MaterialPageRoute(
           builder: (context) {
-            print('🏗️ [CONNECT DEBUG] Building RandomChatScreen...');
+            // print('🏗️ [CONNECT DEBUG] Building RandomChatScreen...');
             return RandomChatScreen(
               sessionId: sessionId,
               chatRoomId: chatRoomId,
@@ -437,8 +442,8 @@ class _ConnectScreenState extends State<ConnectScreen> with SingleTickerProvider
           },
         ),
       ).then((_) {
-        print(
-            '🔙 [CONNECT DEBUG] Returned from RandomChatScreen, resetting state');
+        // print(
+        //     '🔙 [CONNECT DEBUG] Returned from RandomChatScreen, resetting state');
         // When returning from random chat, reset state
         setState(() {
           _isMatching = false;
@@ -447,9 +452,9 @@ class _ConnectScreenState extends State<ConnectScreen> with SingleTickerProvider
           _matchMessage = null;
         });
       });
-      print('✅ [CONNECT DEBUG] Navigator.push called successfully');
+      // print('✅ [CONNECT DEBUG] Navigator.push called successfully');
     } catch (e) {
-      print('❌ [CONNECT DEBUG] Error during navigation: $e');
+      // print('❌ [CONNECT DEBUG] Error during navigation: $e');
     }
   }
 
@@ -500,16 +505,16 @@ class _ConnectScreenState extends State<ConnectScreen> with SingleTickerProvider
   }
 
   Future<void> _startMatching() async {
-    print('🎯 [CONNECT DEBUG] _startMatching called');
-    print('   🔄 _isMatching: $_isMatching');
-    print('   🔗 _isConnected: $_isConnected');
-    print('   📱 _currentSessionId: $_currentSessionId');
-    print('   🎯 Current filters: $_filters');
-    print('   💫 User interests: ${_filters['interests']}');
+    // print('🎯 [CONNECT DEBUG] _startMatching called');
+    // print('   🔄 _isMatching: $_isMatching');
+    // print('   🔗 _isConnected: $_isConnected');
+    // print('   📱 _currentSessionId: $_currentSessionId');
+    // print('   🎯 Current filters: $_filters');
+    // print('   💫 User interests: ${_filters['interests']}');
 
     if (_isMatching || _isConnected) {
-      print(
-          '⚠️ [CONNECT DEBUG] Already matching or connected, ignoring duplicate call');
+      // print(
+      //     '⚠️ [CONNECT DEBUG] Already matching or connected, ignoring duplicate call');
       return;
     }
 
@@ -521,14 +526,14 @@ class _ConnectScreenState extends State<ConnectScreen> with SingleTickerProvider
       });
 
       final userInterests = _filters['interests']?.cast<String>() ?? [];
-      print('🔄 [CONNECT DEBUG] Starting random connection via socket');
-      print('   👤 genderPreference: $_genderPreference');
-      
+      // print('🔄 [CONNECT DEBUG] Starting random connection via socket');
+      // print('   👤 genderPreference: $_genderPreference');
+
       // Basic validation
       if (_genderPreference.isEmpty) {
         _genderPreference = 'any';
       }
-      
+
       // Start random connection via socket
       await _socketService.startRandomConnection(
         country: _filters['region'],
@@ -537,7 +542,7 @@ class _ConnectScreenState extends State<ConnectScreen> with SingleTickerProvider
         genderPreference: _genderPreference,
       );
 
-      print('✅ [CONNECT DEBUG] Random connection started successfully');
+      // print('✅ [CONNECT DEBUG] Random connection started successfully');
       // Start queue timer
       _startQueueTimer();
 
@@ -550,7 +555,7 @@ class _ConnectScreenState extends State<ConnectScreen> with SingleTickerProvider
         ),
       );
     } catch (e) {
-      print('❌ [CONNECT DEBUG] Failed to start matching: $e');
+      // print('❌ [CONNECT DEBUG] Failed to start matching: $e');
       setState(() {
         _isMatching = false;
         _matchMessage = 'Error: ${e.toString()}';
@@ -1277,7 +1282,8 @@ class _ConnectScreenState extends State<ConnectScreen> with SingleTickerProvider
               value: _genderPreference,
               decoration: const InputDecoration(
                 border: OutlineInputBorder(),
-                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                contentPadding:
+                    EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 prefixIcon: Icon(Icons.person),
               ),
               items: const [
@@ -1289,12 +1295,13 @@ class _ConnectScreenState extends State<ConnectScreen> with SingleTickerProvider
                 // Check if user is trying to select non-'any' gender preference
                 if (value != 'any' && value != null) {
                   // Check if user has premium
-                  final hasPremium = await PremiumService.checkGenderPreferences(context);
+                  final hasPremium =
+                      await PremiumService.checkGenderPreferences(context);
                   if (!hasPremium) {
                     return; // User doesn't have premium, popup shown, keep current selection
                   }
                 }
-                
+
                 setState(() {
                   _genderPreference = value!;
                 });

@@ -5,13 +5,19 @@ import '../models/user.dart';
 class ProfileCard extends StatelessWidget {
   final User user;
   final VoidCallback? onTap;
-  final bool showActions;
+  final VoidCallback? onMessage;
+  final VoidCallback? onVideoCall;
+  final VoidCallback? onAddRemoveFriend;
+  final bool showOnlineStatus;
 
   const ProfileCard({
     super.key,
     required this.user,
     this.onTap,
-    this.showActions = true,
+    this.onMessage,
+    this.onVideoCall,
+    this.onAddRemoveFriend,
+    this.showOnlineStatus = true,
   });
 
   @override
@@ -31,7 +37,7 @@ class ProfileCard extends StatelessWidget {
               _buildProfileHeader(),
               const SizedBox(height: 16),
               _buildProfileInfo(),
-              if (showActions) ...[
+              if (showOnlineStatus) ...[
                 const SizedBox(height: 16),
                 _buildActions(),
               ],
@@ -241,9 +247,7 @@ class ProfileCard extends StatelessWidget {
             icon: Icons.chat,
             label: 'Message',
             color: AppColors.primary,
-            onPressed: () {
-              // TODO: Navigate to chat
-            },
+            onPressed: onMessage,
           ),
         ),
         const SizedBox(width: 12),
@@ -252,9 +256,7 @@ class ProfileCard extends StatelessWidget {
             icon: Icons.video_call,
             label: 'Video Call',
             color: AppColors.secondary,
-            onPressed: () {
-              // TODO: Start video call
-            },
+            onPressed: onVideoCall,
           ),
         ),
         const SizedBox(width: 12),
@@ -263,9 +265,7 @@ class ProfileCard extends StatelessWidget {
             icon: Icons.people,
             label: user.isFriend ? 'Remove' : 'Add Friend',
             color: user.isFriend ? AppColors.error : AppColors.accent,
-            onPressed: () {
-              // TODO: Add/remove friend
-            },
+            onPressed: onAddRemoveFriend,
           ),
         ),
       ],
@@ -276,7 +276,7 @@ class ProfileCard extends StatelessWidget {
     required IconData icon,
     required String label,
     required Color color,
-    required VoidCallback onPressed,
+    required VoidCallback? onPressed,
   }) {
     return SizedBox(
       height: 40,
@@ -288,7 +288,7 @@ class ProfileCard extends StatelessWidget {
           style: const TextStyle(fontSize: 12),
         ),
         style: ElevatedButton.styleFrom(
-          backgroundColor: color,
+          backgroundColor: onPressed != null ? color : Colors.grey,
           foregroundColor: Colors.white,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
