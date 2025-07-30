@@ -33,31 +33,31 @@ class _LoginScreenState extends State<LoginScreen> {
               _buildHeader(),
               const SizedBox(height: 48),
 
-              // Firebase status indicator
-              _buildFirebaseStatus(),
-              const SizedBox(height: 24),
+              // Firebase status indicator - REMOVED FOR PRODUCTION
+              // _buildFirebaseStatus(),
+              // const SizedBox(height: 24),
 
-              // Test connection button
-              ElevatedButton(
-                onPressed: _testConnection,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.orange,
-                ),
-                child: Text('🔍 Test Backend Connection'),
-              ),
+              // Test connection button - COMMENTED OUT FOR PRODUCTION
+              // ElevatedButton(
+              //   onPressed: _testConnection,
+              //   style: ElevatedButton.styleFrom(
+              //     backgroundColor: Colors.orange,
+              //   ),
+              //   child: Text('🔍 Test Backend Connection'),
+              // ),
 
-              SizedBox(height: 8),
+              // SizedBox(height: 8),
 
-              // Debug info button
-              ElevatedButton(
-                onPressed: _showDebugInfo,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.purple,
-                ),
-                child: Text('🔍 Show Debug Info'),
-              ),
+              // Debug info button - COMMENTED OUT FOR PRODUCTION
+              // ElevatedButton(
+              //   onPressed: _showDebugInfo,
+              //   style: ElevatedButton.styleFrom(
+              //     backgroundColor: Colors.purple,
+              //   ),
+              //   child: Text('🔍 Show Debug Info'),
+              // ),
 
-              SizedBox(height: 8),
+              // SizedBox(height: 8),
 
               // Test physical device IP button - Commented out since using deployed backend
               // ElevatedButton(

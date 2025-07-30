@@ -144,7 +144,7 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
     if (tempMessageIndex != -1 && isFromCurrentUser) {
       // Replace temporary message with real message
       //print(
-          // '🔄 [RANDOM CHAT DEBUG] Replacing temp message with real message: $messageId');
+      // '🔄 [RANDOM CHAT DEBUG] Replacing temp message with real message: $messageId');
       setState(() {
         _messages[tempMessageIndex] = {
           'id': messageId,
@@ -161,7 +161,7 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
 
       if (existingMessageIndex != -1) {
         //print(
-            '⏭️ [RANDOM CHAT DEBUG] Message already in UI, skipping: $messageId');
+        // '⏭️ [RANDOM CHAT DEBUG] Message already in UI, skipping: $messageId');
         return;
       }
 
@@ -179,7 +179,7 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
       _scrollToBottom();
 
       //print(
-          '✅ [RANDOM CHAT DEBUG] Added new message to UI: $messageContent (from current user: $isFromCurrentUser)');
+      // '✅ [RANDOM CHAT DEBUG] Added new message to UI: $messageContent (from current user: $isFromCurrentUser)');
     }
   }
 
