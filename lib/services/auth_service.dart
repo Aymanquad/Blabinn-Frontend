@@ -42,10 +42,10 @@ class AuthService {
   Future<void> initialize() async {
     try {
       _status = AuthStatus.loading;
-      
+
       // Initialize API service
       await _apiService.initialize();
-      
+
       // Listen to Firebase auth state changes
       _firebaseAuth.authStateChanges.listen((firebaseUser) {
         if (firebaseUser != null) {
@@ -54,7 +54,7 @@ class AuthService {
           _onFirebaseUserSignedOut();
         }
       });
-      
+
       // Check if user is already signed in
       final firebaseUser = _firebaseAuth.currentUser;
       if (firebaseUser != null) {
@@ -73,25 +73,25 @@ class AuthService {
     try {
       _status = AuthStatus.loading;
       _isLoading = true;
-      
+
       // Try to get user profile from backend
       try {
         final profileData = await _apiService.getMyProfile();
         // Backend returns profile data in 'profile' key, not 'user' key
         final profile = profileData['profile'];
-        
+
         // Ensure uid is included in the profile data
         if (profile['uid'] == null) {
           profile['uid'] = firebaseUser.uid;
         }
-        
+
         _currentUser = User.fromJson(profile);
-        print('✅ Profile loaded successfully for user');
+        // print('✅ Profile loaded successfully for user');
       } catch (profileError) {
         // If profile doesn't exist, create a basic user from Firebase data
         if (profileError.toString().contains('Profile not found')) {
-          print('ℹ️ No profile found, user needs to create one');
-          
+          // print('ℹ️ No profile found, user needs to create one');
+
           // Create a basic user from Firebase auth data
           _currentUser = User(
             id: firebaseUser.uid,
@@ -106,15 +106,15 @@ class AuthService {
           throw profileError;
         }
       }
-      
+
       _isAuthenticated = true;
       _status = AuthStatus.authenticated;
       _isLoading = false;
-      
+
       // Save user data locally
       await _saveUserData();
     } catch (e) {
-      print('Error handling Firebase user change: $e');
+      // print('Error handling Firebase user change: $e');
       _status = AuthStatus.error;
       _isLoading = false;
     }
@@ -135,17 +135,18 @@ class AuthService {
 
     try {
       final result = await _firebaseAuth.signInWithGoogle();
-      
+
       if (result['success'] == true) {
         final userData = result['user'];
         _currentUser = User.fromJson(userData);
         _isAuthenticated = true;
         _status = AuthStatus.authenticated;
-        
+
         await _saveUserData();
         _isLoading = false;
-        
-        return AuthResult.success(_currentUser!, isNewUser: result['isNewUser'] ?? false);
+
+        return AuthResult.success(_currentUser!,
+            isNewUser: result['isNewUser'] ?? false);
       } else {
         _isLoading = false;
         _status = AuthStatus.error;
@@ -167,17 +168,18 @@ class AuthService {
 
     try {
       final result = await _firebaseAuth.signInWithApple();
-      
+
       if (result['success'] == true) {
         final userData = result['user'];
         _currentUser = User.fromJson(userData);
         _isAuthenticated = true;
         _status = AuthStatus.authenticated;
-        
+
         await _saveUserData();
         _isLoading = false;
-        
-        return AuthResult.success(_currentUser!, isNewUser: result['isNewUser'] ?? false);
+
+        return AuthResult.success(_currentUser!,
+            isNewUser: result['isNewUser'] ?? false);
       } else {
         _isLoading = false;
         _status = AuthStatus.error;
@@ -199,17 +201,18 @@ class AuthService {
 
     try {
       final result = await _firebaseAuth.signInAsGuest();
-      
+
       if (result['success'] == true) {
         final userData = result['user'];
         _currentUser = User.fromJson(userData);
         _isAuthenticated = true;
         _status = AuthStatus.authenticated;
-        
+
         await _saveUserData();
         _isLoading = false;
-        
-        return AuthResult.success(_currentUser!, isNewUser: result['isNewUser'] ?? false);
+
+        return AuthResult.success(_currentUser!,
+            isNewUser: result['isNewUser'] ?? false);
       } else {
         _isLoading = false;
         _status = AuthStatus.error;
@@ -228,17 +231,17 @@ class AuthService {
       // Logout from backend
       await _apiService.logout();
     } catch (e) {
-      print('Backend logout error: $e');
+      // print('Backend logout error: $e');
       // Continue with logout even if backend fails
     }
-    
+
     try {
       // Sign out from Firebase
       await _firebaseAuth.signOut();
     } catch (e) {
-      print('Firebase logout error: $e');
+      // print('Firebase logout error: $e');
     }
-    
+
     await _clearAuth();
     _status = AuthStatus.unauthenticated;
   }
@@ -253,12 +256,12 @@ class AuthService {
       final updatedData = await _apiService.updateProfile(updates);
       // Backend returns profile data in 'profile' key, not 'user' key
       final profile = updatedData['profile'];
-      
+
       // Ensure uid is included in the profile data
       if (profile['uid'] == null && _currentUser != null) {
         profile['uid'] = _currentUser!.id;
       }
-      
+
       await updateCurrentUser(User.fromJson(profile));
       return AuthResult.success(_currentUser!);
     } catch (e) {
@@ -285,7 +288,7 @@ class AuthService {
     _currentUser = null;
     _isAuthenticated = false;
     _isLoading = false;
-    
+
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('user_data');
   }
@@ -293,7 +296,7 @@ class AuthService {
   // Get device ID
   Future<void> _getDeviceId() async {
     if (_deviceId != null) return;
-    
+
     try {
       if (Platform.isAndroid) {
         final androidInfo = await _deviceInfo.androidInfo;
@@ -313,7 +316,7 @@ class AuthService {
   String _getErrorMessage(dynamic error) {
     if (error is Exception) {
       final message = error.toString().replaceAll('Exception: ', '');
-      
+
       // Handle specific error types
       if (message.contains('Rate limit exceeded')) {
         return message; // Return the full rate limit message with retry time
@@ -326,7 +329,7 @@ class AuthService {
       } else if (message.contains('Backend authentication failed')) {
         return 'Server authentication failed. Please check your internet connection and try again';
       }
-      
+
       return message;
     }
     return error.toString();
@@ -337,7 +340,8 @@ class AuthService {
   bool get isPremium => true; // _currentUser?.isPremium ?? false;
 
   // Check if user is guest
-  bool get isGuest => _currentUser?.email == null || _currentUser?.email?.isEmpty == true;
+  bool get isGuest =>
+      _currentUser?.email == null || _currentUser?.email?.isEmpty == true;
 
   // Check if Firebase is available
   bool get isFirebaseAvailable => _firebaseAuth.isFirebaseAvailable;
@@ -345,12 +349,12 @@ class AuthService {
   // Test backend connection
   Future<bool> testBackendConnection() async {
     try {
-      print('🔍 DEBUG: Testing backend connection from AuthService...');
+      // print('🔍 DEBUG: Testing backend connection from AuthService...');
       final result = await _firebaseAuth.testBackendConnection();
-      print('🔍 DEBUG: Backend connection test result: ${result['success']}');
+      // print('🔍 DEBUG: Backend connection test result: ${result['success']}');
       return result['success'] == true;
     } catch (e) {
-      print('🔍 DEBUG: Backend connection test failed: $e');
+      // print('🔍 DEBUG: Backend connection test failed: $e');
       return false;
     }
   }
@@ -358,12 +362,12 @@ class AuthService {
   // Test POST request
   Future<bool> testPostRequest() async {
     try {
-      print('🔍 DEBUG: Testing POST request from AuthService...');
+      // print('🔍 DEBUG: Testing POST request from AuthService...');
       final result = await _firebaseAuth.testPostRequest();
-      print('🔍 DEBUG: POST request test result: ${result['success']}');
+      // print('🔍 DEBUG: POST request test result: ${result['success']}');
       return result['success'] == true;
     } catch (e) {
-      print('🔍 DEBUG: POST request test failed: $e');
+      // print('🔍 DEBUG: POST request test failed: $e');
       return false;
     }
   }
@@ -375,7 +379,8 @@ class AuthService {
   }
 
   @deprecated
-  Future<AuthResult> register(String email, String password, String username) async {
+  Future<AuthResult> register(
+      String email, String password, String username) async {
     throw Exception('Use Firebase authentication methods instead');
   }
 
@@ -432,9 +437,9 @@ class AuthResult {
 // Auth exception class
 class AuthException implements Exception {
   final String message;
-  
+
   AuthException(this.message);
-  
+
   @override
   String toString() => 'AuthException: $message';
-} 
+}

@@ -31,10 +31,10 @@ class ApiService {
     try {
       _firebaseToken = await _firebaseAuth.getIdToken();
       if (_firebaseToken == null) {
-        print('❌ DEBUG: Firebase token is null');
+        // print('❌ DEBUG: Firebase token is null');
       }
     } catch (e) {
-      print('🚨 DEBUG: Failed to get Firebase token: $e');
+      // print('🚨 DEBUG: Failed to get Firebase token: $e');
     }
   }
 
@@ -51,7 +51,7 @@ class ApiService {
     if (_firebaseToken != null) {
       headers['Authorization'] = 'Bearer $_firebaseToken';
     } else {
-      print('❌ DEBUG: No Firebase token available for authorization');
+      // print('❌ DEBUG: No Firebase token available for authorization');
     }
 
     return headers;
@@ -162,14 +162,14 @@ class ApiService {
   // Update FCM token for push notifications
   Future<Map<String, dynamic>> updateFcmToken(String fcmToken) async {
     try {
-      print(
-          '🔔 [API DEBUG] Updating FCM token: ${fcmToken.substring(0, 20)}...');
+      // print(
+      //     '🔔 [API DEBUG] Updating FCM token: ${fcmToken.substring(0, 20)}...');
       final response = await _put('/auth/fcm-token', {'fcmToken': fcmToken});
       final result = _handleResponse(response);
-      print('✅ [API DEBUG] FCM token updated successfully');
+      // print('✅ [API DEBUG] FCM token updated successfully');
       return result;
     } catch (e) {
-      print('❌ [API DEBUG] Failed to update FCM token: $e');
+      // print('❌ [API DEBUG] Failed to update FCM token: $e');
       rethrow;
     }
   }
@@ -253,8 +253,8 @@ class ApiService {
           contentType = 'image/jpeg'; // Fallback
       }
 
-      print(
-          '📤 DEBUG: Uploading profile picture with content type: $contentType, file: ${imageFile.path}');
+      // print(
+      //     '📤 DEBUG: Uploading profile picture with content type: $contentType, file: ${imageFile.path}');
 
       // Add image file with explicit content type
       request.files.add(await http.MultipartFile.fromPath(
@@ -388,16 +388,16 @@ class ApiService {
   Future<Map<String, dynamic>> sendDirectMessage(
       String receiverId, String content) async {
     try {
-      print('🔍 DEBUG: sendDirectMessage() called');
-      print('🔍 DEBUG: receiverId: $receiverId');
-      print('🔍 DEBUG: content: $content');
+      // print('🔍 DEBUG: sendDirectMessage() called');
+      // print('🔍 DEBUG: receiverId: $receiverId');
+      // print('🔍 DEBUG: content: $content');
 
       // Check authentication first
       final currentUserId = await getCurrentUserId();
-      print('🔍 DEBUG: currentUserId: $currentUserId');
+      // print('🔍 DEBUG: currentUserId: $currentUserId');
 
       if (currentUserId == null) {
-        print('❌ DEBUG: User not authenticated');
+        // print('❌ DEBUG: User not authenticated');
         throw Exception('User not logged in. Please sign in to send messages.');
       }
 
@@ -407,16 +407,16 @@ class ApiService {
         'messageType': 'text',
       };
 
-      print('🔍 DEBUG: Sending POST request to /chat/messages');
-      print('🔍 DEBUG: Request data: $data');
+      // print('🔍 DEBUG: Sending POST request to /chat/messages');
+      // print('🔍 DEBUG: Request data: $data');
 
       final response = await _post('/chat/messages', data);
-      print('🔍 DEBUG: Response status: ${response.statusCode}');
-      print('🔍 DEBUG: Response body: ${response.body}');
+      // print('🔍 DEBUG: Response status: ${response.statusCode}');
+      // print('🔍 DEBUG: Response body: ${response.body}');
 
       return _handleResponse(response);
     } catch (e) {
-      print('🚨 DEBUG: sendDirectMessage error: $e');
+      // print('🚨 DEBUG: sendDirectMessage error: $e');
       rethrow;
     }
   }
@@ -424,20 +424,21 @@ class ApiService {
   Future<Map<String, dynamic>> getChatHistoryWithUser(String userId,
       {int limit = 50, String? beforeMessageId}) async {
     try {
-      print('🔍 DEBUG: getChatHistoryWithUser() called with userId: $userId');
+      // print('🔍 DEBUG: getChatHistoryWithUser() called with userId: $userId');
       final queryParams = <String>['limit=$limit'];
       if (beforeMessageId != null) {
         queryParams.add('beforeMessageId=$beforeMessageId');
       }
-      final response = await _get('/chat/history/$userId?${queryParams.join('&')}');
-      print('🔍 DEBUG: Chat history response status: ${response.statusCode}');
-      print('🔍 DEBUG: Chat history response body: ${response.body}');
+      final response =
+          await _get('/chat/history/$userId?${queryParams.join('&')}');
+      // print('🔍 DEBUG: Chat history response status: ${response.statusCode}');
+      // print('🔍 DEBUG: Chat history response body: ${response.body}');
 
       final result = _handleResponse(response);
-      print('🔍 DEBUG: Processed chat history result: $result');
+      // print('🔍 DEBUG: Processed chat history result: $result');
       return result;
     } catch (e) {
-      print('🚨 DEBUG: getChatHistoryWithUser error: $e');
+      // print('🚨 DEBUG: getChatHistoryWithUser error: $e');
       rethrow;
     }
   }
@@ -467,25 +468,25 @@ class ApiService {
   Future<String?> getCurrentUserId() async {
     try {
       final userId = _firebaseAuth.currentUser?.uid;
-      print('🔍 DEBUG: getCurrentUserId() - User ID: $userId');
+      // print('🔍 DEBUG: getCurrentUserId() - User ID: $userId');
 
       if (userId == null) {
-        print(
-            '🚨 DEBUG: No Firebase user found. User might be signed in as guest.');
+        // print(
+        //     '🚨 DEBUG: No Firebase user found. User might be signed in as guest.');
         // Check if user is signed in as guest
         final user = _firebaseAuth.currentUser;
         if (user != null && user.isAnonymous) {
-          print('🎭 DEBUG: User is anonymous (guest)');
+          // print('🎭 DEBUG: User is anonymous (guest)');
           return user.uid; // Return anonymous user ID
         }
-        print('❌ DEBUG: User is not signed in at all');
+        // print('❌ DEBUG: User is not signed in at all');
         return null;
       }
 
-      print('✅ DEBUG: Firebase user authenticated');
+      // print('✅ DEBUG: Firebase user authenticated');
       return userId;
     } catch (e) {
-      print('🚨 DEBUG: Error getting current user ID: $e');
+      // print('🚨 DEBUG: Error getting current user ID: $e');
       return null;
     }
   }
@@ -584,8 +585,8 @@ class ApiService {
           contentType = 'image/jpeg'; // Fallback
       }
 
-      print(
-          '📤 DEBUG: Uploading image with content type: $contentType, file: ${imageFile.path}');
+      // print(
+      //     '📤 DEBUG: Uploading image with content type: $contentType, file: ${imageFile.path}');
 
       // Add image file with explicit content type
       request.files.add(await http.MultipartFile.fromPath(

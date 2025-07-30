@@ -92,7 +92,7 @@ class PremiumPopup extends StatelessWidget {
                 ],
               ),
             ),
-            
+
             // Content
             Container(
               padding: const EdgeInsets.all(20),
@@ -117,7 +117,7 @@ class PremiumPopup extends StatelessWidget {
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 20),
-                  
+
                   // Premium Benefits
                   Container(
                     padding: const EdgeInsets.all(16),
@@ -143,17 +143,19 @@ class PremiumPopup extends StatelessWidget {
                         const SizedBox(height: 8),
                         _buildBenefitItem('Upload profile pictures'),
                         _buildBenefitItem('Send & receive images in chats'),
-                        _buildBenefitItem('Gender preferences for random connections'),
+                        _buildBenefitItem(
+                            'Gender preferences for random connections'),
                         _buildBenefitItem('Store images in media folder'),
                       ],
                     ),
                   ),
-                  
+
                   const SizedBox(height: 20),
-                  
+
                   // Price
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     decoration: BoxDecoration(
                       color: Colors.white.withOpacity(0.2),
                       borderRadius: BorderRadius.circular(20),
@@ -170,7 +172,7 @@ class PremiumPopup extends StatelessWidget {
                 ],
               ),
             ),
-            
+
             // Action buttons
             Container(
               padding: const EdgeInsets.all(20),
@@ -197,17 +199,18 @@ class PremiumPopup extends StatelessWidget {
                       ),
                     ),
                   ),
-                  
+
                   const SizedBox(width: 15),
-                  
+
                   // Buy Premium button
                   Expanded(
                     flex: 2,
                     child: ElevatedButton(
-                      onPressed: onBuyPremium ?? () {
-                        Navigator.of(context).pop();
-                        // TODO: Navigate to payment screen
-                      },
+                      onPressed: onBuyPremium ??
+                          () {
+                            Navigator.of(context).pop();
+                            // TODO: Navigate to payment screen
+                          },
                       style: ElevatedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 12),
                         backgroundColor: Colors.white,
@@ -271,9 +274,9 @@ class PremiumPopup extends StatelessWidget {
     VoidCallback? onCancel,
   }) {
     // PREMIUM POPUP DISABLED FOR TESTING - JUST RETURN
-    print('🔧 DEBUG: Premium popup disabled for testing - feature: $feature');
+    // print('🔧 DEBUG: Premium popup disabled for testing - feature: $feature');
     return Future.value();
-    
+
     /* ORIGINAL PREMIUM POPUP CODE - COMMENTED OUT FOR TESTING
     return showDialog(
       context: context,
@@ -287,4 +290,4 @@ class PremiumPopup extends StatelessWidget {
     );
     */
   }
-} 
+}
