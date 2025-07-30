@@ -144,7 +144,7 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
     if (tempMessageIndex != -1 && isFromCurrentUser) {
       // Replace temporary message with real message
       //print(
-          '🔄 [RANDOM CHAT DEBUG] Replacing temp message with real message: $messageId');
+          // '🔄 [RANDOM CHAT DEBUG] Replacing temp message with real message: $messageId');
       setState(() {
         _messages[tempMessageIndex] = {
           'id': messageId,
