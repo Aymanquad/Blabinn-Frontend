@@ -426,19 +426,19 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   void _testConnection() async {
-    print('🔍 DEBUG: Starting connection test...');
-    print('🔍 DEBUG: Platform config: ${AppConfig.debugInfo}');
+    // print('🔍 DEBUG: Starting connection test...');
+    // print('🔍 DEBUG: Platform config: ${AppConfig.debugInfo}');
 
     final authService = AuthService();
 
     // Test basic connectivity
     final canConnect = await authService.testBackendConnection();
-    print('🔍 DEBUG: Can connect to backend: $canConnect');
+    // print('🔍 DEBUG: Can connect to backend: $canConnect');
 
     if (canConnect) {
       // Test POST requests
       final canPost = await authService.testPostRequest();
-      print('🔍 DEBUG: Can make POST requests: $canPost');
+      // print('🔍 DEBUG: Can make POST requests: $canPost');
 
       // Show success message
       ScaffoldMessenger.of(context).showSnackBar(
@@ -519,11 +519,11 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   // void _testPhysicalDeviceConnection() async {
-  //   print('🔍 DEBUG: Testing with physical device IP...');
+  //   // print('🔍 DEBUG: Testing with physical device IP...');
   //
   //   // Temporarily override the API URL for testing
   //   final testUrl = AppConfig.physicalDeviceApiUrl;
-  //   print('🔍 DEBUG: Testing URL: $testUrl');
+  //   // print('🔍 DEBUG: Testing URL: $testUrl');
   //
   //   try {
   //     final response = await http.get(
