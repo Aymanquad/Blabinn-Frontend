@@ -681,16 +681,6 @@ class _ConnectScreenState extends State<ConnectScreen>
     return Scaffold(
       appBar: AppBar(
         title: const Text(AppStrings.connect),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.filter_list),
-            onPressed: _showFilterDialog,
-          ),
-          IconButton(
-            icon: const Icon(Icons.star),
-            onPressed: _showPremiumDialog,
-          ),
-        ],
       ),
       body: Padding(
         padding: const EdgeInsets.all(16),
@@ -726,8 +716,8 @@ class _ConnectScreenState extends State<ConnectScreen>
             ScaleTransition(
               scale: _scaleAnimation,
               child: Container(
-                width: 140,
-                height: 140,
+                width: 180,
+                height: 180,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   gradient: LinearGradient(
@@ -741,8 +731,8 @@ class _ConnectScreenState extends State<ConnectScreen>
                   boxShadow: [
                     BoxShadow(
                       color: theme.colorScheme.primary.withOpacity(0.3),
-                      blurRadius: 15,
-                      offset: const Offset(0, 6),
+                      blurRadius: 20,
+                      offset: const Offset(0, 8),
                     ),
                   ],
                 ),
@@ -750,19 +740,19 @@ class _ConnectScreenState extends State<ConnectScreen>
                   child: Image.asset(
                     'assets/images/search-people-removebg-preview.png',
                     fit: BoxFit.contain,
-                    width: 100,
-                    height: 100,
+                    width: 130,
+                    height: 130,
                   ),
                 ),
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 32),
             Text(
               'Find New People',
               style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                     fontWeight: FontWeight.w800,
-                    fontSize: 28,
-                    letterSpacing: 0.5,
+                    fontSize: 32,
+                    letterSpacing: 0.8,
                   ),
             ),
             const SizedBox(height: 8),
@@ -779,120 +769,9 @@ class _ConnectScreenState extends State<ConnectScreen>
               ),
             ),
             const SizedBox(height: 32),
-            _buildFilterSummary(),
-            const SizedBox(height: 16),
             _buildGenderPreferenceSection(),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildFilterSummary() {
-    final theme = Theme.of(context);
-    final selectedRange = AppConstants.distanceRanges.firstWhere(
-      (range) => range['value'] == _filters['distance'],
-      orElse: () => AppConstants.distanceRanges[0],
-    );
-
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.settings,
-                    size: 16, color: theme.colorScheme.onSurface),
-                const SizedBox(width: 8),
-                Text('Current Filters',
-                    style: TextStyle(color: theme.colorScheme.onSurface)),
-                const Spacer(),
-                if (!_isPremium)
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: AppColors.warning.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Text(
-                      'FREE',
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.warning,
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            _buildFilterItem('Distance', selectedRange['label']),
-            _buildFilterItem('Language', _filters['language'] ?? 'Any'),
-
-            // Premium features
-            if (_isPremium) ...[
-              _buildFilterItem('Age Range', _filters['ageRange'] ?? 'All'),
-              if (_filters['interests']?.isNotEmpty == true)
-                _buildFilterItem(
-                    'Interests', '${_filters['interests'].length} selected'),
-            ] else ...[
-              _buildPremiumFilterItem('Age Range', 'Premium Only'),
-              _buildPremiumFilterItem('Interests', 'Premium Only'),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildFilterItem(String label, String value) {
-    final theme = Theme.of(context);
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(label,
-              style: TextStyle(
-                  color: theme.colorScheme.onSurface.withOpacity(0.7))),
-          Text(value,
-              style: TextStyle(
-                  fontWeight: FontWeight.w500,
-                  color: theme.colorScheme.onSurface)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPremiumFilterItem(String label, String value) {
-    final theme = Theme.of(context);
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Row(
-            children: [
-              Text(label,
-                  style: TextStyle(
-                      color: theme.colorScheme.onSurface.withOpacity(0.7))),
-              const SizedBox(width: 4),
-              const Icon(Icons.star, size: 12, color: AppColors.warning),
-            ],
-          ),
-          Text(
-            value,
-            style: TextStyle(
-              fontWeight: FontWeight.w500,
-              color: theme.colorScheme.onSurface.withOpacity(0.5),
-            ),
-          ),
-        ],
       ),
     );
   }
