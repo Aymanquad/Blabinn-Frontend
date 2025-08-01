@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../core/constants.dart';
 import '../services/socket_service.dart';
 import '../services/api_service.dart';
@@ -517,25 +518,60 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
               child: Row(
                 children: [
                   Expanded(
-                    child: TextField(
-                      controller: _messageController,
-                      decoration: InputDecoration(
-                        hintText: 'Type a message...',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(24),
-                          borderSide: BorderSide.none,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        TextField(
+                          controller: _messageController,
+                          decoration: InputDecoration(
+                            hintText: 'Type a message...',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(24),
+                              borderSide: BorderSide.none,
+                            ),
+                            filled: true,
+                            fillColor: isDark
+                                ? AppColors.darkInputBackground
+                                : Colors.grey[100],
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 20,
+                              vertical: 10,
+                            ),
+                            suffixIcon: _messageController.text.length > 900
+                                ? Icon(
+                                    Icons.warning,
+                                    color:
+                                        _messageController.text.length >= 1000
+                                            ? Colors.red
+                                            : Colors.orange,
+                                    size: 16,
+                                  )
+                                : null,
+                          ),
+                          onChanged: (value) {
+                            setState(() {});
+                          },
+                          onSubmitted: (_) => _sendMessage(),
+                          textInputAction: TextInputAction.send,
+                          maxLines: 2, // Reduced from 4 to 2 for shorter height
+                          maxLength: 1000,
+                          maxLengthEnforcement: MaxLengthEnforcement.enforced,
                         ),
-                        filled: true,
-                        fillColor: isDark
-                            ? AppColors.darkInputBackground
-                            : Colors.grey[100],
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 20,
-                          vertical: 10,
-                        ),
-                      ),
-                      onSubmitted: (_) => _sendMessage(),
-                      textInputAction: TextInputAction.send,
+                        if (_messageController.text.length > 900)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 4, left: 16),
+                            child: Text(
+                              '${_messageController.text.length}/1000',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: _messageController.text.length >= 1000
+                                    ? Colors.red
+                                    : Colors.orange,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                      ],
                     ),
                   ),
                   const SizedBox(width: 8),

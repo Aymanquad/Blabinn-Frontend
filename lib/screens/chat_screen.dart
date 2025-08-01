@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
@@ -725,24 +726,57 @@ class _ChatScreenState extends State<ChatScreen> {
             },
           ),
           Expanded(
-            child: TextField(
-              controller: _messageController,
-              onChanged: _onMessageChanged,
-              decoration: InputDecoration(
-                hintText: AppStrings.typeMessage,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(24),
-                  borderSide: BorderSide.none,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: _messageController,
+                  onChanged: (value) {
+                    _onMessageChanged(value);
+                    setState(() {});
+                  },
+                  decoration: InputDecoration(
+                    hintText: AppStrings.typeMessage,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(24),
+                      borderSide: BorderSide.none,
+                    ),
+                    filled: true,
+                    fillColor: theme.colorScheme.surface,
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                    suffixIcon: _messageController.text.length > 900
+                        ? Icon(
+                            Icons.warning,
+                            color: _messageController.text.length >= 1000
+                                ? Colors.red
+                                : Colors.orange,
+                            size: 16,
+                          )
+                        : null,
+                  ),
+                  maxLines: 2, // Reduced from 4 to 2 for shorter height
+                  textCapitalization: TextCapitalization.sentences,
+                  maxLength: 1000,
+                  maxLengthEnforcement: MaxLengthEnforcement.enforced,
                 ),
-                filled: true,
-                fillColor: theme.colorScheme.surface,
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 12,
-                ),
-              ),
-              maxLines: null,
-              textCapitalization: TextCapitalization.sentences,
+                if (_messageController.text.length > 900)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4, left: 16),
+                    child: Text(
+                      '${_messageController.text.length}/1000',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: _messageController.text.length >= 1000
+                            ? Colors.red
+                            : Colors.orange,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+              ],
             ),
           ),
           const SizedBox(width: 8),
