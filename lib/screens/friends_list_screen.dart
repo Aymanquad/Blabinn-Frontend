@@ -13,7 +13,7 @@ class FriendsListScreen extends StatefulWidget {
 
 class _FriendsListScreenState extends State<FriendsListScreen> {
   final ApiService _apiService = ApiService();
-  
+
   List<Map<String, dynamic>> _friends = [];
   bool _isLoading = false;
   String? _errorMessage;
@@ -84,8 +84,40 @@ class _FriendsListScreenState extends State<FriendsListScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Remove Friend'),
-        content: Text(
-          'Are you sure you want to remove ${friend['displayName'] ?? friend['username']} from your friends?',
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Are you sure you want to remove ${friend['displayName'] ?? friend['username']} from your friends?',
+              style: const TextStyle(fontSize: 16),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.orange.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.orange.withOpacity(0.3)),
+              ),
+              child: const Row(
+                children: [
+                  Icon(Icons.warning, color: Colors.orange, size: 20),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'You cannot text this person anymore as you\'re not friends anymore',
+                      style: TextStyle(
+                        color: Colors.orange,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
         actions: [
           TextButton(
@@ -104,14 +136,14 @@ class _FriendsListScreenState extends State<FriendsListScreen> {
     if (confirmed == true) {
       try {
         await _apiService.removeFriend(friend['uid'] ?? friend['id']);
-        
+
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Friend removed successfully'),
             backgroundColor: Colors.green,
           ),
         );
-        
+
         _loadFriends(); // Refresh the list
       } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -125,7 +157,8 @@ class _FriendsListScreenState extends State<FriendsListScreen> {
   }
 
   Widget _buildFriendCard(Map<String, dynamic> friend) {
-    final displayName = friend['displayName'] ?? friend['username'] ?? 'Unknown';
+    final displayName =
+        friend['displayName'] ?? friend['username'] ?? 'Unknown';
     final profilePicture = friend['profilePicture'] as String?;
     final bio = friend['bio'] as String?;
 
@@ -138,9 +171,8 @@ class _FriendsListScreenState extends State<FriendsListScreen> {
             CircleAvatar(
               radius: 30,
               backgroundColor: AppColors.primary.withOpacity(0.1),
-              backgroundImage: profilePicture != null
-                  ? NetworkImage(profilePicture)
-                  : null,
+              backgroundImage:
+                  profilePicture != null ? NetworkImage(profilePicture) : null,
               child: profilePicture == null
                   ? Text(
                       displayName[0].toUpperCase(),
@@ -187,7 +219,8 @@ class _FriendsListScreenState extends State<FriendsListScreen> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
                     foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(20),
                     ),
@@ -210,7 +243,8 @@ class _FriendsListScreenState extends State<FriendsListScreen> {
                         } else {
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
-                              content: Text('Unable to view profile: User ID not found'),
+                              content: Text(
+                                  'Unable to view profile: User ID not found'),
                               backgroundColor: Colors.red,
                             ),
                           );
@@ -236,9 +270,11 @@ class _FriendsListScreenState extends State<FriendsListScreen> {
                       value: 'remove',
                       child: Row(
                         children: [
-                          Icon(Icons.person_remove, color: Colors.red, size: 16),
+                          Icon(Icons.person_remove,
+                              color: Colors.red, size: 16),
                           SizedBox(width: 8),
-                          Text('Remove Friend', style: TextStyle(color: Colors.red)),
+                          Text('Remove Friend',
+                              style: TextStyle(color: Colors.red)),
                         ],
                       ),
                     ),
@@ -344,4 +380,4 @@ class _FriendsListScreenState extends State<FriendsListScreen> {
                     ),
     );
   }
-} 
+}
