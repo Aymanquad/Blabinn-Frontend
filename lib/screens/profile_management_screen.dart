@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'dart:io';
+import 'dart:io' show Platform;
 import '../core/constants.dart';
 import '../models/user.dart';
 import '../services/auth_service.dart';
@@ -9,6 +11,7 @@ import '../services/api_service.dart';
 import '../services/premium_service.dart';
 import '../providers/user_provider.dart';
 import '../widgets/simple_image_cropper.dart';
+import '../utils/permission_helper.dart';
 
 class ProfileManagementScreen extends StatefulWidget {
   const ProfileManagementScreen({Key? key}) : super(key: key);
@@ -1224,6 +1227,12 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
 
   Future<void> _pickProfilePicture() async {
     try {
+      // Request gallery permission
+      final hasPermission = await PermissionHelper.requestGalleryPermission(context);
+      if (!hasPermission) {
+        return;
+      }
+
       final picker = ImagePicker();
       final pickedFile = await picker.pickImage(
         source: ImageSource.gallery,
@@ -1255,6 +1264,12 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
     }
 
     try {
+      // Request gallery permission
+      final hasPermission = await PermissionHelper.requestGalleryPermission(context);
+      if (!hasPermission) {
+        return;
+      }
+
       final picker = ImagePicker();
       final pickedFiles = await picker.pickMultiImage(
         imageQuality: 80,

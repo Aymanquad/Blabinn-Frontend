@@ -18,6 +18,7 @@ import '../services/premium_service.dart';
 import '../widgets/chat_bubble.dart';
 import 'media_folder_screen.dart';
 import '../services/background_image_service.dart';
+import '../utils/permission_helper.dart';
 
 class ChatScreen extends StatefulWidget {
   final Chat chat;
@@ -806,35 +807,8 @@ class _ChatScreenState extends State<ChatScreen> {
       // print('📸 DEBUG: Starting camera capture');
 
       // Request camera permission
-      final status = await Permission.camera.request();
-      if (status != PermissionStatus.granted) {
-        _showError('Camera permission is required to take photos');
-
-        // Check if permission is permanently denied
-        if (status == PermissionStatus.permanentlyDenied) {
-          final shouldOpenSettings = await showDialog<bool>(
-            context: context,
-            builder: (context) => AlertDialog(
-              title: const Text('Camera Permission Required'),
-              content: const Text(
-                  'Please grant camera permission in app settings to take photos.'),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context, false),
-                  child: const Text('Cancel'),
-                ),
-                TextButton(
-                  onPressed: () => Navigator.pop(context, true),
-                  child: const Text('Open Settings'),
-                ),
-              ],
-            ),
-          );
-
-          if (shouldOpenSettings == true) {
-            await openAppSettings();
-          }
-        }
+      final hasPermission = await PermissionHelper.requestCameraPermission(context);
+      if (!hasPermission) {
         return;
       }
 
@@ -862,42 +836,9 @@ class _ChatScreenState extends State<ChatScreen> {
     try {
       // print('🖼️ DEBUG: Starting gallery picker');
 
-      // Request storage permission (use photos permission for Android 13+)
-      PermissionStatus status;
-      if (Platform.isAndroid) {
-        status = await Permission.photos.request();
-      } else {
-        status = await Permission.storage.request();
-      }
-
-      if (status != PermissionStatus.granted) {
-        _showError('Gallery permission is required to select photos');
-
-        // Check if permission is permanently denied
-        if (status == PermissionStatus.permanentlyDenied) {
-          final shouldOpenSettings = await showDialog<bool>(
-            context: context,
-            builder: (context) => AlertDialog(
-              title: const Text('Gallery Permission Required'),
-              content: const Text(
-                  'Please grant gallery permission in app settings to select photos.'),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context, false),
-                  child: const Text('Cancel'),
-                ),
-                TextButton(
-                  onPressed: () => Navigator.pop(context, true),
-                  child: const Text('Open Settings'),
-                ),
-              ],
-            ),
-          );
-
-          if (shouldOpenSettings == true) {
-            await openAppSettings();
-          }
-        }
+      // Request gallery permission
+      final hasPermission = await PermissionHelper.requestGalleryPermission(context);
+      if (!hasPermission) {
         return;
       }
 

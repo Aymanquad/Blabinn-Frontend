@@ -7,6 +7,7 @@ import 'dart:convert';
 import '../core/constants.dart';
 import '../services/api_service.dart';
 import '../services/premium_service.dart';
+import '../utils/permission_helper.dart';
 
 /// MediaFolderScreen - Manages user's media collection with two tabs:
 /// 1. Saved - All images saved to media folder (from camera)
@@ -41,7 +42,8 @@ class MediaFolderScreen extends StatefulWidget {
 
   // Function to save received images from friends (called from chat system)
   static Future<void> saveReceivedImage(
-      File imageFile, String friendId, String friendName, {String? messageId, String? imageUrl}) async {
+      File imageFile, String friendId, String friendName,
+      {String? messageId, String? imageUrl}) async {
     try {
       final directory = await getApplicationDocumentsDirectory();
       final mediaDir = Directory('${directory.path}/media');
@@ -58,7 +60,10 @@ class MediaFolderScreen extends StatefulWidget {
 
       // Save metadata with friend info, messageId, and imageUrl
       await _saveImageMetadataStatic(fileName, 'received', timestamp,
-          friendId: friendId, friendName: friendName, messageId: messageId, imageUrl: imageUrl);
+          friendId: friendId,
+          friendName: friendName,
+          messageId: messageId,
+          imageUrl: imageUrl);
 
       //print('✅ Received image saved successfully: $friendName -> $fileName');
     } catch (e) {
@@ -68,7 +73,10 @@ class MediaFolderScreen extends StatefulWidget {
 
   static Future<void> _saveImageMetadataStatic(
       String fileName, String source, DateTime timestamp,
-      {String? friendId, String? friendName, String? messageId, String? imageUrl}) async {
+      {String? friendId,
+      String? friendName,
+      String? messageId,
+      String? imageUrl}) async {
     try {
       final directory = await getApplicationDocumentsDirectory();
       final metadataFile = File('${directory.path}/media_metadata.json');
@@ -231,9 +239,9 @@ class _MediaFolderScreenState extends State<MediaFolderScreen>
 
     try {
       // Request camera permission
-      final status = await Permission.camera.request();
-      if (status != PermissionStatus.granted) {
-        _showError('Camera permission is required to take photos');
+      final hasPermission =
+          await PermissionHelper.requestCameraPermission(context);
+      if (!hasPermission) {
         return;
       }
 
