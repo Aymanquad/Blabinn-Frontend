@@ -1,3 +1,5 @@
+import '../utils/html_decoder.dart';
+
 enum MessageType {
   text,
   image,
@@ -167,7 +169,7 @@ class Message {
           '', // Default to empty string for random chat
       senderId: json['senderId']?.toString() ?? '',
       receiverId: json['receiverId']?.toString() ?? '',
-      content: json['content']?.toString() ?? '',
+      content: HtmlDecoder.decodeHtmlEntities(json['content']?.toString() ?? ''),
       type: MessageType.values.firstWhere(
         (e) =>
             e.name ==
@@ -229,9 +231,9 @@ class Message {
 
   String get displayContent {
     if (hasTranslation) {
-      return translatedContent!;
+      return HtmlDecoder.decodeHtmlEntities(translatedContent!);
     }
-    return content;
+    return HtmlDecoder.decodeHtmlEntities(content);
   }
 
   String get timeAgo {

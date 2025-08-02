@@ -212,7 +212,7 @@ class Chat {
       case MessageType.location:
         return '📍 Location';
       case MessageType.system:
-        return lastMessage!.content;
+        return lastMessage!.displayContent;
       case MessageType.video:
         return '🎥 Video';
       case MessageType.audio:

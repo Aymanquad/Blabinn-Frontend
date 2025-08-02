@@ -5,6 +5,7 @@ import '../services/socket_service.dart';
 import '../services/api_service.dart';
 import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart' as FirebaseAuth;
+import '../utils/html_decoder.dart';
 
 class RandomChatScreen extends StatefulWidget {
   final String sessionId;
@@ -116,7 +117,7 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
 
     final messageId =
         message.id ?? DateTime.now().millisecondsSinceEpoch.toString();
-    final messageContent = message.content ?? '';
+    final messageContent = HtmlDecoder.decodeHtmlEntities(message.content ?? '');
     final messageSenderId = message.senderId ?? '';
 
     // Get current user ID from Firebase Auth
@@ -487,7 +488,7 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
                             borderRadius: BorderRadius.circular(18),
                           ),
                           child: Text(
-                            message['content'] as String,
+                            HtmlDecoder.decodeHtmlEntities(message['content'] as String),
                             style: TextStyle(
                               color: isFromCurrentUser
                                   ? Colors.white

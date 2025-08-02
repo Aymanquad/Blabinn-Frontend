@@ -105,7 +105,7 @@ class ChatBubble extends StatelessWidget {
         children: [
           Flexible(
             child: Text(
-              message.content,
+              message.displayContent,
               style: TextStyle(
                 color: _getTextColor(isDarkMode),
                 fontSize: 16,
@@ -207,7 +207,7 @@ class ChatBubble extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.all(12),
             child: Text(
-              message.content,
+              message.displayContent,
               style: TextStyle(
                 color: _getTextColor(isDarkMode),
                 fontSize: 16,
@@ -241,7 +241,7 @@ class ChatBubble extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.all(12),
             child: Text(
-              message.content,
+              message.displayContent,
               style: TextStyle(
                 color: _getTextColor(isDarkMode),
                 fontSize: 16,
@@ -412,7 +412,7 @@ class ChatBubble extends StatelessWidget {
         border: Border.all(color: (isDarkMode ? AppColors.darkText : AppColors.text).withOpacity(0.2)),
       ),
       child: Text(
-        message.content,
+        message.displayContent,
         style: TextStyle(
           color: (isDarkMode ? AppColors.darkText : AppColors.text).withOpacity(0.7),
           fontSize: 12,
