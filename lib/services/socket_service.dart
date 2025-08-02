@@ -1441,7 +1441,52 @@ class SocketService {
   void _handleRandomChatSessionEndedEvent(dynamic data) {
     // print('🚪 [SOCKET DEBUG] Random chat session ended event received');
     // print('   📦 Data: $data');
-    _eventController.add(SocketEvent.randomChatSessionEnded);
+
+    try {
+      if (data == null) {
+        // print('❌ [SOCKET DEBUG] Session ended data is null');
+        return;
+      }
+
+      Map<String, dynamic> sessionData;
+      if (data is Map<String, dynamic>) {
+        sessionData = data;
+      } else {
+        // print('❌ [SOCKET DEBUG] Invalid session ended data type: ${data.runtimeType}');
+        return;
+      }
+
+      // Extract session information
+      final sessionId = sessionData['sessionId'];
+      final reason = sessionData['reason'] ?? 'unknown';
+      final endedBy = sessionData['endedBy'];
+      final message = sessionData['message'] ?? 'Session ended';
+
+      // print('🚪 [SOCKET DEBUG] Session ended details:');
+      // print('   📱 Session ID: $sessionId');
+      // print('   💭 Reason: $reason');
+      // print('   👤 Ended by: $endedBy');
+      // print('   💬 Message: $message');
+
+      // Clear current chat user to prevent active session issues
+      clearCurrentChatUser();
+
+      // Add enhanced session ended data
+      final enhancedData = {
+        ...sessionData,
+        'sessionId': sessionId,
+        'reason': reason,
+        'endedBy': endedBy,
+        'message': message,
+        'timestamp': DateTime.now().toIso8601String(),
+      };
+
+      _matchController.add(enhancedData);
+      _eventController.add(SocketEvent.randomChatSessionEnded);
+    } catch (e) {
+      // print('❌ [SOCKET DEBUG] Error handling session ended event: $e');
+      // print('   📦 Data that caused error: $data');
+    }
   }
 
   // Handle random chat event received

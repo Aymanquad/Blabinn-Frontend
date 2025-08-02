@@ -30,6 +30,7 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
   late StreamSubscription _messageSubscription;
   late StreamSubscription _errorSubscription;
   bool _isSessionActive = true;
+  bool _isLeavingSession = false; // Add flag to prevent multiple exit calls
   Timer? _heartbeatTimer;
   int _timeRemaining = 300; // 5 minutes in seconds
 
@@ -51,6 +52,52 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
     _messageController.dispose();
     _scrollController.dispose();
     super.dispose();
+  }
+
+  // Add proper back button handling
+  Future<bool> _onWillPop() async {
+    if (_isLeavingSession) {
+      return true; // Allow navigation if already leaving
+    }
+
+    if (_isSessionActive) {
+      // Show confirmation dialog
+      final shouldLeave = await showDialog<bool>(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => AlertDialog(
+          title: const Row(
+            children: [
+              Icon(Icons.exit_to_app, color: AppColors.primary),
+              SizedBox(width: 8),
+              Text('Leave Chat?'),
+            ],
+          ),
+          content: const Text('Are you sure you want to leave this chat session?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context, true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Leave'),
+            ),
+          ],
+        ),
+      );
+
+      if (shouldLeave == true) {
+        await _endSession('user_ended');
+        return true;
+      }
+      return false;
+    }
+    return true;
   }
 
   void _scrollToBottom() {
@@ -203,6 +250,7 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
 
     setState(() {
       _isSessionActive = false;
+      _isLeavingSession = true; // Set flag to prevent multiple exit calls
     });
 
     _stopHeartbeat();
@@ -291,10 +339,11 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
   }
 
   Future<void> _endSession(String reason) async {
-    if (!_isSessionActive) return;
+    if (!_isSessionActive || _isLeavingSession) return;
 
     setState(() {
       _isSessionActive = false;
+      _isLeavingSession = true; // Set flag to prevent multiple exit calls
     });
 
     try {
@@ -378,224 +427,180 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Random Chat'),
-        centerTitle: true,
-        backgroundColor: isDark ? AppColors.darkPrimary : AppColors.primary,
-        foregroundColor: Colors.white,
-        actions: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            child: Center(
-              child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                decoration: BoxDecoration(
-                  color: _timeRemaining <= 30 ? Colors.red : Colors.orange,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  _formatTime(_timeRemaining),
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ),
-          ),
-          IconButton(
-            icon: const Icon(Icons.exit_to_app),
-            onPressed: () => _endSession('user_ended'),
-          ),
-        ],
-      ),
-      body: Column(
-        children: [
-          // Session info banner
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(12),
-            color: (isDark ? AppColors.darkPrimary : AppColors.primary)
-                .withOpacity(0.1),
-            child: Text(
-              'Random chat session active • ${_formatTime(_timeRemaining)} remaining',
-              style: TextStyle(
-                color: isDark ? AppColors.darkPrimary : AppColors.primary,
-                fontWeight: FontWeight.w500,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ),
-          // Messages list
-          Expanded(
-            child: _messages.isEmpty
-                ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.chat_bubble_outline,
-                          size: 64,
-                          color: isDark ? Colors.grey[400] : Colors.grey,
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          'Start chatting!',
-                          style: TextStyle(
-                            fontSize: 18,
-                            color: isDark ? Colors.grey[400] : Colors.grey,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Say hello to your random chat partner',
-                          style: TextStyle(
-                            color: isDark ? Colors.grey[400] : Colors.grey,
-                          ),
-                        ),
-                      ],
-                    ),
-                  )
-                : ListView.builder(
-                    controller: _scrollController,
-                    padding: const EdgeInsets.all(16),
-                    itemCount: _messages.length,
-                    itemBuilder: (context, index) {
-                      final message = _messages[index];
-                      final isFromCurrentUser =
-                          message['isFromCurrentUser'] as bool;
-
-                      return Align(
-                        alignment: isFromCurrentUser
-                            ? Alignment.centerRight
-                            : Alignment.centerLeft,
-                        child: Container(
-                          margin: const EdgeInsets.only(bottom: 8),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 10,
-                          ),
-                          decoration: BoxDecoration(
-                            color: isFromCurrentUser
-                                ? (isDark
-                                    ? AppColors.darkPrimary
-                                    : AppColors.primary)
-                                : (isDark
-                                    ? AppColors.darkReceivedMessage
-                                    : Colors.grey[300]),
-                            borderRadius: BorderRadius.circular(18),
-                          ),
-                          child: Text(
-                            HtmlDecoder.decodeHtmlEntities(message['content'] as String),
-                            style: TextStyle(
-                              color: isFromCurrentUser
-                                  ? Colors.white
-                                  : (isDark
-                                      ? AppColors.darkText
-                                      : Colors.black87),
-                            ),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-          ),
-          // Message input
-          if (_isSessionActive)
+    return WillPopScope(
+      onWillPop: _onWillPop,
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Random Chat'),
+          centerTitle: true,
+          backgroundColor: isDark ? AppColors.darkPrimary : AppColors.primary,
+          foregroundColor: Colors.white,
+          actions: [
             Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: isDark ? AppColors.darkCardBackground : Colors.white,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
-                    blurRadius: 4,
-                    offset: const Offset(0, -2),
+              padding: const EdgeInsets.all(8),
+              child: Center(
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: _timeRemaining <= 30 ? Colors.red : Colors.orange,
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                ],
+                  child: Text(
+                    _formatTime(_timeRemaining),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
               ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        TextField(
-                          controller: _messageController,
-                          decoration: InputDecoration(
-                            hintText: 'Type a message...',
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(24),
-                              borderSide: BorderSide.none,
+            ),
+            IconButton(
+              icon: const Icon(Icons.exit_to_app),
+              onPressed: () => _endSession('user_ended'),
+            ),
+          ],
+        ),
+        body: Column(
+          children: [
+            // Session info banner
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              color: (isDark ? AppColors.darkPrimary : AppColors.primary)
+                  .withOpacity(0.1),
+              child: Text(
+                'Random chat session active • ${_formatTime(_timeRemaining)} remaining',
+                style: TextStyle(
+                  color: isDark ? AppColors.darkPrimary : AppColors.primary,
+                  fontWeight: FontWeight.w500,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
+            // Messages list
+            Expanded(
+              child: _messages.isEmpty
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.chat_bubble_outline,
+                            size: 64,
+                            color: isDark ? Colors.grey[400] : Colors.grey,
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            'Start chatting!',
+                            style: TextStyle(
+                              fontSize: 18,
+                              color: isDark ? Colors.grey[400] : Colors.grey,
                             ),
-                            filled: true,
-                            fillColor: isDark
-                                ? AppColors.darkInputBackground
-                                : Colors.grey[100],
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 20,
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Say hello to your random chat partner',
+                            style: TextStyle(
+                              color: isDark ? Colors.grey[400] : Colors.grey,
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  : ListView.builder(
+                      controller: _scrollController,
+                      padding: const EdgeInsets.all(16),
+                      itemCount: _messages.length,
+                      itemBuilder: (context, index) {
+                        final message = _messages[index];
+                        final isFromCurrentUser =
+                            message['isFromCurrentUser'] as bool;
+
+                        return Align(
+                          alignment: isFromCurrentUser
+                              ? Alignment.centerRight
+                              : Alignment.centerLeft,
+                          child: Container(
+                            margin: const EdgeInsets.only(bottom: 8),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
                               vertical: 10,
                             ),
-                            suffixIcon: _messageController.text.length > 900
-                                ? Icon(
-                                    Icons.warning,
-                                    color:
-                                        _messageController.text.length >= 1000
-                                            ? Colors.red
-                                            : Colors.orange,
-                                    size: 16,
-                                  )
-                                : null,
-                          ),
-                          onChanged: (value) {
-                            setState(() {});
-                          },
-                          onSubmitted: (_) => _sendMessage(),
-                          textInputAction: TextInputAction.send,
-                          maxLines: 2, // Reduced from 4 to 2 for shorter height
-                          maxLength: 1000,
-                          maxLengthEnforcement: MaxLengthEnforcement.enforced,
-                        ),
-                        if (_messageController.text.length > 900)
-                          Padding(
-                            padding: const EdgeInsets.only(top: 4, left: 16),
+                            decoration: BoxDecoration(
+                              color: isFromCurrentUser
+                                  ? (isDark
+                                      ? AppColors.darkPrimary
+                                      : AppColors.primary)
+                                  : (isDark
+                                      ? AppColors.darkReceivedMessage
+                                      : Colors.grey[300]),
+                              borderRadius: BorderRadius.circular(18),
+                            ),
                             child: Text(
-                              '${_messageController.text.length}/1000',
+                              HtmlDecoder.decodeHtmlEntities(message['content'] as String),
                               style: TextStyle(
-                                fontSize: 12,
-                                color: _messageController.text.length >= 1000
-                                    ? Colors.red
-                                    : Colors.orange,
-                                fontWeight: FontWeight.w500,
+                                color: isFromCurrentUser
+                                    ? Colors.white
+                                    : (isDark
+                                        ? AppColors.darkText
+                                        : Colors.black87),
                               ),
                             ),
                           ),
-                      ],
+                        );
+                      },
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  GestureDetector(
-                    onTap: _sendMessage,
-                    child: Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color:
-                            isDark ? AppColors.darkPrimary : AppColors.primary,
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.send,
-                        color: Colors.white,
-                        size: 20,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
             ),
-        ],
+            // Message input
+            if (_isSessionActive)
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: isDark ? AppColors.darkBackground : Colors.white,
+                  border: Border(
+                    top: BorderSide(
+                      color: isDark ? Colors.grey[800]! : Colors.grey[300]!,
+                    ),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _messageController,
+                        decoration: InputDecoration(
+                          hintText: 'Type a message...',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(25),
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 12,
+                          ),
+                        ),
+                        maxLines: null,
+                        textInputAction: TextInputAction.send,
+                        onSubmitted: (_) => _sendMessage(),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    IconButton(
+                      onPressed: _sendMessage,
+                      icon: const Icon(Icons.send),
+                      style: IconButton.styleFrom(
+                        backgroundColor: isDark
+                            ? AppColors.darkPrimary
+                            : AppColors.primary,
+                        foregroundColor: Colors.white,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }

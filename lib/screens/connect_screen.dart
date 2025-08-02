@@ -115,24 +115,63 @@ class _ConnectScreenState extends State<ConnectScreen>
   }
 
   void _setupSocketListeners() {
-    // Listen for match events using the stream approach
-    _matchSubscription = _socketService.matchStream.listen(_handleMatchEvent);
-    _errorSubscription = _socketService.errorStream.listen(_handleErrorEvent);
+    _matchSubscription = _socketService.matchStream.listen((matchData) {
+      if (!mounted) return;
 
-    // Listen for random chat events
+      //print('🎯 [CONNECT DEBUG] Match data received: $matchData');
+
+      if (matchData.containsKey('sessionId') && matchData.containsKey('chatRoomId')) {
+        setState(() {
+          _isMatching = false;
+          _currentSessionId = matchData['sessionId'];
+          _matchMessage = 'Match found! Starting chat...';
+        });
+
+        // Navigate to random chat screen
+        _navigateToRandomChat(matchData['sessionId'], matchData['chatRoomId']);
+      } else if (matchData.containsKey('reason') && matchData['reason'] == 'timeout') {
+        setState(() {
+          _isMatching = false;
+          _matchMessage = matchData['message'] ?? 'No match found. Please try again.';
+        });
+
+        // Show timeout message
+        _showTimeoutDialog(matchData);
+      }
+    });
+
+    _errorSubscription = _socketService.errorStream.listen((error) {
+      if (!mounted) return;
+
+      //print('❌ [CONNECT DEBUG] Socket error: $error');
+
+      setState(() {
+        _isMatching = false;
+        _matchMessage = 'Connection error. Please try again.';
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: $error'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    });
+
+    // Listen for session ended events
     _socketService.eventStream.listen((event) {
-      if (event == SocketEvent.randomChatEvent) {
-        // print(
-        //     '🎯 [CONNECT DEBUG] randomChatEvent detected, getting latest data...');
-        final data = _socketService.latestRandomChatData;
-        if (data != null) {
-          // print('🎯 [CONNECT DEBUG] Got latest random chat data: $data');
-          _handleRandomChatEvent(data);
-        } else {
-          // print('❌ [CONNECT DEBUG] No latest random chat data available');
-        }
-      } else if (event == SocketEvent.randomChatTimeout) {
-        _handleRandomChatTimeout();
+      if (!mounted) return;
+
+      switch (event) {
+        case SocketEvent.randomChatSessionEnded:
+          //print('🚪 [CONNECT DEBUG] Random chat session ended');
+          _handleSessionEnded();
+          break;
+        case SocketEvent.randomChatEvent:
+          //print('🎯 [CONNECT DEBUG] Random chat event received');
+          break;
+        default:
+          break;
       }
     });
   }
@@ -422,66 +461,50 @@ class _ConnectScreenState extends State<ConnectScreen>
     _showTimeoutDialog();
   }
 
-  void _navigateToRandomChat(String sessionId, String chatRoomId) {
-    // print('🚀 [CONNECT DEBUG] _navigateToRandomChat called');
-    // print('   📱 Session ID: $sessionId');
-    // print('   💬 Chat Room ID: $chatRoomId');
-    // print('   🎯 Context available: ${context != null}');
-
-    try {
-      // print('🔄 [CONNECT DEBUG] About to call Navigator.push...');
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) {
-            // print('🏗️ [CONNECT DEBUG] Building RandomChatScreen...');
-            return RandomChatScreen(
-              sessionId: sessionId,
-              chatRoomId: chatRoomId,
-            );
-          },
-        ),
-      ).then((_) {
-        // print(
-        //     '🔙 [CONNECT DEBUG] Returned from RandomChatScreen, resetting state');
-        // When returning from random chat, reset state
-        setState(() {
-          _isMatching = false;
-          _isConnected = false;
-          _currentSessionId = null;
-          _matchMessage = null;
-        });
-      });
-      // print('✅ [CONNECT DEBUG] Navigator.push called successfully');
-    } catch (e) {
-      // print('❌ [CONNECT DEBUG] Error during navigation: $e');
-    }
+  void _handleSessionEnded() {
+    setState(() {
+      _currentSessionId = null;
+      _isMatching = false;
+      _matchMessage = null;
+    });
   }
 
-  void _showTimeoutDialog() {
+  void _navigateToRandomChat(String sessionId, String chatRoomId) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => RandomChatScreen(
+          sessionId: sessionId,
+          chatRoomId: chatRoomId,
+        ),
+      ),
+    ).then((_) {
+      // When returning from random chat screen, reset session state
+      setState(() {
+        _currentSessionId = null;
+        _isMatching = false;
+        _matchMessage = null;
+      });
+    });
+  }
+
+  void _showTimeoutDialog(Map<String, dynamic> timeoutData) {
     showDialog(
       context: context,
+      barrierDismissible: false,
       builder: (context) => AlertDialog(
         title: const Row(
           children: [
-            Icon(Icons.timer_off, color: Colors.orange),
+            Icon(Icons.timer, color: AppColors.primary),
             SizedBox(width: 8),
             Text('No Match Found'),
           ],
         ),
-        content: Text(_matchMessage ??
-            'No match found after 5 minutes. Please try again later.'),
+        content: Text(timeoutData['message'] ?? 'No match found. Please try again later.'),
         actions: [
-          TextButton(
+          ElevatedButton(
             onPressed: () => Navigator.pop(context),
             child: const Text('OK'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              _startMatching();
-            },
-            child: const Text('Try Again'),
           ),
         ],
       ),
