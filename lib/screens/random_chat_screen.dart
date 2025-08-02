@@ -117,7 +117,8 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
 
     final messageId =
         message.id ?? DateTime.now().millisecondsSinceEpoch.toString();
-    final messageContent = HtmlDecoder.decodeHtmlEntities(message.content ?? '');
+    final messageContent =
+        HtmlDecoder.decodeHtmlEntities(message.content ?? '');
     final messageSenderId = message.senderId ?? '';
 
     // Get current user ID from Firebase Auth
@@ -373,6 +374,43 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
     return '${minutes.toString().padLeft(2, '0')}:${secs.toString().padLeft(2, '0')}';
   }
 
+  void _showExitWarningDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.warning, color: Colors.orange),
+            SizedBox(width: 8),
+            Text('End Session?'),
+          ],
+        ),
+        content: const Text(
+          'Are you sure you want to end this random chat session? This action cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context); // Close dialog
+            },
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context); // Close dialog
+              _endSession('user_ended');
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('End Session'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -384,6 +422,10 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
         centerTitle: true,
         backgroundColor: isDark ? AppColors.darkPrimary : AppColors.primary,
         foregroundColor: Colors.white,
+        leading: IconButton(
+          icon: const Icon(Icons.exit_to_app),
+          onPressed: _showExitWarningDialog,
+        ),
         actions: [
           Container(
             padding: const EdgeInsets.all(8),
@@ -404,10 +446,6 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
                 ),
               ),
             ),
-          ),
-          IconButton(
-            icon: const Icon(Icons.exit_to_app),
-            onPressed: () => _endSession('user_ended'),
           ),
         ],
       ),
@@ -488,7 +526,8 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
                             borderRadius: BorderRadius.circular(18),
                           ),
                           child: Text(
-                            HtmlDecoder.decodeHtmlEntities(message['content'] as String),
+                            HtmlDecoder.decodeHtmlEntities(
+                                message['content'] as String),
                             style: TextStyle(
                               color: isFromCurrentUser
                                   ? Colors.white
