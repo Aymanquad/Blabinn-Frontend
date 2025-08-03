@@ -32,15 +32,17 @@ void main() async {
 
   // Try to initialize Firebase, but don't crash if it fails
   try {
+    print('🔍 DEBUG: Initializing Firebase...');
     await Firebase.initializeApp();
+    print('✅ DEBUG: Firebase initialized successfully');
 
     // Set up background message handler
     FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
-
-    // print('✅ Firebase initialized successfully with notifications');
+    print('✅ DEBUG: Firebase messaging background handler set up');
   } catch (e) {
-    // print('❌ Firebase initialization failed: $e');
-    // print('Running without Firebase - some features may not work');
+    print('❌ DEBUG: Firebase initialization failed: $e');
+    print('❌ DEBUG: Error type: ${e.runtimeType}');
+    print('⚠️ DEBUG: Running without Firebase - some features may not work');
   }
 
   runApp(const ChatApp());

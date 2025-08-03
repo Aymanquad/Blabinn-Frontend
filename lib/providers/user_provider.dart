@@ -163,13 +163,15 @@ class UserProvider with ChangeNotifier {
   // Load blocked users
   Future<void> _loadBlockedUsers() async {
     try {
+      print('🔍 DEBUG: Loading blocked users...');
       final blockedUsersData = await _apiService.getBlockedUsers();
       _blockedUsers =
           blockedUsersData.map((data) => User.fromJson(data)).toList();
+      print('🔍 DEBUG: Loaded ${_blockedUsers.length} blocked users');
       notifyListeners();
     } catch (e) {
       // Don't set error for blocked users loading failure
-      // print('Failed to load blocked users: $e');
+      print('❌ DEBUG: Failed to load blocked users: $e');
     }
   }
 

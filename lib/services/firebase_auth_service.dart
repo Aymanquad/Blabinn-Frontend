@@ -99,10 +99,19 @@ class FirebaseAuthService {
   // Check if Firebase is available
   bool get isFirebaseAvailable {
     try {
-      Firebase.apps.isNotEmpty;
+      final apps = Firebase.apps;
+      print('🔍 DEBUG: Firebase apps count: ${apps.length}');
+
+      if (apps.isEmpty) {
+        print('❌ DEBUG: No Firebase apps found');
+        return false;
+      }
+
       _auth ??= FirebaseAuth.instance;
+      print('✅ DEBUG: Firebase is available');
       return true;
     } catch (e) {
+      print('❌ DEBUG: Firebase availability check failed: $e');
       return false;
     }
   }
@@ -353,10 +362,46 @@ class FirebaseAuthService {
 
   // Get current Firebase ID token
   Future<String?> getIdToken() async {
-    if (!isFirebaseAvailable || currentUser == null) {
+    try {
+      print('🔍 DEBUG: Getting Firebase ID token...');
+
+      if (!isFirebaseAvailable) {
+        print('❌ DEBUG: Firebase is not available');
+        return null;
+      }
+
+      if (currentUser == null) {
+        print('❌ DEBUG: No current user found');
+        return null;
+      }
+
+      print('🔍 DEBUG: Current user: ${currentUser!.uid}');
+      print('🔍 DEBUG: User email: ${currentUser!.email}');
+      print('🔍 DEBUG: User is anonymous: ${currentUser!.isAnonymous}');
+
+      final token = await currentUser!.getIdToken();
+
+      if (token != null) {
+        print(
+            '✅ DEBUG: Firebase token retrieved successfully (length: ${token.length})');
+        print('🔍 DEBUG: Token starts with: ${token.substring(0, 20)}...');
+      } else {
+        print('❌ DEBUG: Firebase token is null');
+      }
+
+      return token;
+    } catch (e) {
+      print('🚨 DEBUG: Error getting Firebase token: $e');
+      print('🚨 DEBUG: Error type: ${e.runtimeType}');
+
+      // Check if it's a PlatformException
+      if (e.toString().contains('PlatformException')) {
+        print(
+            '🚨 DEBUG: This is a PlatformException - likely Firebase configuration issue');
+      }
+
       return null;
     }
-    return await currentUser!.getIdToken();
   }
 
   // Listen to auth state changes

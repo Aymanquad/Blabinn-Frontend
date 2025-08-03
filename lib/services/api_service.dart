@@ -29,12 +29,42 @@ class ApiService {
   // Refresh Firebase token
   Future<void> _refreshFirebaseToken() async {
     try {
+      print('🔍 DEBUG: Starting token refresh...');
+
+      // Check if Firebase is available
+      if (!_firebaseAuth.isFirebaseAvailable) {
+        print('❌ DEBUG: Firebase is not available - check configuration');
+        return;
+      }
+
+      print('✅ DEBUG: Firebase is available');
+
+      // Check if user is signed in
+      final currentUser = _firebaseAuth.currentUser;
+      if (currentUser == null) {
+        print('❌ DEBUG: No Firebase user found - user not signed in');
+        return;
+      }
+
+      print('🔍 DEBUG: Firebase user found: ${currentUser.uid}');
+      print('🔍 DEBUG: User is anonymous: ${currentUser.isAnonymous}');
+      print('🔍 DEBUG: User email: ${currentUser.email}');
+
+      print('🔍 DEBUG: Getting ID token...');
       _firebaseToken = await _firebaseAuth.getIdToken();
+
       if (_firebaseToken == null) {
-        // print('❌ DEBUG: Firebase token is null');
+        print(
+            '❌ DEBUG: Firebase token is null - user may not be authenticated');
+      } else {
+        print(
+            '✅ DEBUG: Firebase token retrieved successfully (length: ${_firebaseToken!.length})');
+        print(
+            '🔍 DEBUG: Token starts with: ${_firebaseToken!.substring(0, 20)}...');
       }
     } catch (e) {
-      // print('🚨 DEBUG: Failed to get Firebase token: $e');
+      print('🚨 DEBUG: Failed to get Firebase token: $e');
+      print('🚨 DEBUG: Error type: ${e.runtimeType}');
     }
   }
 
@@ -50,8 +80,32 @@ class ApiService {
 
     if (_firebaseToken != null) {
       headers['Authorization'] = 'Bearer $_firebaseToken';
+      print('🔐 DEBUG: Authorization header added with token');
     } else {
-      // print('❌ DEBUG: No Firebase token available for authorization');
+      print(
+          '❌ DEBUG: No Firebase token available for authorization - request will fail');
+
+      // Multiple retry attempts with different strategies
+      for (int attempt = 1; attempt <= 3; attempt++) {
+        try {
+          print('🔄 DEBUG: Retry attempt $attempt - getting fresh token...');
+          final retryToken = await _firebaseAuth.getIdToken();
+          if (retryToken != null) {
+            headers['Authorization'] = 'Bearer $retryToken';
+            print('✅ DEBUG: Retry attempt $attempt successful - token added');
+            break;
+          } else {
+            print('❌ DEBUG: Retry attempt $attempt failed - token is null');
+          }
+        } catch (e) {
+          print('🚨 DEBUG: Retry attempt $attempt failed: $e');
+        }
+
+        // Wait a bit before next attempt
+        if (attempt < 3) {
+          await Future.delayed(Duration(milliseconds: 500));
+        }
+      }
     }
 
     return headers;
@@ -60,6 +114,18 @@ class ApiService {
   // Generic HTTP methods
   Future<http.Response> _get(String endpoint) async {
     try {
+      // Check if user is authenticated before making request
+      final currentUser = _firebaseAuth.currentUser;
+      print('🔍 DEBUG: Current user: ${currentUser?.uid ?? 'null'}');
+      print(
+          '🔍 DEBUG: User is anonymous: ${currentUser?.isAnonymous ?? 'unknown'}');
+
+      if (currentUser == null) {
+        print(
+            '❌ DEBUG: User not authenticated - cannot make authenticated request to $endpoint');
+        throw Exception('User not authenticated. Please sign in first.');
+      }
+
       final response = await http
           .get(
             Uri.parse('$_baseUrl$endpoint'),
@@ -533,7 +599,9 @@ class ApiService {
 
   // Block/Unblock user methods
   Future<List<Map<String, dynamic>>> getBlockedUsers() async {
+    print('🔍 DEBUG: Calling getBlockedUsers API...');
     final response = await _get('/profiles/me/blocked');
+    print('🔍 DEBUG: getBlockedUsers response status: ${response.statusCode}');
     final data = _handleResponse(response);
     return List<Map<String, dynamic>>.from(data['blockedUsers'] ?? []);
   }

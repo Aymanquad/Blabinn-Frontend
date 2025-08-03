@@ -14,11 +14,35 @@
       },
       "oauth_client": [
         {
-          "client_id": "63308848043-vqil7aa0comf5k24hkvi92om2sds1agp.apps.googleusercontent.com",
+          "client_id": "63308848043-126hr1bdiusvk2skoi3brrfb3pd5kpac.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.company.blabinn",
+            "certificate_hash": "132a69f1dd36b2d04880e53b3a4eb083e9813411"
+          }
+        },
+        {
+          "client_id": "63308848043-nie3e5saj81m5np6n0lpqj7tlvkd6p62.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
             "package_name": "com.company.blabinn",
             "certificate_hash": "c58c498b5b356a93d0181b37ade773783942edef"
+          }
+        },
+        {
+          "client_id": "63308848043-vnvi1tg680qicsjemlf9b1bi4m5v399m.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.company.blabinn",
+            "certificate_hash": "e66436000a0457f07cdc995b9def92d7515aee8a"
+          }
+        },
+        {
+          "client_id": "63308848043-vqil7aa0comf5k24hkvi92om2sds1agp.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.company.blabinn",
+            "certificate_hash": "0745cee7ea0f41a52ab5ab1ff86ae822e16288a0"
           }
         },
         {
