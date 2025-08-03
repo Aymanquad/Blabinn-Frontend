@@ -9,6 +9,7 @@ import '../../services/api_service.dart';
 import '../../services/socket_service.dart';
 import '../../services/firebase_auth_service.dart';
 import '../../services/background_image_service.dart';
+import '../../services/chat_moderation_service.dart';
 import '../../widgets/chat_bubble.dart';
 import 'chat_logic.dart';
 import 'chat_ui_components.dart';
@@ -29,6 +30,7 @@ class _ChatScreenState extends State<ChatScreen> {
   final ScrollController _scrollController = ScrollController();
   final ApiService _apiService = ApiService();
   final SocketService _socketService = SocketService();
+  final ChatModerationService _moderationService = ChatModerationService();
 
   List<Message> _messages = [];
   bool _isTyping = false;
@@ -142,8 +144,13 @@ class _ChatScreenState extends State<ChatScreen> {
         bool messageExists = _messages.any((msg) => msg.id == message.id);
 
         if (!messageExists) {
+          // Apply moderation to received message content
+          final moderatedMessage = message.copyWith(
+            content: _moderationService.moderateReceivedMessage(message.content),
+          );
+
           setState(() {
-            _messages.add(message);
+            _messages.add(moderatedMessage);
             _messages.sort((a, b) => a.timestamp.compareTo(b.timestamp));
 
             // Update pagination state if we have more than 50 messages
@@ -421,12 +428,23 @@ class _ChatScreenState extends State<ChatScreen> {
     });
 
     try {
+      // Process message through moderation service
+      final processedMessage = await _moderationService.processMessageForSending(context, messageContent);
+      
+      if (processedMessage == null) {
+        // User cancelled sending due to inappropriate content
+        setState(() {
+          _isSending = false;
+        });
+        return;
+      }
+
       // print('📤 DEBUG: Sending message via real-time service');
       // print('📤 DEBUG: Friend ID: $_friendId');
-      // print('📤 DEBUG: Message content: $messageContent');
+      // print('📤 DEBUG: Message content: $processedMessage');
 
-      // Send message via socket service
-      await _socketService.sendFriendMessage(_friendId!, messageContent);
+      // Send processed message via socket service
+      await _socketService.sendFriendMessage(_friendId!, processedMessage);
 
       setState(() {
         _isSending = false;

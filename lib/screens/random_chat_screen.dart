@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import '../core/constants.dart';
 import '../services/socket_service.dart';
 import '../services/api_service.dart';
+import '../services/chat_moderation_service.dart';
 import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart' as FirebaseAuth;
 import '../utils/html_decoder.dart';
@@ -27,6 +28,7 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
   final List<Map<String, dynamic>> _messages = [];
   late SocketService _socketService;
   late ApiService _apiService;
+  final ChatModerationService _moderationService = ChatModerationService();
   late StreamSubscription _messageSubscription;
   late StreamSubscription _errorSubscription;
   bool _isSessionActive = true;
@@ -120,6 +122,9 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
     final messageContent =
         HtmlDecoder.decodeHtmlEntities(message.content ?? '');
     final messageSenderId = message.senderId ?? '';
+    
+    // Apply moderation to received message content
+    final moderatedContent = _moderationService.moderateReceivedMessage(messageContent);
 
     // Get current user ID from Firebase Auth
     String? currentUserId;
@@ -140,7 +145,7 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
 
     // Check if we have a temporary message with the same content from current user
     final tempMessageIndex = _messages.indexWhere((msg) =>
-        msg['content'] == messageContent &&
+        msg['content'] == moderatedContent &&
         msg['isFromCurrentUser'] == true &&
         msg['id'].toString().startsWith('temp_'));
 
@@ -151,7 +156,7 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
       setState(() {
         _messages[tempMessageIndex] = {
           'id': messageId,
-          'content': messageContent,
+          'content': moderatedContent,
           'senderId': messageSenderId,
           'timestamp': message.timestamp ?? DateTime.now(),
           'isFromCurrentUser': true,
@@ -172,7 +177,7 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
       setState(() {
         _messages.add({
           'id': messageId,
-          'content': messageContent,
+          'content': moderatedContent,
           'senderId': messageSenderId,
           'timestamp': message.timestamp ?? DateTime.now(),
           'isFromCurrentUser': isFromCurrentUser,
@@ -257,12 +262,20 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
     if (content.isEmpty || !_isSessionActive) return;
 
     try {
+      // Process message through moderation service
+      final processedContent = await _moderationService.processMessageForSending(context, content);
+      
+      if (processedContent == null) {
+        // User cancelled sending due to inappropriate content
+        return;
+      }
+
       // Add message to UI immediately (optimistic update)
       final tempMessageId = 'temp_${DateTime.now().millisecondsSinceEpoch}';
       setState(() {
         _messages.add({
           'id': tempMessageId,
-          'content': content,
+          'content': processedContent,
           'senderId':
               'current_user', // Will be updated when we get the real message
           'timestamp': DateTime.now(),
@@ -272,14 +285,14 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
 
       _scrollToBottom();
 
-      //print('📤 [RANDOM CHAT DEBUG] Added optimistic message to UI: $content');
+      //print('📤 [RANDOM CHAT DEBUG] Added optimistic message to UI: $processedContent');
 
       _messageController.clear();
 
-      // Send via socket
+      // Send processed message via socket
       await _socketService.sendMessage(
         widget.chatRoomId,
-        content,
+        processedContent,
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
