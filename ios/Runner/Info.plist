@@ -58,7 +58,7 @@
 		<string>remote-notification</string>
 	</array>
 	
-	<!-- AdMob Configuration -->
+	<!-- AdMob Configuration (Test ID for Development) -->
 	<key>GADApplicationIdentifier</key>
 	<string>ca-app-pub-3940256099942544~1458002511</string>
 	

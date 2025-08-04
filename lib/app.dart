@@ -25,6 +25,8 @@ import 'screens/media_folder_screen.dart';
 import 'services/socket_service.dart';
 import 'models/chat.dart'; // Added import for Chat model
 import 'screens/chat_screen.dart'; // Added import for ChatScreen
+import 'screens/test_interstitial_screen.dart';
+import 'widgets/interstitial_ad_manager.dart';
 
 // Global navigator key for navigation from anywhere
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
@@ -84,47 +86,52 @@ class ChatApp extends StatelessWidget {
       ],
       child: Consumer<ThemeProvider>(
         builder: (context, themeProvider, child) {
-          return MaterialApp(
-            title: AppConstants.appName,
-            debugShowCheckedModeBanner: false,
-            navigatorKey: navigatorKey, // Add global navigator key
-            theme: _buildLightTheme(),
-            darkTheme: _buildDarkTheme(),
-            themeMode:
-                themeProvider.isDarkMode ? ThemeMode.dark : ThemeMode.light,
-            home: const SplashScreen(),
-            routes: {
-              '/home': (context) => const MainNavigationScreen(),
-              '/profile': (context) => const ProfileScreen(),
-              '/profile-management': (context) =>
-                  const ProfileManagementScreen(),
-              '/account-settings': (context) => const AccountSettingsScreen(),
-              '/connect': (context) => const ConnectScreen(),
-              '/login': (context) => const LoginScreen(),
-              '/search': (context) => const SearchScreen(),
-              '/friend-requests': (context) => const FriendRequestsScreen(),
-              '/friends': (context) => const FriendsScreen(),
-              '/chat-list': (context) => const ChatListScreen(),
-              '/friends-list': (context) => const FriendsListScreen(),
-              '/user-profile': (context) {
-                final args = ModalRoute.of(context)?.settings.arguments;
-                if (args is String) {
-                  return UserProfileScreen(userId: args);
-                }
-                // Fallback for debugging
-                return const Scaffold(
-                  body: Center(
-                    child: Text('Invalid user ID provided'),
-                  ),
-                );
+          return InterstitialAdManager(
+            child: MaterialApp(
+              title: AppConstants.appName,
+              debugShowCheckedModeBanner: false,
+              navigatorKey: navigatorKey, // Add global navigator key
+              theme: _buildLightTheme(),
+              darkTheme: _buildDarkTheme(),
+              themeMode:
+                  themeProvider.isDarkMode ? ThemeMode.dark : ThemeMode.light,
+              home: const SplashScreen(),
+              routes: {
+                '/home': (context) => const MainNavigationScreen(),
+                '/profile': (context) => const ProfileScreen(),
+                '/profile-management': (context) =>
+                    const ProfileManagementScreen(),
+                '/account-settings': (context) => const AccountSettingsScreen(),
+                '/connect': (context) => const ConnectScreen(),
+                '/login': (context) => const LoginScreen(),
+                '/search': (context) => const SearchScreen(),
+                '/friend-requests': (context) => const FriendRequestsScreen(),
+                '/friends': (context) => const FriendsScreen(),
+                '/chat-list': (context) => const ChatListScreen(),
+                '/friends-list': (context) => const FriendsListScreen(),
+                '/test-interstitial': (context) =>
+                    const TestInterstitialScreen(),
+                '/user-profile': (context) {
+                  final args = ModalRoute.of(context)?.settings.arguments;
+                  if (args is String) {
+                    return UserProfileScreen(userId: args);
+                  }
+                  // Fallback for debugging
+                  return const Scaffold(
+                    body: Center(
+                      child: Text('Invalid user ID provided'),
+                    ),
+                  );
+                },
               },
-            },
+            ),
           );
         },
       ),
     );
   }
 }
+
 
 // Theme building methods
 ThemeData _buildLightTheme() {
