@@ -23,12 +23,10 @@ class _HomeScreenState extends State<HomeScreen> {
             const SizedBox(height: 16),
             _AnimatedOpeningImageSection(),
             const SizedBox(height: 16),
-            _AnimatedConnectNowSection(onConnect: () {
-              widget.onNavigateToTab?.call(2); // Navigate to Connect tab
-            }),
-            const SizedBox(height: 16),
             Expanded(
-              child: _buildDiscoverSection(context),
+              child: _AnimatedConnectNowSection(onConnect: () {
+                widget.onNavigateToTab?.call(2); // Navigate to Connect tab
+              }),
             ),
             const SizedBox(height: 8),
             // Banner Ad at the bottom
@@ -38,79 +36,6 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildDiscoverSection(BuildContext context) {
-    final theme = Theme.of(context);
-    final height = MediaQuery.of(context).size.height;
-
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            theme.colorScheme.tertiary.withValues(alpha: 0.1),
-            theme.colorScheme.secondary.withValues(alpha: 0.1),
-          ],
-        ),
-      ),
-      child: Stack(
-        children: [
-          Positioned(
-            right: 20,
-            top: 20,
-            child: Container(
-              width: 60,
-              height: 60,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: theme.colorScheme.tertiary.withOpacity(0.2),
-                    blurRadius: 8,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: ClipOval(
-                child: Image.asset(
-                  'assets/images/search-people-removebg-preview.png',
-                  fit: BoxFit.contain,
-                ),
-              ),
-            ),
-          ),
-          Positioned(
-            left: 20,
-            top: 25,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Discover New Connections',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                    color: theme.colorScheme.tertiary,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Start meaningful conversations',
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: theme.colorScheme.onSurface.withOpacity(0.7),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -249,7 +174,7 @@ class _AnimatedConnectNowSectionState extends State<_AnimatedConnectNowSection>
     final theme = Theme.of(context);
     final height = MediaQuery.of(context).size.height;
     return Container(
-      height: height * 0.25,
+      height: height * 0.35, // Increased from 0.25 to 0.35
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(24),
         gradient: LinearGradient(
@@ -269,14 +194,14 @@ class _AnimatedConnectNowSectionState extends State<_AnimatedConnectNowSection>
         ],
       ),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(20), // Increased padding from 16 to 20
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             // Enhanced image container with background
             Container(
-              width: height * 0.12,
-              height: height * 0.12,
+              width: height * 0.15, // Increased from 0.12 to 0.15
+              height: height * 0.15, // Increased from 0.12 to 0.15
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 gradient: LinearGradient(
@@ -302,7 +227,7 @@ class _AnimatedConnectNowSectionState extends State<_AnimatedConnectNowSection>
                 ),
               ),
             ),
-            const SizedBox(width: 16),
+            const SizedBox(width: 20), // Increased spacing from 16 to 20
             // Enhanced connect button section
             Expanded(
               child: Column(
@@ -312,20 +237,20 @@ class _AnimatedConnectNowSectionState extends State<_AnimatedConnectNowSection>
                   Text(
                     'Ready to Connect?',
                     style: TextStyle(
-                      fontSize: 18,
+                      fontSize: 22, // Increased from 18 to 22
                       fontWeight: FontWeight.bold,
                       color: theme.colorScheme.primary,
                     ),
                   ),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: 8), // Increased from 6 to 8
                   Text(
                     'Find and chat with new people around you',
                     style: TextStyle(
-                      fontSize: 13,
+                      fontSize: 15, // Increased from 13 to 15
                       color: theme.colorScheme.onSurface.withOpacity(0.7),
                     ),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 16), // Increased from 12 to 16
                   ScaleTransition(
                     scale: _scaleAnim,
                     child: SizedBox(
@@ -336,17 +261,18 @@ class _AnimatedConnectNowSectionState extends State<_AnimatedConnectNowSection>
                           backgroundColor: theme.colorScheme.primary,
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(
-                            vertical: 12,
-                            horizontal: 20,
+                            vertical: 16, // Increased from 12 to 16
+                            horizontal: 24, // Increased from 20 to 24
                           ),
                           textStyle: const TextStyle(
-                            fontSize: 16,
+                            fontSize: 18, // Increased from 16 to 18
                             fontWeight: FontWeight.bold,
                           ),
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14),
+                            borderRadius: BorderRadius.circular(
+                                16), // Increased from 14 to 16
                           ),
-                          elevation: 6,
+                          elevation: 8, // Increased from 6 to 8
                         ),
                         child: const Text('Connect Now'),
                       ),
