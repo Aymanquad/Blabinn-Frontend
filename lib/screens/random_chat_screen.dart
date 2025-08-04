@@ -432,16 +432,22 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Random Chat'),
-        centerTitle: true,
-        backgroundColor: isDark ? AppColors.darkPrimary : AppColors.primary,
-        foregroundColor: Colors.white,
-        leading: IconButton(
-          icon: const Icon(Icons.exit_to_app),
-          onPressed: _showExitWarningDialog,
-        ),
+    return WillPopScope(
+      onWillPop: () async {
+        _showExitWarningDialog();
+        return false; // Prevent default back button behavior
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Random Chat'),
+          centerTitle: true,
+          backgroundColor: isDark ? AppColors.darkPrimary : AppColors.primary,
+          foregroundColor: Colors.white,
+          automaticallyImplyLeading: false, // Disable default back button
+          leading: IconButton(
+            icon: const Icon(Icons.exit_to_app),
+            onPressed: _showExitWarningDialog,
+          ),
         actions: [
           Container(
             padding: const EdgeInsets.all(8),
@@ -651,6 +657,7 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
               ),
             ),
         ],
+      ),
       ),
     );
   }

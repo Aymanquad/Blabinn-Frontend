@@ -514,10 +514,57 @@ class _ChatScreenState extends State<ChatScreen> {
     });
   }
 
+  void _showExitChatDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.warning, color: Colors.orange),
+            SizedBox(width: 8),
+            Text('Exit Chat?'),
+          ],
+        ),
+        content: const Text(
+          'Are you sure you want to exit this chat? You can always return to continue the conversation.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context); // Close dialog
+            },
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context); // Close dialog
+              Navigator.pop(context); // Exit chat
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Exit Chat'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
+    return WillPopScope(
+      onWillPop: () async {
+        _showExitChatDialog();
+        return false; // Prevent default back button behavior
+      },
+      child: Scaffold(
+        appBar: AppBar(
+        automaticallyImplyLeading: false, // Disable default back button
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => _showExitChatDialog(),
+        ),
         title: Row(
           children: [
             CircleAvatar(
@@ -648,6 +695,7 @@ class _ChatScreenState extends State<ChatScreen> {
           ),
           _buildMessageInput(),
         ],
+      ),
       ),
     );
   }
