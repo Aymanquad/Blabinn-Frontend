@@ -57,5 +57,18 @@
 		<string>background-processing</string>
 		<string>remote-notification</string>
 	</array>
+	
+	<!-- AdMob Configuration -->
+	<key>GADApplicationIdentifier</key>
+	<string>ca-app-pub-3940256099942544~1458002511</string>
+	
+	<!-- SKAdNetworkItems for iOS 14+ -->
+	<key>SKAdNetworkItems</key>
+	<array>
+		<dict>
+			<key>SKAdNetworkIdentifier</key>
+			<string>cstr6suwn9.skadnetwork</string>
+		</dict>
+	</array>
 </dict>
 </plist>
