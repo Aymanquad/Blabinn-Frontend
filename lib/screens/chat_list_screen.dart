@@ -3,6 +3,7 @@ import '../core/constants.dart';
 import '../services/api_service.dart';
 import '../models/chat.dart';
 import '../models/user.dart';
+import '../widgets/banner_ad_widget.dart';
 import 'chat_screen.dart';
 
 class ChatListScreen extends StatefulWidget {
@@ -230,89 +231,100 @@ class _ChatListScreenState extends State<ChatListScreen> {
           ),
         ],
       ),
-      body: _isLoading
-          ? const Center(
-              child: CircularProgressIndicator(),
-            )
-          : _errorMessage != null
-              ? Builder(
-                  builder: (context) {
-                    final theme = Theme.of(context);
-                    return Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.error_outline,
-                            size: 64,
-                            color: theme.colorScheme.onSurface.withOpacity(0.4),
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            _errorMessage!,
-                            style: TextStyle(
-                              color:
-                                  theme.colorScheme.onSurface.withOpacity(0.7),
-                              fontSize: 16,
+      body: Column(
+        children: [
+          Expanded(
+            child: _isLoading
+                ? const Center(
+                    child: CircularProgressIndicator(),
+                  )
+                : _errorMessage != null
+                    ? Builder(
+                        builder: (context) {
+                          final theme = Theme.of(context);
+                          return Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.error_outline,
+                                  size: 64,
+                                  color: theme.colorScheme.onSurface.withOpacity(0.4),
+                                ),
+                                const SizedBox(height: 16),
+                                Text(
+                                  _errorMessage!,
+                                  style: TextStyle(
+                                    color:
+                                        theme.colorScheme.onSurface.withOpacity(0.7),
+                                    fontSize: 16,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                                const SizedBox(height: 16),
+                                ElevatedButton(
+                                  onPressed: _loadChatsData,
+                                  child: const Text('Retry'),
+                                ),
+                              ],
                             ),
-                            textAlign: TextAlign.center,
-                          ),
-                          const SizedBox(height: 16),
-                          ElevatedButton(
-                            onPressed: _loadChatsData,
-                            child: const Text('Retry'),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
-                )
-              : _friends.isEmpty
-                  ? Builder(
-                      builder: (context) {
-                        final theme = Theme.of(context);
-                        return Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.chat_bubble_outline,
-                                size: 64,
-                                color: theme.colorScheme.onSurface
-                                    .withOpacity(0.4),
-                              ),
-                              const SizedBox(height: 16),
-                              Text(
-                                'No friends to chat with yet',
-                                style: TextStyle(
-                                  color: theme.colorScheme.onSurface
-                                      .withOpacity(0.7),
-                                  fontSize: 16,
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                'Add friends to start chatting!',
-                                style: TextStyle(
-                                  color: theme.colorScheme.onSurface
-                                      .withOpacity(0.5),
-                                  fontSize: 14,
-                                ),
-                              ),
-                            ],
-                          ),
-                        );
-                      },
-                    )
-                  : RefreshIndicator(
-                      onRefresh: _loadChatsData,
-                      child: ListView.builder(
-                        itemCount: _friends.length,
-                        itemBuilder: (context, index) {
-                          return _buildChatItem(_friends[index]);
+                          );
                         },
-                      ),
-                    ),
+                      )
+                    : _friends.isEmpty
+                        ? Builder(
+                            builder: (context) {
+                              final theme = Theme.of(context);
+                              return Center(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      Icons.chat_bubble_outline,
+                                      size: 64,
+                                      color: theme.colorScheme.onSurface
+                                          .withOpacity(0.4),
+                                    ),
+                                    const SizedBox(height: 16),
+                                    Text(
+                                      'No friends to chat with yet',
+                                      style: TextStyle(
+                                        color: theme.colorScheme.onSurface
+                                            .withOpacity(0.7),
+                                        fontSize: 16,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      'Add friends to start chatting!',
+                                      style: TextStyle(
+                                        color: theme.colorScheme.onSurface
+                                            .withOpacity(0.5),
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            },
+                          )
+                        : RefreshIndicator(
+                            onRefresh: _loadChatsData,
+                            child: ListView.builder(
+                              itemCount: _friends.length,
+                              itemBuilder: (context, index) {
+                                return _buildChatItem(_friends[index]);
+                              },
+                            ),
+                          ),
+          ),
+          // Banner Ad at the bottom
+          const BannerAdWidget(
+            height: 50,
+            margin: EdgeInsets.only(bottom: 8),
+          ),
+        ],
+      ),
     );
   }
 }

@@ -4,6 +4,7 @@ import '../core/constants.dart';
 import '../services/socket_service.dart';
 import '../services/api_service.dart';
 import '../services/chat_moderation_service.dart';
+import '../widgets/banner_ad_widget.dart';
 import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart' as FirebaseAuth;
 import '../utils/html_decoder.dart';
@@ -122,9 +123,10 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
     final messageContent =
         HtmlDecoder.decodeHtmlEntities(message.content ?? '');
     final messageSenderId = message.senderId ?? '';
-    
+
     // Apply moderation to received message content
-    final moderatedContent = _moderationService.moderateReceivedMessage(messageContent);
+    final moderatedContent =
+        _moderationService.moderateReceivedMessage(messageContent);
 
     // Get current user ID from Firebase Auth
     String? currentUserId;
@@ -263,8 +265,9 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
 
     try {
       // Process message through moderation service
-      final processedContent = await _moderationService.processMessageForSending(context, content);
-      
+      final processedContent =
+          await _moderationService.processMessageForSending(context, content);
+
       if (processedContent == null) {
         // User cancelled sending due to inappropriate content
         return;

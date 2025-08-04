@@ -8,6 +8,7 @@ import '../core/constants.dart';
 import '../services/api_service.dart';
 import '../services/premium_service.dart';
 import '../utils/permission_helper.dart';
+import '../widgets/banner_ad_widget.dart';
 
 /// MediaFolderScreen - Manages user's media collection with two tabs:
 /// 1. Saved - All images saved to media folder (from camera)
@@ -909,18 +910,29 @@ class _MediaFolderScreenState extends State<MediaFolderScreen>
           tabs: _tabTitles.map((title) => Tab(text: title)).toList(),
         ),
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : IndexedStack(
-              index: _selectedTabIndex,
-              children: [
-                // Saved Images Tab
-                _buildImageGrid(_savedImages),
+      body: Column(
+        children: [
+          Expanded(
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : IndexedStack(
+                    index: _selectedTabIndex,
+                    children: [
+                      // Saved Images Tab
+                      _buildImageGrid(_savedImages),
 
-                // Received Images Tab
-                _buildReceivedImageGrid(_receivedImages),
-              ],
-            ),
+                      // Received Images Tab
+                      _buildReceivedImageGrid(_receivedImages),
+                    ],
+                  ),
+          ),
+          // Banner Ad at the bottom
+          const BannerAdWidget(
+            height: 50,
+            margin: EdgeInsets.only(bottom: 8),
+          ),
+        ],
+      ),
     );
   }
 }

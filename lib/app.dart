@@ -7,6 +7,7 @@ import 'providers/theme_provider.dart';
 import 'providers/user_provider.dart';
 import 'services/notification_service.dart';
 import 'widgets/in_app_notification.dart';
+import 'widgets/banner_ad_widget.dart';
 import 'screens/splash_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/profile_screen.dart';
@@ -524,140 +525,151 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
             ],
           ),
         ),
-        child: ListView(
-          padding: const EdgeInsets.only(top: 40),
+        child: Column(
           children: [
-            // Main Navigation
-            _buildDrawerSection(
-              context,
-              'Main Navigation',
-              [
-                _buildDrawerItem(
-                  context,
-                  icon: AppIcons.home,
-                  title: AppStrings.home,
-                  onTap: () {
-                    Navigator.pop(context);
-                    _onTabTapped(0);
-                  },
-                ),
-                _buildDrawerItem(
-                  context,
-                  icon: AppIcons.chat,
-                  title: AppStrings.chats,
-                  onTap: () {
-                    Navigator.pop(context);
-                    _onTabTapped(1);
-                  },
-                ),
-                _buildDrawerItem(
-                  context,
-                  icon: AppIcons.connect,
-                  title: AppStrings.connect,
-                  onTap: () {
-                    Navigator.pop(context);
-                    _onTabTapped(2);
-                  },
-                ),
-                _buildDrawerItem(
-                  context,
-                  icon: AppIcons.media,
-                  title: AppStrings.media,
-                  onTap: () {
-                    Navigator.pop(context);
-                    _onTabTapped(3);
-                  },
-                ),
-              ],
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.only(top: 40),
+                children: [
+                  // Main Navigation
+                  _buildDrawerSection(
+                    context,
+                    'Main Navigation',
+                    [
+                      _buildDrawerItem(
+                        context,
+                        icon: AppIcons.home,
+                        title: AppStrings.home,
+                        onTap: () {
+                          Navigator.pop(context);
+                          _onTabTapped(0);
+                        },
+                      ),
+                      _buildDrawerItem(
+                        context,
+                        icon: AppIcons.chat,
+                        title: AppStrings.chats,
+                        onTap: () {
+                          Navigator.pop(context);
+                          _onTabTapped(1);
+                        },
+                      ),
+                      _buildDrawerItem(
+                        context,
+                        icon: AppIcons.connect,
+                        title: AppStrings.connect,
+                        onTap: () {
+                          Navigator.pop(context);
+                          _onTabTapped(2);
+                        },
+                      ),
+                      _buildDrawerItem(
+                        context,
+                        icon: AppIcons.media,
+                        title: AppStrings.media,
+                        onTap: () {
+                          Navigator.pop(context);
+                          _onTabTapped(3);
+                        },
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  // Quick Actions
+                  _buildDrawerSection(
+                    context,
+                    'Quick Actions',
+                    [
+                      _buildDrawerItem(
+                        context,
+                        icon: Icons.search,
+                        title: 'Find People',
+                        subtitle: 'Search and connect with new people',
+                        iconColor: theme.colorScheme.tertiary,
+                        onTap: () {
+                          Navigator.pop(context);
+                          Navigator.pushNamed(context, '/search');
+                        },
+                      ),
+                      _buildDrawerItem(
+                        context,
+                        icon: Icons.people,
+                        title: 'Friend Requests',
+                        subtitle: 'Manage your friend requests',
+                        iconColor: theme.colorScheme.secondary,
+                        onTap: () {
+                          Navigator.pop(context);
+                          Navigator.pushNamed(context, '/friend-requests');
+                        },
+                      ),
+                      _buildDrawerItem(
+                        context,
+                        icon: Icons.favorite,
+                        title: 'Friends Section',
+                        subtitle: 'View and manage your friends',
+                        iconColor: theme.colorScheme.tertiary,
+                        onTap: () {
+                          Navigator.pop(context);
+                          Navigator.pushNamed(context, '/friends-list');
+                        },
+                      ),
+                      _buildDrawerItem(
+                        context,
+                        icon: Icons.history,
+                        title: 'Your Activity',
+                        subtitle: 'View your recent activity',
+                        iconColor: theme.colorScheme.primary,
+                        onTap: () {
+                          Navigator.pop(context);
+                          _showActivityDialog(context);
+                        },
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  // Settings
+                  _buildDrawerSection(
+                    context,
+                    'Settings',
+                    [
+                      _buildDrawerItem(
+                        context,
+                        icon: AppIcons.profile,
+                        title: AppStrings.profile,
+                        onTap: () {
+                          Navigator.pop(context);
+                          _navigateToProfile();
+                        },
+                      ),
+                      _buildDrawerItem(
+                        context,
+                        icon: AppIcons.settings,
+                        title: AppStrings.settings,
+                        onTap: () {
+                          Navigator.pop(context);
+                          Navigator.pushNamed(context, '/account-settings');
+                        },
+                      ),
+                      _buildDrawerItem(
+                        context,
+                        icon: AppIcons.logout,
+                        title: AppStrings.logout,
+                        onTap: () {
+                          Navigator.pop(context);
+                          // TODO: Implement logout logic
+                        },
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                ],
+              ),
             ),
-            const SizedBox(height: 16),
-            // Quick Actions
-            _buildDrawerSection(
-              context,
-              'Quick Actions',
-              [
-                _buildDrawerItem(
-                  context,
-                  icon: Icons.search,
-                  title: 'Find People',
-                  subtitle: 'Search and connect with new people',
-                  iconColor: theme.colorScheme.tertiary,
-                  onTap: () {
-                    Navigator.pop(context);
-                    Navigator.pushNamed(context, '/search');
-                  },
-                ),
-                _buildDrawerItem(
-                  context,
-                  icon: Icons.people,
-                  title: 'Friend Requests',
-                  subtitle: 'Manage your friend requests',
-                  iconColor: theme.colorScheme.secondary,
-                  onTap: () {
-                    Navigator.pop(context);
-                    Navigator.pushNamed(context, '/friend-requests');
-                  },
-                ),
-                _buildDrawerItem(
-                  context,
-                  icon: Icons.favorite,
-                  title: 'Friends Section',
-                  subtitle: 'View and manage your friends',
-                  iconColor: theme.colorScheme.tertiary,
-                  onTap: () {
-                    Navigator.pop(context);
-                    Navigator.pushNamed(context, '/friends-list');
-                  },
-                ),
-                _buildDrawerItem(
-                  context,
-                  icon: Icons.history,
-                  title: 'Your Activity',
-                  subtitle: 'View your recent activity',
-                  iconColor: theme.colorScheme.primary,
-                  onTap: () {
-                    Navigator.pop(context);
-                    _showActivityDialog(context);
-                  },
-                ),
-              ],
+            // Banner Ad at the bottom
+            const BannerAdWidget(
+              height: 50,
+              margin: EdgeInsets.only(bottom: 8),
             ),
-            const SizedBox(height: 16),
-            // Settings
-            _buildDrawerSection(
-              context,
-              'Settings',
-              [
-                _buildDrawerItem(
-                  context,
-                  icon: AppIcons.profile,
-                  title: AppStrings.profile,
-                  onTap: () {
-                    Navigator.pop(context);
-                    _navigateToProfile();
-                  },
-                ),
-                _buildDrawerItem(
-                  context,
-                  icon: AppIcons.settings,
-                  title: AppStrings.settings,
-                  onTap: () {
-                    Navigator.pop(context);
-                    Navigator.pushNamed(context, '/account-settings');
-                  },
-                ),
-                _buildDrawerItem(
-                  context,
-                  icon: AppIcons.logout,
-                  title: AppStrings.logout,
-                  onTap: () {
-                    Navigator.pop(context);
-                    // TODO: Implement logout logic
-                  },
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
           ],
         ),
       ),

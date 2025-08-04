@@ -4,6 +4,7 @@ import '../services/api_service.dart';
 import '../services/socket_service.dart';
 import '../services/premium_service.dart';
 import '../models/user.dart';
+import '../widgets/banner_ad_widget.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'random_chat_screen.dart';
@@ -690,6 +691,12 @@ class _ConnectScreenState extends State<ConnectScreen>
               child: _buildMainContent(),
             ),
             _buildConnectButton(),
+            const SizedBox(height: 8),
+            // Banner Ad at the bottom
+            const BannerAdWidget(
+              height: 50,
+              margin: EdgeInsets.only(bottom: 8),
+            ),
           ],
         ),
       ),
