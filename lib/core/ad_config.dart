@@ -22,9 +22,13 @@
 /// - Interstitial Ad Unit ID: ca-app-pub-5160335418378680/6987105743
 
 class AdConfig {
+  // TEMPORARY AD DISABLE FLAG
+  // Set this to false to disable all ads temporarily
+  static const bool adsEnabled = true; // Set to false to disable ads
+
   // DEVELOPMENT MODE - Using Test IDs
   // Change to production IDs when ready for production
-  
+
   // Test App IDs for development
   static const String androidAppId =
       'ca-app-pub-3940256099942544~3347511713'; // Test App ID

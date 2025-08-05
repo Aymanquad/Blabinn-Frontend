@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import '../services/ad_service.dart';
+import '../core/ad_config.dart';
 
 class BannerAdWidget extends StatefulWidget {
   final double? height;
@@ -37,6 +38,12 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
   }
 
   Future<void> _loadAd() async {
+    // Check if ads are disabled
+    if (!AdConfig.adsEnabled) {
+      debugPrint('🚫 Ads are disabled - banner widget hidden');
+      return;
+    }
+
     if (_isLoading) return;
 
     setState(() {
@@ -47,7 +54,7 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
     try {
       final adService = AdService();
       final bannerAd = await adService.loadBannerAd();
-      
+
       if (mounted && bannerAd != null) {
         setState(() {
           _bannerAd = bannerAd;
@@ -75,6 +82,11 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
 
   @override
   Widget build(BuildContext context) {
+    // Hide widget if ads are disabled
+    if (!AdConfig.adsEnabled) {
+      return const SizedBox.shrink();
+    }
+
     // Show loading indicator
     if (_isLoading && widget.showLoadingIndicator) {
       return Container(
@@ -126,4 +138,4 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
     // Hide widget if no ad loaded and no error
     return const SizedBox.shrink();
   }
-} 
+}

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../services/ad_service.dart';
+import '../core/ad_config.dart';
 
 class InterstitialAdManager extends StatefulWidget {
   final Widget child;
@@ -33,6 +34,12 @@ class _InterstitialAdManagerState extends State<InterstitialAdManager>
   }
 
   Future<void> _initializeAds() async {
+    // Check if ads are disabled
+    if (!AdConfig.adsEnabled) {
+      debugPrint('🚫 Ads are disabled - interstitial ad manager skipped');
+      return;
+    }
+
     try {
       await _adService.initialize();
       // Load the first interstitial ad
@@ -45,7 +52,12 @@ class _InterstitialAdManagerState extends State<InterstitialAdManager>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
-    
+
+    // Skip lifecycle management if ads are disabled
+    if (!AdConfig.adsEnabled) {
+      return;
+    }
+
     switch (state) {
       case AppLifecycleState.paused:
         // App went to background - pause the timer
@@ -68,4 +80,4 @@ class _InterstitialAdManagerState extends State<InterstitialAdManager>
   Widget build(BuildContext context) {
     return widget.child;
   }
-} 
+}
