@@ -76,17 +76,22 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
 
     // Listen for socket events (including session end events)
     _socketService.eventStream.listen((event) {
-      //print('📡 [RANDOM CHAT DEBUG] Socket event received: $event');
+      print('📡 [RANDOM CHAT DEBUG] Socket event received: $event');
       switch (event) {
         case SocketEvent.randomChatSessionEnded:
-          //print('🚪 [RANDOM CHAT DEBUG] Session ended by other user');
+          print('🚪 [RANDOM CHAT DEBUG] Session ended by other user');
+          _handlePartnerEndedSession();
+          break;
+        case SocketEvent.randomConnectionStopped:
+          print('🚪 [RANDOM CHAT DEBUG] Random connection stopped by other user');
           _handlePartnerEndedSession();
           break;
         case SocketEvent.randomChatEvent:
-          //print('🎯 [RANDOM CHAT DEBUG] Random chat event received');
+          print('🎯 [RANDOM CHAT DEBUG] Random chat event received');
           // Handle other random chat events if needed
           break;
         default:
+          print('📡 [RANDOM CHAT DEBUG] Unhandled socket event: $event');
           break;
       }
     });
@@ -207,7 +212,7 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
   void _handlePartnerEndedSession() {
     if (!mounted || !_isSessionActive) return;
 
-    //print('🚪 [RANDOM CHAT DEBUG] Partner ended session, handling locally');
+    print('🚪 [RANDOM CHAT DEBUG] Partner ended session, handling locally');
 
     setState(() {
       _isSessionActive = false;

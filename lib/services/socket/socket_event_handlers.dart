@@ -32,6 +32,8 @@ class SocketEventHandlers {
     Function(dynamic) handleRandomChatEventReceived,
   ) {
     try {
+      print('📡 [SOCKET EVENT DEBUG] Received event: $event with data: $data');
+      
       // Add null safety check
       if (data != null && data is! Map<String, dynamic> && data is! List) {
         // Convert to safe format if possible
@@ -90,6 +92,10 @@ class SocketEventHandlers {
           break;
         case 'random_connection_started':
           _handleRandomConnectionStartedEvent(
+              data, matchController, eventController);
+          break;
+        case 'random_connection_stopped':
+          _handleRandomConnectionStoppedEvent(
               data, matchController, eventController);
           break;
         case 'random_chat_event':
@@ -220,5 +226,26 @@ class SocketEventHandlers {
 
     matchController.add(eventData);
     eventController.add(SocketEvent.randomConnectionStarted);
+  }
+
+  // Handle random connection stopped event
+  void _handleRandomConnectionStoppedEvent(
+    dynamic data,
+    StreamController<Map<String, dynamic>> matchController,
+    StreamController<SocketEvent> eventController,
+  ) {
+    if (data == null) {
+      return;
+    }
+
+    Map<String, dynamic> eventData;
+    if (data is Map<String, dynamic>) {
+      eventData = data;
+    } else {
+      eventData = {'status': 'stopped', 'data': data.toString()};
+    }
+
+    matchController.add(eventData);
+    eventController.add(SocketEvent.randomConnectionStopped);
   }
 }

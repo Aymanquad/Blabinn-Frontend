@@ -16,6 +16,7 @@ enum SocketEvent {
   matchAccepted,
   matchRejected,
   randomConnectionStarted,
+  randomConnectionStopped,
   randomChatEvent,
   randomChatTimeout,
   randomChatSessionEnded,
