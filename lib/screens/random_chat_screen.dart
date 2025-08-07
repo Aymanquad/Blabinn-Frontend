@@ -33,6 +33,7 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
   late StreamSubscription _messageSubscription;
   late StreamSubscription _errorSubscription;
   bool _isSessionActive = true;
+  bool _hasShownEndDialog = false; // Prevent multiple dialogs
   Timer? _heartbeatTimer;
   int _timeRemaining = 300; // 5 minutes in seconds
 
@@ -40,10 +41,51 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
   void initState() {
     super.initState();
     _initializeServices();
+    _validateSession();
     _setupSocketListeners();
     _joinChatRoom();
     _startSessionTimer();
     _startHeartbeat();
+    _startSessionTimeout();
+  }
+
+  void _validateSession() {
+    // Validate that we have proper session data
+    if (widget.sessionId.isEmpty || widget.chatRoomId.isEmpty) {
+      print('❌ [RANDOM CHAT DEBUG] Invalid session data');
+      _showSessionErrorDialog('Invalid session data. Please try again.');
+      return;
+    }
+
+    print('✅ [RANDOM CHAT DEBUG] Session validated');
+    print('   📱 Session ID: ${widget.sessionId}');
+    print('   💬 Chat Room ID: ${widget.chatRoomId}');
+  }
+
+  void _showSessionErrorDialog(String message) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.error, color: Colors.red),
+            SizedBox(width: 8),
+            Text('Session Error'),
+          ],
+        ),
+        content: Text(message),
+        actions: [
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context); // Close dialog
+              Navigator.pop(context); // Go back to connect screen
+            },
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -77,6 +119,13 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
     // Listen for socket events (including session end events)
     _socketService.eventStream.listen((event) {
       print('📡 [RANDOM CHAT DEBUG] Socket event received: $event');
+      
+      // Prevent handling events if session is already ended
+      if (!_isSessionActive) {
+        print('📡 [RANDOM CHAT DEBUG] Ignoring event - session already ended');
+        return;
+      }
+      
       switch (event) {
         case SocketEvent.randomChatSessionEnded:
           print('🚪 [RANDOM CHAT DEBUG] Session ended by other user');
@@ -100,10 +149,31 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
   void _joinChatRoom() {
     try {
       _socketService.joinChat(widget.chatRoomId);
-      //print('🔌 [RANDOM CHAT DEBUG] Joined chat room: ${widget.chatRoomId}');
+      print('🔌 [RANDOM CHAT DEBUG] Joined chat room: ${widget.chatRoomId}');
+      
+      // Add a timeout to check if we actually joined the room
+      Timer(const Duration(seconds: 15), () {
+        if (mounted && _messages.isEmpty && _isSessionActive) {
+          print('⚠️ [RANDOM CHAT DEBUG] No messages received after 15 seconds');
+          _checkSessionStatus();
+        }
+      });
     } catch (e) {
-      //print('❌ [RANDOM CHAT DEBUG] Failed to join chat room: $e');
+      print('❌ [RANDOM CHAT DEBUG] Failed to join chat room: $e');
+      _showSessionErrorDialog('Failed to join chat room. Please try again.');
     }
+  }
+
+  void _checkSessionStatus() {
+    // Check if the session is still valid
+    if (!_isSessionActive) return;
+    
+    print('🔍 [RANDOM CHAT DEBUG] Checking session status...');
+    
+    // Don't show error just because there are no messages
+    // Messages might not have been sent yet, but the session could still be active
+    // Only show error if we have explicit session end events
+    print('🔍 [RANDOM CHAT DEBUG] Session appears to be active, continuing...');
   }
 
   void _leaveChatRoom() {
@@ -210,7 +280,10 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
   }
 
   void _handlePartnerEndedSession() {
-    if (!mounted || !_isSessionActive) return;
+    if (!mounted || !_isSessionActive) {
+      print('🚪 [RANDOM CHAT DEBUG] Ignoring partner ended session - already handled');
+      return;
+    }
 
     print('🚪 [RANDOM CHAT DEBUG] Partner ended session, handling locally');
 
@@ -221,8 +294,10 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
     _stopHeartbeat();
     _leaveChatRoom();
 
-    // Show partner left dialog
-    _showSessionEndDialog('partner_left');
+    // Show partner left dialog only once
+    if (mounted) {
+      _showSessionEndDialog('partner_left');
+    }
   }
 
   void _startSessionTimer() {
@@ -312,36 +387,15 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
     }
   }
 
-  Future<void> _endSession(String reason) async {
-    if (!_isSessionActive) return;
-
-    setState(() {
-      _isSessionActive = false;
-    });
-
-    try {
-      //print('🚪 [RANDOM CHAT DEBUG] Ending session with reason: $reason');
-
-      // End session via socket (this will notify both users)
-      await _socketService.endRandomChatSession(widget.sessionId, reason);
-
-      _stopHeartbeat();
-      _leaveChatRoom();
-
-      // Show end session dialog
-      _showSessionEndDialog(reason);
-    } catch (e) {
-      //print('❌ [RANDOM CHAT DEBUG] Error ending session: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error ending session: ${e.toString()}'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
-  }
-
   void _showSessionEndDialog(String reason) {
+    // Prevent multiple dialogs
+    if (_hasShownEndDialog) {
+      print('🚪 [RANDOM CHAT DEBUG] End dialog already shown, skipping');
+      return;
+    }
+    
+    _hasShownEndDialog = true;
+    
     String title = 'Chat Ended';
     String message = 'The chat session has ended.';
     IconData icon = Icons.chat_bubble_outline;
@@ -432,6 +486,85 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
     );
   }
 
+  Future<void> _endSession(String reason) async {
+    if (!_isSessionActive) {
+      print('🚪 [RANDOM CHAT DEBUG] Session already ended, skipping');
+      // Even if session is already ended locally, try to clean up on backend
+      _forceCleanup();
+      return;
+    }
+
+    print('🚪 [RANDOM CHAT DEBUG] Ending session with reason: $reason');
+
+    setState(() {
+      _isSessionActive = false;
+    });
+
+    // Always try to end session properly first with timeout
+    try {
+      // End session via socket (this will notify both users)
+      await _socketService.endRandomChatSession(widget.sessionId, reason)
+          .timeout(const Duration(seconds: 5));
+      print('✅ [RANDOM CHAT DEBUG] Session ended successfully via socket');
+    } catch (e) {
+      print('❌ [RANDOM CHAT DEBUG] Error ending session via socket: $e');
+      // If socket fails, try API fallback
+      try {
+        await _apiService.endRandomChatSession(widget.sessionId, reason: reason)
+            .timeout(const Duration(seconds: 5));
+        print('✅ [RANDOM CHAT DEBUG] Session ended via API fallback');
+      } catch (apiError) {
+        print('❌ [RANDOM CHAT DEBUG] Error ending session via API: $apiError');
+      }
+    }
+
+    // Always perform local cleanup
+    _forceCleanup();
+
+    // Show end session dialog
+    if (mounted) {
+      _showSessionEndDialog(reason);
+    }
+  }
+
+  void _forceCleanup() {
+    print('🧹 [RANDOM CHAT DEBUG] Performing force cleanup');
+    
+    // Stop all timers
+    _stopHeartbeat();
+    
+    // Try to leave chat room with timeout
+    try {
+      _socketService.leaveChat(widget.chatRoomId);
+      print('✅ [RANDOM CHAT DEBUG] Left chat room successfully');
+    } catch (e) {
+      print('⚠️ [RANDOM CHAT DEBUG] Error leaving chat room: $e');
+    }
+    
+    // Try to stop random connection as fallback with timeout
+    try {
+      _socketService.stopRandomConnection();
+      print('✅ [RANDOM CHAT DEBUG] Stopped random connection');
+    } catch (e) {
+      print('⚠️ [RANDOM CHAT DEBUG] Error stopping random connection: $e');
+    }
+    
+    // Try API cleanup as final fallback with timeout
+    try {
+      _apiService.forceClearActiveSession()
+          .timeout(const Duration(seconds: 3));
+      print('✅ [RANDOM CHAT DEBUG] Force cleared active session via API');
+    } catch (e) {
+      print('⚠️ [RANDOM CHAT DEBUG] Error force clearing session: $e');
+    }
+  }
+
+  void _startSessionTimeout() {
+    // Remove the aggressive timeout that was causing false errors
+    // The session should only end when explicitly ended by users or server
+    print('⏰ [RANDOM CHAT DEBUG] Session timeout disabled - relying on explicit session events');
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -439,6 +572,7 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
 
     return WillPopScope(
       onWillPop: () async {
+        // Always use the unified end session method
         _showExitWarningDialog();
         return false; // Prevent default back button behavior
       },
