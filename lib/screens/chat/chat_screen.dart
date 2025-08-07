@@ -25,7 +25,7 @@ class ChatScreen extends StatefulWidget {
   State<ChatScreen> createState() => _ChatScreenState();
 }
 
-class _ChatScreenState extends State<ChatScreen> {
+class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final ApiService _apiService = ApiService();
@@ -57,6 +57,7 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _initializeHandlers();
     _initializeAndLoadHistory();
     _setupRealtimeListeners();
@@ -194,7 +195,20 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Scroll to bottom when dependencies change (widget is fully built)
+    if (_messages.isNotEmpty && !_isLoading) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _scrollToBottom();
+      });
+    }
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    
     // Leave the chat room when disposing
     if (widget.chat.isFriendChat && _friendId != null) {
       // print('🔌 DEBUG: Leaving friend chat room with friendId: $_friendId');
@@ -312,8 +326,10 @@ class _ChatScreenState extends State<ChatScreen> {
       });
 
       // print('🔍 DEBUG: Set ${_messages.length} messages in state');
-      // Scroll to bottom after loading messages
-      _scrollToBottom();
+      // Scroll to bottom after loading messages with a post-frame callback
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _scrollToBottom();
+      });
       // After loading messages, check for last friend image
       _checkAndSaveLastFriendImage();
     } catch (e) {
@@ -507,9 +523,25 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   void _scrollToBottom() {
-    Future.delayed(const Duration(milliseconds: 200), () {
-      if (_scrollController.hasClients) {
-        _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+    // Use multiple attempts to ensure scrolling works
+    Future.delayed(const Duration(milliseconds: 100), () {
+      if (_scrollController.hasClients && _scrollController.position.maxScrollExtent > 0) {
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
+    });
+    
+    // Second attempt with longer delay in case first one fails
+    Future.delayed(const Duration(milliseconds: 500), () {
+      if (_scrollController.hasClients && _scrollController.position.maxScrollExtent > 0) {
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
       }
     });
   }
