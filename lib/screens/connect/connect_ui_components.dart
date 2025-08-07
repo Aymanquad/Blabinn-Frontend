@@ -206,6 +206,7 @@ class ConnectUIComponents {
                 }
 
                 stateManager.genderPreference = value!;
+                stateManager.globalMatchingService.setGenderPreference(value!);
                 stateManager.onStateChanged();
               },
             ),

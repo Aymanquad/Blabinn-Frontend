@@ -25,8 +25,10 @@ import 'screens/media_folder_screen.dart';
 import 'services/socket_service.dart';
 import 'models/chat.dart'; // Added import for Chat model
 import 'screens/chat_screen.dart'; // Added import for ChatScreen
+import 'screens/random_chat_screen.dart'; // Added import for RandomChatScreen
 import 'screens/test_interstitial_screen.dart';
 import 'widgets/interstitial_ad_manager.dart';
+import 'services/global_matching_service.dart';
 
 // Global navigator key for navigation from anywhere
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
@@ -111,6 +113,25 @@ class ChatApp extends StatelessWidget {
                 '/friends-list': (context) => const FriendsListScreen(),
                 '/test-interstitial': (context) =>
                     const TestInterstitialScreen(),
+                '/random-chat': (context) {
+                  final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+                  if (args != null) {
+                    final sessionId = args['sessionId'] as String?;
+                    final chatRoomId = args['chatRoomId'] as String?;
+                    if (sessionId != null && chatRoomId != null) {
+                      return RandomChatScreen(
+                        sessionId: sessionId,
+                        chatRoomId: chatRoomId,
+                      );
+                    }
+                  }
+                  // Fallback for debugging
+                  return const Scaffold(
+                    body: Center(
+                      child: Text('Invalid session data provided'),
+                    ),
+                  );
+                },
                 '/user-profile': (context) {
                   final args = ModalRoute.of(context)?.settings.arguments;
                   if (args is String) {
@@ -296,6 +317,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
     _enableScreenProtection();
     _setupInAppNotificationListener();
     _initializeAnimations();
+    _initializeGlobalMatchingService();
     _screens = [
       HomeScreen(onNavigateToTab: _onTabTapped),
       const ChatListScreen(),
@@ -313,6 +335,12 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
       parent: _drawerAnimationController,
       curve: Curves.easeInOut,
     );
+  }
+
+  void _initializeGlobalMatchingService() {
+    final globalMatchingService = GlobalMatchingService();
+    globalMatchingService.initialize();
+    globalMatchingService.loadUserInterests();
   }
 
   Future<void> _initializeSocketConnection() async {

@@ -32,7 +32,7 @@ class _ConnectScreenState extends State<ConnectScreen>
   void _initializeStateManager() {
     _stateManager = ConnectStateManager(
       onStateChanged: () => setState(() {}),
-      onNavigateToChat: _navigateToRandomChat,
+      onNavigateToChat: _navigateToRandomChat, // This is no longer used but kept for compatibility
       onShowTimeoutDialog: () => ConnectDialogComponents.showTimeoutDialog(context, _stateManager),
       onShowWarningSnackBar: (message, color) => ConnectDialogComponents.showWarningSnackBar(context, message, color),
       onShowClearSessionDialog: () => ConnectDialogComponents.showClearSessionDialog(context, _stateManager),
@@ -54,49 +54,8 @@ class _ConnectScreenState extends State<ConnectScreen>
   }
 
   void _navigateToRandomChat(String sessionId, String chatRoomId) {
-    try {
-      print('🚀 [CONNECT DEBUG] Navigating to random chat');
-      print('   📱 Session ID: $sessionId');
-      print('   💬 Chat Room ID: $chatRoomId');
-      
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) {
-            return RandomChatScreen(
-              sessionId: sessionId,
-              chatRoomId: chatRoomId,
-            );
-          },
-        ),
-      ).then((_) {
-        print('🔙 [CONNECT DEBUG] Returned from RandomChatScreen, resetting state');
-        // When returning from random chat, reset state
-        setState(() {
-          _stateManager.isMatching = false;
-          _stateManager.isConnected = false;
-          _stateManager.currentSessionId = null;
-          _stateManager.matchMessage = null;
-        });
-      }).catchError((error) {
-        print('❌ [CONNECT DEBUG] Navigation error: $error');
-        // Handle navigation error
-        setState(() {
-          _stateManager.isMatching = false;
-          _stateManager.isConnected = false;
-          _stateManager.currentSessionId = null;
-          _stateManager.matchMessage = 'Navigation error. Please try again.';
-        });
-      });
-    } catch (e) {
-      print('❌ [CONNECT DEBUG] Error during navigation: $e');
-      setState(() {
-        _stateManager.isMatching = false;
-        _stateManager.isConnected = false;
-        _stateManager.currentSessionId = null;
-        _stateManager.matchMessage = 'Error starting chat. Please try again.';
-      });
-    }
+    // Navigation is now handled by the global matching service
+    // This method is kept for backward compatibility but is no longer used
   }
 
   @override
