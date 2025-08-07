@@ -590,7 +590,15 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
         _showExitChatDialog();
         return false; // Prevent default back button behavior
       },
-      child: Scaffold(
+      child: Container(
+        decoration: const BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage('assets/images/general-overlay.png'),
+            fit: BoxFit.cover,
+          ),
+        ),
+        child: Scaffold(
+          backgroundColor: Colors.transparent,
         appBar: AppBar(
         automaticallyImplyLeading: false, // Disable default back button
         leading: IconButton(
@@ -728,6 +736,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
           _buildMessageInput(),
         ],
       ),
+        ),
       ),
     );
   }

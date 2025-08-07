@@ -24,7 +24,7 @@
 class AdConfig {
   // TEMPORARY AD DISABLE FLAG
   // Set this to false to disable all ads temporarily
-  static const bool adsEnabled = true; // Set to false to disable ads
+  static const bool adsEnabled = false; // Set to false to disable ads
 
   // DEVELOPMENT MODE - Using Test IDs
   // Change to production IDs when ready for production

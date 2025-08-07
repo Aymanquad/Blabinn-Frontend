@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 import 'package:flutter/material.dart';
 import '../core/constants.dart';
 import '../providers/theme_provider.dart';
@@ -124,34 +125,13 @@ class _SplashScreenState extends State<SplashScreen>
 
   @override
   Widget build(BuildContext context) {
-    final themeProvider = Provider.of<ThemeProvider>(context);
-    final isDarkMode = themeProvider.isDarkMode;
-
-    // Theme-aware colors
-    final primaryColor = isDarkMode ? AppColors.darkPrimary : AppColors.primary;
-    final secondaryColor =
-        isDarkMode ? AppColors.darkSecondary : AppColors.secondary;
-    final backgroundColor =
-        isDarkMode ? AppColors.darkBackground : AppColors.background;
-    final textColor = isDarkMode ? AppColors.darkText : Colors.white;
-    final logoBackgroundColor =
-        isDarkMode ? AppColors.darkCardBackground : Colors.white;
-    final shadowColor = isDarkMode
-        ? Colors.black.withValues(alpha: 0.5)
-        : Colors.black.withValues(alpha: 0.3);
-
     return Scaffold(
-      backgroundColor: primaryColor,
+      backgroundColor: const Color(0xFF2D1B69), // Dark purple background
       body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              primaryColor,
-              primaryColor.withValues(alpha: 0.8),
-              secondaryColor,
-            ],
+        decoration: const BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage('assets/images/bg1.png'),
+            fit: BoxFit.cover,
           ),
         ),
         child: Center(
@@ -165,35 +145,20 @@ class _SplashScreenState extends State<SplashScreen>
                   return Transform.scale(
                     scale: _logoAnimation.value,
                     child: Container(
-                      width: 150,
-                      height: 150,
-                      decoration: BoxDecoration(
-                        color: logoBackgroundColor,
-                        borderRadius: BorderRadius.circular(30),
-                        boxShadow: [
-                          BoxShadow(
-                            color: shadowColor,
-                            blurRadius: 20,
-                            offset: const Offset(0, 10),
-                          ),
-                        ],
-                      ),
-                      padding: const EdgeInsets.all(20),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(10),
-                        child: Image.asset(
-                          'assets/images/chatify_logo2.png',
-                          fit: BoxFit.contain,
-                        ),
+                      width: 120,
+                      height: 120,
+                      child: Image.asset(
+                        'assets/images/purplt-chatify-logo.png',
+                        fit: BoxFit.contain,
                       ),
                     ),
                   );
                 },
               ),
 
-              const SizedBox(height: 40),
+              const SizedBox(height: 20),
 
-              // App name and tagline with animation
+              // App name with animation
               AnimatedBuilder(
                 animation: _textAnimation,
                 builder: (context, child) {
@@ -201,27 +166,14 @@ class _SplashScreenState extends State<SplashScreen>
                     offset: Offset(0, _textAnimation.value),
                     child: FadeTransition(
                       opacity: _fadeAnimation,
-                      child: Column(
-                        children: [
-                          Text(
-                            AppConstants.appName,
-                            style: TextStyle(
-                              fontSize: 32,
-                              fontWeight: FontWeight.bold,
-                              color: textColor,
-                              letterSpacing: 1.2,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Connect • Chat • Explore',
-                            style: TextStyle(
-                              fontSize: 16,
-                              color: textColor.withValues(alpha: 0.9),
-                              letterSpacing: 0.8,
-                            ),
-                          ),
-                        ],
+                      child: const Text(
+                        'Chatify',
+                        style: TextStyle(
+                          fontSize: 32,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                          letterSpacing: 1.2,
+                        ),
                       ),
                     ),
                   );
@@ -236,12 +188,12 @@ class _SplashScreenState extends State<SplashScreen>
                 builder: (context, child) {
                   return FadeTransition(
                     opacity: _fadeAnimation,
-                    child: SizedBox(
+                    child: const SizedBox(
                       width: 30,
                       height: 30,
                       child: CircularProgressIndicator(
                         valueColor: AlwaysStoppedAnimation<Color>(
-                          textColor.withValues(alpha: 0.8),
+                          Colors.white,
                         ),
                         strokeWidth: 3,
                       ),

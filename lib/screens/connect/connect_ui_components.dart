@@ -14,8 +14,6 @@ class ConnectUIComponents {
   }
 
   static Widget buildWelcomeScreen(BuildContext context, ConnectStateManager stateManager) {
-    final theme = Theme.of(context);
-
     return SingleChildScrollView(
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 20),
@@ -25,21 +23,18 @@ class ConnectUIComponents {
             ScaleTransition(
               scale: stateManager.scaleAnimation,
               child: Container(
-                width: 180,
-                height: 180,
+                width: 200,
+                height: 200,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      theme.colorScheme.primary.withValues(alpha: 0.2),
-                      theme.colorScheme.secondary.withValues(alpha: 0.2),
-                    ],
+                  color: Colors.white.withOpacity(0.1),
+                  border: Border.all(
+                    color: Colors.white.withOpacity(0.3),
+                    width: 3,
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: theme.colorScheme.primary.withOpacity(0.3),
+                      color: const Color(0xFF8B5CF6).withOpacity(0.3),
                       blurRadius: 20,
                       offset: const Offset(0, 8),
                     ),
@@ -49,31 +44,32 @@ class ConnectUIComponents {
                   child: Image.asset(
                     'assets/images/search-people-removebg-preview.png',
                     fit: BoxFit.contain,
-                    width: 130,
-                    height: 130,
+                    width: 150,
+                    height: 150,
                   ),
                 ),
               ),
             ),
             const SizedBox(height: 32),
-            Text(
+            const Text(
               'Find New People',
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.w800,
-                    fontSize: 32,
-                    letterSpacing: 0.8,
-                  ),
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w800,
+                fontSize: 32,
+                letterSpacing: 0.8,
+              ),
             ),
             const SizedBox(height: 8),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 32),
-              child: Text(
+              child: const Text(
                 'Connect with people within your preferred distance range',
-                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      color: theme.colorScheme.onSurface.withOpacity(0.8),
-                      fontSize: 16,
-                      height: 1.4,
-                    ),
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  height: 1.4,
+                ),
                 textAlign: TextAlign.center,
               ),
             ),
@@ -86,57 +82,79 @@ class ConnectUIComponents {
   }
 
   static Widget buildMatchingScreen(BuildContext context, ConnectStateManager stateManager) {
-    final theme = Theme.of(context);
-
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Container(
-            width: 120,
-            height: 120,
+            width: 150,
+            height: 150,
             decoration: BoxDecoration(
-              color: theme.colorScheme.primary.withOpacity(0.1),
+              color: Colors.white.withOpacity(0.1),
               shape: BoxShape.circle,
+              border: Border.all(
+                color: Colors.white.withOpacity(0.3),
+                width: 2,
+              ),
             ),
             child: Stack(
               alignment: Alignment.center,
               children: [
                 SizedBox(
-                  width: 80,
-                  height: 80,
+                  width: 100,
+                  height: 100,
                   child: CircularProgressIndicator(
-                    color: theme.colorScheme.primary,
-                    strokeWidth: 3,
+                    color: const Color(0xFF8B5CF6),
+                    strokeWidth: 4,
                   ),
                 ),
-                Icon(
+                const Icon(
                   Icons.search,
-                  size: 40,
-                  color: theme.colorScheme.primary,
+                  size: 50,
+                  color: Colors.white,
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 24),
-          Text(
+          const SizedBox(height: 32),
+          const Text(
             'Finding People...',
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+            style: TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+              fontSize: 24,
+            ),
           ),
-          const SizedBox(height: 8),
-          Text(
+          const SizedBox(height: 12),
+          const Text(
             'Looking for people within your selected distance range',
-            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  color: theme.colorScheme.onSurface.withOpacity(0.7),
-                ),
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 16,
+            ),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 32),
-          OutlinedButton(
-            onPressed: stateManager.stopMatching,
-            child: const Text('Cancel'),
+          SizedBox(
+            width: 200,
+            height: 48,
+            child: OutlinedButton(
+              onPressed: stateManager.stopMatching,
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Colors.white,
+                side: const BorderSide(color: Colors.white, width: 2),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: const Text(
+                'Cancel',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
           ),
         ],
       ),
@@ -144,50 +162,73 @@ class ConnectUIComponents {
   }
 
   static Widget buildConnectButton(BuildContext context, ConnectStateManager stateManager) {
-    final theme = Theme.of(context);
-
     return SizedBox(
       width: double.infinity,
+      height: 56,
       child: ElevatedButton(
         onPressed: stateManager.isMatching ? stateManager.stopMatching : stateManager.startMatching,
         style: ElevatedButton.styleFrom(
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          backgroundColor: stateManager.isMatching ? Colors.red : theme.colorScheme.primary,
+          backgroundColor: stateManager.isMatching ? Colors.red : const Color(0xFF8B5CF6),
+          foregroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          elevation: 8,
         ),
         child: Text(
           stateManager.isMatching ? 'Stop Matching' : 'Start Matching',
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+          style: const TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
         ),
       ),
     );
   }
 
   static Widget buildGenderPreferenceSection(BuildContext context, ConnectStateManager stateManager) {
-    final theme = Theme.of(context);
-
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.person,
-                    size: 16, color: theme.colorScheme.onSurface),
-                const SizedBox(width: 8),
-                Text('Gender Preference',
-                    style: TextStyle(color: theme.colorScheme.onSurface)),
-              ],
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: Colors.white.withOpacity(0.2),
+          width: 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.person, size: 16, color: Colors.white),
+              const SizedBox(width: 8),
+              const Text(
+                'Gender Preference',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.white.withOpacity(0.3)),
             ),
-            const SizedBox(height: 12),
-            DropdownButtonFormField<String>(
+            child: DropdownButtonFormField<String>(
               value: stateManager.genderPreference,
+              style: const TextStyle(color: Colors.white),
+              dropdownColor: const Color(0xFF2D1B69),
               decoration: const InputDecoration(
-                border: OutlineInputBorder(),
-                contentPadding:
-                    EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                prefixIcon: Icon(Icons.person),
+                border: InputBorder.none,
+                contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                prefixIcon: Icon(Icons.person, color: Colors.white),
               ),
               items: const [
                 DropdownMenuItem(value: 'any', child: Text('Any Gender')),
@@ -210,33 +251,85 @@ class ConnectUIComponents {
                 stateManager.onStateChanged();
               },
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 
   static Widget buildMainScaffold(BuildContext context, ConnectStateManager stateManager) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text(AppStrings.connect),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            Expanded(
-              child: buildMainContent(context, stateManager),
-            ),
-            buildConnectButton(context, stateManager),
-            const SizedBox(height: 8),
-            // Banner Ad at the bottom
-            const BannerAdWidget(
-              height: 50,
-              margin: EdgeInsets.only(bottom: 8),
-            ),
-          ],
+      backgroundColor: const Color(0xFF2D1B69), // Dark purple background
+      body: Container(
+        decoration: const BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage('assets/images/bg1.png'),
+            fit: BoxFit.cover,
+          ),
         ),
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              children: [
+                // Header
+                _buildHeader(context),
+                
+                // Main Content
+                Expanded(
+                  child: buildMainContent(context, stateManager),
+                ),
+                
+                // Connect Button
+                buildConnectButton(context, stateManager),
+                const SizedBox(height: 8),
+                
+                // Banner Ad at the bottom
+                const BannerAdWidget(
+                  height: 50,
+                  margin: EdgeInsets.only(bottom: 8),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  static Widget _buildHeader(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Row(
+        children: [
+          // Back button
+          IconButton(
+            onPressed: () {
+              Navigator.pop(context);
+            },
+            icon: const Icon(
+              Icons.arrow_back,
+              color: Colors.white,
+              size: 24,
+            ),
+          ),
+          
+          // Title in center
+          const Expanded(
+            child: Text(
+              'Random Connect',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+          
+          // Empty space for balance
+          const SizedBox(width: 48),
+        ],
       ),
     );
   }

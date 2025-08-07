@@ -31,7 +31,11 @@ class _ConnectScreenState extends State<ConnectScreen>
 
   void _initializeStateManager() {
     _stateManager = ConnectStateManager(
-      onStateChanged: () => setState(() {}),
+      onStateChanged: () {
+        if (mounted) {
+          setState(() {});
+        }
+      },
       onNavigateToChat: _navigateToRandomChat, // This is no longer used but kept for compatibility
       onShowTimeoutDialog: () => ConnectDialogComponents.showTimeoutDialog(context, _stateManager),
       onShowWarningSnackBar: (message, color) => ConnectDialogComponents.showWarningSnackBar(context, message, color),

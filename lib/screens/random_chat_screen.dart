@@ -2,12 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../core/constants.dart';
 import '../services/socket_service.dart';
+import '../services/socket/socket_types.dart';
 import '../services/api_service.dart';
 import '../services/chat_moderation_service.dart';
+import '../services/global_matching_service.dart';
 import '../widgets/banner_ad_widget.dart';
 import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart' as FirebaseAuth;
 import '../utils/html_decoder.dart';
+import '../models/message.dart';
 
 class RandomChatScreen extends StatefulWidget {
   final String sessionId;
@@ -32,6 +35,9 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
   final ChatModerationService _moderationService = ChatModerationService();
   late StreamSubscription _messageSubscription;
   late StreamSubscription _errorSubscription;
+  late StreamSubscription _eventSubscription;
+  late StreamSubscription _matchSubscription;
+  late StreamSubscription _globalMatchingSubscription;
   bool _isSessionActive = true;
   bool _hasShownEndDialog = false; // Prevent multiple dialogs
   Timer? _heartbeatTimer;
@@ -98,302 +104,324 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
     super.dispose();
   }
 
-  void _scrollToBottom() {
-    // Use multiple attempts to ensure scrolling works
-    Future.delayed(const Duration(milliseconds: 100), () {
-      if (_scrollController.hasClients && _scrollController.position.maxScrollExtent > 0) {
-        _scrollController.animateTo(
-          _scrollController.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeOut,
-        );
-      }
-    });
-    
-    // Second attempt with longer delay in case first one fails
-    Future.delayed(const Duration(milliseconds: 500), () {
-      if (_scrollController.hasClients && _scrollController.position.maxScrollExtent > 0) {
-        _scrollController.animateTo(
-          _scrollController.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeOut,
-        );
-      }
-    });
-  }
-
   void _initializeServices() {
     _socketService = SocketService();
     _apiService = ApiService();
   }
 
   void _setupSocketListeners() {
-    _messageSubscription =
-        _socketService.messageStream.listen(_handleNewMessage);
-    _errorSubscription = _socketService.errorStream.listen(_handleError);
+    _messageSubscription = _socketService.messageStream.listen(
+      (messageData) {
+        if (mounted) {
+          _handleIncomingMessage(messageData);
+        }
+      },
+      onError: (error) {
+        print('❌ [RANDOM CHAT DEBUG] Message stream error: $error');
+        if (mounted) {
+          _showSessionErrorDialog('Connection error. Please try again.');
+        }
+      },
+    );
 
-    // Listen for socket events (including session end events)
-    _socketService.eventStream.listen((event) {
-      print('📡 [RANDOM CHAT DEBUG] Socket event received: $event');
-      
-      // Prevent handling events if session is already ended
-      if (!_isSessionActive) {
-        print('📡 [RANDOM CHAT DEBUG] Ignoring event - session already ended');
-        return;
-      }
-      
-      switch (event) {
-        case SocketEvent.randomChatSessionEnded:
-          print('🚪 [RANDOM CHAT DEBUG] Session ended by other user');
-          _handlePartnerEndedSession();
-          break;
-        case SocketEvent.randomConnectionStopped:
-          print('🚪 [RANDOM CHAT DEBUG] Random connection stopped by other user');
-          _handlePartnerEndedSession();
-          break;
-        case SocketEvent.randomChatEvent:
-          print('🎯 [RANDOM CHAT DEBUG] Random chat event received');
-          // Handle other random chat events if needed
-          break;
-        default:
-          print('📡 [RANDOM CHAT DEBUG] Unhandled socket event: $event');
-          break;
-      }
-    });
+    _errorSubscription = _socketService.errorStream.listen(
+      (error) {
+        print('❌ [RANDOM CHAT DEBUG] Socket error: $error');
+        if (mounted) {
+          _showSessionErrorDialog('Connection lost. Please try again.');
+        }
+      },
+    );
+
+    // Listen for session ended events
+    _eventSubscription = _socketService.eventStream.listen(
+      (event) {
+        if (mounted && _isSessionActive) {
+          if (event == SocketEvent.randomChatSessionEnded || event == SocketEvent.userLeft) {
+            _handleOtherUserExit();
+          }
+        }
+      },
+      onError: (error) {
+        print('❌ [RANDOM CHAT DEBUG] Event stream error: $error');
+      },
+    );
+
+    // Listen for match events (when partner leaves)
+    _matchSubscription = _socketService.matchStream.listen(
+      (data) {
+        if (mounted && _isSessionActive) {
+          if (data['event'] == 'partner_left' || data['event'] == 'session_ended') {
+            _handleOtherUserExit();
+          }
+        }
+      },
+      onError: (error) {
+        print('❌ [RANDOM CHAT DEBUG] Match stream error: $error');
+      },
+    );
+
+    // Listen for global matching service events (partner left)
+    _globalMatchingSubscription = GlobalMatchingService().messageStream.listen(
+      (message) {
+        if (mounted && _isSessionActive) {
+          if (message != null && message.contains('Partner left')) {
+            _handleOtherUserExit();
+          }
+        }
+      },
+      onError: (error) {
+        print('❌ [RANDOM CHAT DEBUG] Global matching stream error: $error');
+      },
+    );
   }
 
-  void _joinChatRoom() {
+  Future<void> _joinChatRoom() async {
     try {
-      _socketService.joinChat(widget.chatRoomId);
-      print('🔌 [RANDOM CHAT DEBUG] Joined chat room: ${widget.chatRoomId}');
-      
-      // Add a timeout to check if we actually joined the room
-      Timer(const Duration(seconds: 15), () {
-        if (mounted && _messages.isEmpty && _isSessionActive) {
-          print('⚠️ [RANDOM CHAT DEBUG] No messages received after 15 seconds');
-          _checkSessionStatus();
-        }
-      });
+      await _socketService.joinChat(widget.chatRoomId);
+      print('✅ [RANDOM CHAT DEBUG] Joined chat room: ${widget.chatRoomId}');
     } catch (e) {
       print('❌ [RANDOM CHAT DEBUG] Failed to join chat room: $e');
-      _showSessionErrorDialog('Failed to join chat room. Please try again.');
+      if (mounted) {
+        _showSessionErrorDialog('Failed to join chat room. Please try again.');
+      }
     }
-  }
-
-  void _checkSessionStatus() {
-    // Check if the session is still valid
-    if (!_isSessionActive) return;
-    
-    print('🔍 [RANDOM CHAT DEBUG] Checking session status...');
-    
-    // Don't show error just because there are no messages
-    // Messages might not have been sent yet, but the session could still be active
-    // Only show error if we have explicit session end events
-    print('🔍 [RANDOM CHAT DEBUG] Session appears to be active, continuing...');
   }
 
   void _leaveChatRoom() {
     try {
       _socketService.leaveChat(widget.chatRoomId);
-      //print('🚪 [RANDOM CHAT DEBUG] Left chat room: ${widget.chatRoomId}');
+      print('✅ [RANDOM CHAT DEBUG] Left chat room: ${widget.chatRoomId}');
     } catch (e) {
-      //print('❌ [RANDOM CHAT DEBUG] Failed to leave chat room: $e');
-    }
-  }
-
-  void _cleanupListeners() {
-    _messageSubscription.cancel();
-    _errorSubscription.cancel();
-  }
-
-  void _handleNewMessage(dynamic message) async {
-    if (!mounted) return;
-
-    final messageId =
-        message.id ?? DateTime.now().millisecondsSinceEpoch.toString();
-    final messageContent =
-        HtmlDecoder.decodeHtmlEntities(message.content ?? '');
-    final messageSenderId = message.senderId ?? '';
-
-    // Apply moderation to received message content
-    final moderatedContent =
-        _moderationService.moderateReceivedMessage(messageContent);
-
-    // Get current user ID from Firebase Auth
-    String? currentUserId;
-    try {
-      final user = FirebaseAuth.FirebaseAuth.instance.currentUser;
-      currentUserId = user?.uid;
-      //print('🔍 [RANDOM CHAT DEBUG] Current user ID: $currentUserId');
-      //print('🔍 [RANDOM CHAT DEBUG] Message sender ID: $messageSenderId');
-    } catch (e) {
-      //print('❌ [RANDOM CHAT DEBUG] Error getting current user: $e');
-    }
-
-    // Check if this is a message from the current user
-    final isFromCurrentUser =
-        currentUserId != null && messageSenderId == currentUserId;
-
-    //print('🔍 [RANDOM CHAT DEBUG] Is from current user: $isFromCurrentUser');
-
-    // Check if we have a temporary message with the same content from current user
-    final tempMessageIndex = _messages.indexWhere((msg) =>
-        msg['content'] == moderatedContent &&
-        msg['isFromCurrentUser'] == true &&
-        msg['id'].toString().startsWith('temp_'));
-
-    if (tempMessageIndex != -1 && isFromCurrentUser) {
-      // Replace temporary message with real message
-      //print(
-      // '🔄 [RANDOM CHAT DEBUG] Replacing temp message with real message: $messageId');
-      setState(() {
-        _messages[tempMessageIndex] = {
-          'id': messageId,
-          'content': moderatedContent,
-          'senderId': messageSenderId,
-          'timestamp': message.timestamp ?? DateTime.now(),
-          'isFromCurrentUser': true,
-        };
-      });
-    } else {
-      // Check if this message is already in the UI
-      final existingMessageIndex =
-          _messages.indexWhere((msg) => msg['id'] == messageId);
-
-      if (existingMessageIndex != -1) {
-        //print(
-        // '⏭️ [RANDOM CHAT DEBUG] Message already in UI, skipping: $messageId');
-        return;
-      }
-
-      // Add new message
-      setState(() {
-        _messages.add({
-          'id': messageId,
-          'content': moderatedContent,
-          'senderId': messageSenderId,
-          'timestamp': message.timestamp ?? DateTime.now(),
-          'isFromCurrentUser': isFromCurrentUser,
-        });
-      });
-
-      _scrollToBottom();
-
-      //print(
-      // '✅ [RANDOM CHAT DEBUG] Added new message to UI: $messageContent (from current user: $isFromCurrentUser)');
-    }
-  }
-
-  void _handleError(String error) {
-    if (!mounted) return;
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Error: $error'),
-        backgroundColor: Colors.red,
-      ),
-    );
-  }
-
-  void _handlePartnerEndedSession() {
-    if (!mounted || !_isSessionActive) {
-      print('🚪 [RANDOM CHAT DEBUG] Ignoring partner ended session - already handled');
-      return;
-    }
-
-    print('🚪 [RANDOM CHAT DEBUG] Partner ended session, handling locally');
-
-    setState(() {
-      _isSessionActive = false;
-    });
-
-    _stopHeartbeat();
-    _leaveChatRoom();
-
-    // Show partner left dialog only once
-    if (mounted) {
-      _showSessionEndDialog('partner_left');
+      print('❌ [RANDOM CHAT DEBUG] Error leaving chat room: $e');
     }
   }
 
   void _startSessionTimer() {
     Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (!mounted || !_isSessionActive) {
-        timer.cancel();
-        return;
-      }
+      if (mounted && _isSessionActive) {
+        setState(() {
+          _timeRemaining--;
+        });
 
-      setState(() {
-        _timeRemaining--;
-      });
-
-      if (_timeRemaining <= 0) {
+        if (_timeRemaining <= 0) {
+          timer.cancel();
+          _endSession();
+        }
+      } else {
         timer.cancel();
-        _endSession('timeout');
       }
     });
   }
 
   void _startHeartbeat() {
     _heartbeatTimer = Timer.periodic(const Duration(seconds: 30), (timer) {
-      if (!_isSessionActive) {
+      if (mounted && _isSessionActive) {
+        // Heartbeat functionality removed - not needed for basic random chat
+        print('💓 [RANDOM CHAT DEBUG] Heartbeat tick');
+      } else {
         timer.cancel();
-        return;
       }
-      // Send heartbeat to maintain session
-      _sendHeartbeat();
     });
   }
 
   void _stopHeartbeat() {
     _heartbeatTimer?.cancel();
-    _heartbeatTimer = null;
   }
 
-  void _sendHeartbeat() {
-    // Send heartbeat via socket or API to maintain session activity
-    // This would depend on your implementation
+  void _startSessionTimeout() {
+    Timer(const Duration(minutes: 5), () {
+      if (mounted && _isSessionActive) {
+        _endSession();
+      }
+    });
+  }
+
+  void _endSession() {
+    if (!_isSessionActive || _hasShownEndDialog) return;
+
+    setState(() {
+      _isSessionActive = false;
+      _hasShownEndDialog = true;
+    });
+
+    _showSessionEndDialog();
+  }
+
+  void _exitSession() {
+    // Show confirmation dialog before exiting
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.exit_to_app, color: Colors.red),
+            SizedBox(width: 8),
+            Text('Exit Chat'),
+          ],
+        ),
+        content: const Text(
+          'Are you sure you want to exit? This will end the chat for both users.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context), // Close dialog
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context); // Close dialog
+              _forceExitSession();
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Exit'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _forceExitSession() {
+    // Exit both users from the session
+    _socketService.leaveChat(widget.chatRoomId);
+    _socketService.disconnect();
+    
+    // Navigate back to connect screen
+    Navigator.pop(context);
+  }
+
+  void _handleOtherUserExit() {
+    // When other user exits, show dialog and exit this user too
+    if (mounted && _isSessionActive) {
+      setState(() {
+        _isSessionActive = false;
+      });
+      
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => AlertDialog(
+          title: const Row(
+            children: [
+              Icon(Icons.person_off, color: Colors.orange),
+              SizedBox(width: 8),
+              Text('Partner Left'),
+            ],
+          ),
+          content: const Text(
+            'Your chat partner has left the conversation. You will be returned to the connect screen.',
+          ),
+          actions: [
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context); // Close dialog
+                _forceExitSession(); // Exit session
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF8B5CF6),
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
+    }
+  }
+
+  void _showSessionEndDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.timer_off, color: Colors.orange),
+            SizedBox(width: 8),
+            Text('Session Ended'),
+          ],
+        ),
+        content: const Text(
+          'Your random chat session has ended. You can start a new session anytime!',
+        ),
+        actions: [
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context); // Close dialog
+              _exitSession(); // Exit session properly
+            },
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _handleIncomingMessage(Message message) {
+    final messageContent = message.content ?? '';
+    final senderId = message.senderId ?? '';
+    final timestamp = message.timestamp ?? DateTime.now();
+
+    if (messageContent.isNotEmpty && senderId.isNotEmpty) {
+      // Check if this message is already in the list to prevent duplicates
+      final messageId = '${senderId}_${timestamp.millisecondsSinceEpoch}';
+      final isDuplicate = _messages.any((msg) => 
+        msg['senderId'] == senderId && 
+        msg['timestamp'] == timestamp.toIso8601String()
+      );
+
+      if (!isDuplicate) {
+        setState(() {
+          _messages.add({
+            'message': messageContent,
+            'senderId': senderId,
+            'timestamp': timestamp.toIso8601String(),
+            'isMe': senderId == FirebaseAuth.FirebaseAuth.instance.currentUser?.uid,
+          });
+        });
+
+        _scrollToBottom();
+      }
+    }
+  }
+
+  void _scrollToBottom() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
+    });
   }
 
   Future<void> _sendMessage() async {
-    final content = _messageController.text.trim();
-    if (content.isEmpty || !_isSessionActive) return;
+    final message = _messageController.text.trim();
+    if (message.isEmpty || !_isSessionActive) return;
+
+    // Check message moderation
+    final isAppropriate = !_moderationService.containsInappropriateContent(message);
+    if (!isAppropriate) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Message contains inappropriate content. Please revise.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
 
     try {
-      // Process message through moderation service
-      final processedContent =
-          await _moderationService.processMessageForSending(context, content);
-
-      if (processedContent == null) {
-        // User cancelled sending due to inappropriate content
-        return;
-      }
-
-      // Add message to UI immediately (optimistic update)
-      final tempMessageId = 'temp_${DateTime.now().millisecondsSinceEpoch}';
-      setState(() {
-        _messages.add({
-          'id': tempMessageId,
-          'content': processedContent,
-          'senderId':
-              'current_user', // Will be updated when we get the real message
-          'timestamp': DateTime.now(),
-          'isFromCurrentUser': true,
-        });
-      });
-
-      _scrollToBottom();
-
-      //print('📤 [RANDOM CHAT DEBUG] Added optimistic message to UI: $processedContent');
-
+      await _socketService.sendMessage(widget.chatRoomId, message);
       _messageController.clear();
-
-      // Send processed message via socket
-      await _socketService.sendMessage(
-        widget.chatRoomId,
-        processedContent,
-      );
     } catch (e) {
+      print('❌ [RANDOM CHAT DEBUG] Failed to send message: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Failed to send message: ${e.toString()}'),
@@ -403,417 +431,302 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
     }
   }
 
-  void _showSessionEndDialog(String reason) {
-    // Prevent multiple dialogs
-    if (_hasShownEndDialog) {
-      print('🚪 [RANDOM CHAT DEBUG] End dialog already shown, skipping');
-      return;
-    }
-    
-    _hasShownEndDialog = true;
-    
-    String title = 'Chat Ended';
-    String message = 'The chat session has ended.';
-    IconData icon = Icons.chat_bubble_outline;
-
-    switch (reason) {
-      case 'timeout':
-        title = 'Time\'s Up!';
-        message = 'Your 5-minute chat session has ended.';
-        icon = Icons.timer;
-        break;
-      case 'user_ended':
-        title = 'Chat Ended';
-        message = 'You ended the chat session.';
-        icon = Icons.person_off;
-        break;
-      case 'partner_left':
-        title = 'Partner Left';
-        message = 'Your chat partner has left the conversation.';
-        icon = Icons.person_off;
-        break;
-    }
-
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        title: Row(
-          children: [
-            Icon(icon, color: AppColors.primary),
-            const SizedBox(width: 8),
-            Text(title),
-          ],
-        ),
-        content: Text(message),
-        actions: [
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context); // Close dialog
-              Navigator.pop(context); // Go back to connect screen
-            },
-            child: const Text('OK'),
-          ),
-        ],
-      ),
-    );
+  void _cleanupListeners() {
+    _messageSubscription.cancel();
+    _errorSubscription.cancel();
+    _eventSubscription.cancel();
+    _matchSubscription.cancel();
+    _globalMatchingSubscription.cancel();
   }
 
   String _formatTime(int seconds) {
     final minutes = seconds ~/ 60;
-    final secs = seconds % 60;
-    return '${minutes.toString().padLeft(2, '0')}:${secs.toString().padLeft(2, '0')}';
-  }
-
-  void _showExitWarningDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Row(
-          children: [
-            Icon(Icons.warning, color: Colors.orange),
-            SizedBox(width: 8),
-            Text('End Session?'),
-          ],
-        ),
-        content: const Text(
-          'Are you sure you want to end this random chat session? This action cannot be undone.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context); // Close dialog
-            },
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context); // Close dialog
-              _endSession('user_ended');
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('End Session'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _endSession(String reason) async {
-    if (!_isSessionActive) {
-      print('🚪 [RANDOM CHAT DEBUG] Session already ended, skipping');
-      // Even if session is already ended locally, try to clean up on backend
-      _forceCleanup();
-      return;
-    }
-
-    print('🚪 [RANDOM CHAT DEBUG] Ending session with reason: $reason');
-
-    setState(() {
-      _isSessionActive = false;
-    });
-
-    // Always try to end session properly first with timeout
-    try {
-      // End session via socket (this will notify both users)
-      await _socketService.endRandomChatSession(widget.sessionId, reason)
-          .timeout(const Duration(seconds: 5));
-      print('✅ [RANDOM CHAT DEBUG] Session ended successfully via socket');
-    } catch (e) {
-      print('❌ [RANDOM CHAT DEBUG] Error ending session via socket: $e');
-      // If socket fails, try API fallback
-      try {
-        await _apiService.endRandomChatSession(widget.sessionId, reason: reason)
-            .timeout(const Duration(seconds: 5));
-        print('✅ [RANDOM CHAT DEBUG] Session ended via API fallback');
-      } catch (apiError) {
-        print('❌ [RANDOM CHAT DEBUG] Error ending session via API: $apiError');
-      }
-    }
-
-    // Always perform local cleanup
-    _forceCleanup();
-
-    // Show end session dialog
-    if (mounted) {
-      _showSessionEndDialog(reason);
-    }
-  }
-
-  void _forceCleanup() {
-    print('🧹 [RANDOM CHAT DEBUG] Performing force cleanup');
-    
-    // Stop all timers
-    _stopHeartbeat();
-    
-    // Try to leave chat room with timeout
-    try {
-      _socketService.leaveChat(widget.chatRoomId);
-      print('✅ [RANDOM CHAT DEBUG] Left chat room successfully');
-    } catch (e) {
-      print('⚠️ [RANDOM CHAT DEBUG] Error leaving chat room: $e');
-    }
-    
-    // Try to stop random connection as fallback with timeout
-    try {
-      _socketService.stopRandomConnection();
-      print('✅ [RANDOM CHAT DEBUG] Stopped random connection');
-    } catch (e) {
-      print('⚠️ [RANDOM CHAT DEBUG] Error stopping random connection: $e');
-    }
-    
-    // Try API cleanup as final fallback with timeout
-    try {
-      _apiService.forceClearActiveSession()
-          .timeout(const Duration(seconds: 3));
-      print('✅ [RANDOM CHAT DEBUG] Force cleared active session via API');
-    } catch (e) {
-      print('⚠️ [RANDOM CHAT DEBUG] Error force clearing session: $e');
-    }
-  }
-
-  void _startSessionTimeout() {
-    // Remove the aggressive timeout that was causing false errors
-    // The session should only end when explicitly ended by users or server
-    print('⏰ [RANDOM CHAT DEBUG] Session timeout disabled - relying on explicit session events');
+    final remainingSeconds = seconds % 60;
+    return '${minutes.toString().padLeft(2, '0')}:${remainingSeconds.toString().padLeft(2, '0')}';
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
     return WillPopScope(
       onWillPop: () async {
-        // Always use the unified end session method
-        _showExitWarningDialog();
-        return false; // Prevent default back button behavior
+        // Show confirmation dialog when user tries to go back
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => AlertDialog(
+            title: const Row(
+              children: [
+                Icon(Icons.warning, color: Colors.orange),
+                SizedBox(width: 8),
+                Text('Exit Chat'),
+              ],
+            ),
+            content: const Text(
+              'Are you sure you want to exit? This will end the chat for both users.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context), // Close dialog
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(context); // Close dialog
+                  _forceExitSession();
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red,
+                  foregroundColor: Colors.white,
+                ),
+                child: const Text('Exit'),
+              ),
+            ],
+          ),
+        );
+        return false; // Prevent back navigation
       },
       child: Scaffold(
+        backgroundColor: const Color(0xFF2D1B69),
         appBar: AppBar(
-          title: const Text('Random Chat'),
-          centerTitle: true,
-          backgroundColor: isDark ? AppColors.darkPrimary : AppColors.primary,
-          foregroundColor: Colors.white,
-          automaticallyImplyLeading: false, // Disable default back button
-          leading: IconButton(
-            icon: const Icon(Icons.exit_to_app),
-            onPressed: _showExitWarningDialog,
-          ),
-        actions: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            child: Center(
-              child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                decoration: BoxDecoration(
-                  color: _timeRemaining <= 30 ? Colors.red : Colors.orange,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  _formatTime(_timeRemaining),
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                  ),
+          backgroundColor: const Color(0xFF2D1B69),
+          elevation: 0,
+          automaticallyImplyLeading: false, // Disable back button
+          title: Row(
+            children: [
+              const Text(
+                'Random Chat',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
+              const Spacer(),
+              Text(
+                _formatTime(_timeRemaining),
+                style: TextStyle(
+                  color: Colors.white.withOpacity(0.8),
+                  fontSize: 14,
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            IconButton(
+              onPressed: _exitSession,
+              icon: const Icon(Icons.exit_to_app, color: Colors.red),
+            ),
+          ],
+        ),
+        body: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                Color(0xFF2D1B69),
+                Color(0xFF1A0B3D),
+              ],
             ),
           ),
-        ],
+          child: Column(
+            children: [
+              Expanded(
+                child: _buildMessagesList(),
+              ),
+              _buildInputArea(),
+            ],
+          ),
+        ),
       ),
-      body: Column(
-        children: [
-          // Session info banner
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(12),
-            color: (isDark ? AppColors.darkPrimary : AppColors.primary)
-                .withOpacity(0.1),
-            child: Text(
-              'Random chat session active • ${_formatTime(_timeRemaining)} remaining',
+    );
+  }
+
+
+
+  Widget _buildMessagesList() {
+    if (_messages.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.chat_bubble_outline,
+              color: Colors.white.withOpacity(0.7),
+              size: 64,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Start chatting!',
               style: TextStyle(
-                color: isDark ? AppColors.darkPrimary : AppColors.primary,
+                color: Colors.white.withOpacity(0.9),
+                fontSize: 20,
                 fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Your messages will appear here',
+              style: TextStyle(
+                color: Colors.white.withOpacity(0.7),
+                fontSize: 14,
               ),
               textAlign: TextAlign.center,
             ),
-          ),
-          // Messages list
-          Expanded(
-            child: _messages.isEmpty
-                ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.chat_bubble_outline,
-                          size: 64,
-                          color: isDark ? Colors.grey[400] : Colors.grey,
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          'Start chatting!',
-                          style: TextStyle(
-                            fontSize: 18,
-                            color: isDark ? Colors.grey[400] : Colors.grey,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Say hello to your random chat partner',
-                          style: TextStyle(
-                            color: isDark ? Colors.grey[400] : Colors.grey,
-                          ),
-                        ),
-                      ],
-                    ),
-                  )
-                : ListView.builder(
-                    controller: _scrollController,
-                    padding: const EdgeInsets.all(16),
-                    itemCount: _messages.length,
-                    itemBuilder: (context, index) {
-                      final message = _messages[index];
-                      final isFromCurrentUser =
-                          message['isFromCurrentUser'] as bool;
+          ],
+        ),
+      );
+    }
 
-                      return Align(
-                        alignment: isFromCurrentUser
-                            ? Alignment.centerRight
-                            : Alignment.centerLeft,
-                        child: Container(
-                          margin: const EdgeInsets.only(bottom: 8),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 10,
-                          ),
-                          decoration: BoxDecoration(
-                            color: isFromCurrentUser
-                                ? (isDark
-                                    ? AppColors.darkPrimary
-                                    : AppColors.primary)
-                                : (isDark
-                                    ? AppColors.darkReceivedMessage
-                                    : Colors.grey[300]),
-                            borderRadius: BorderRadius.circular(18),
-                          ),
-                          child: Text(
-                            HtmlDecoder.decodeHtmlEntities(
-                                message['content'] as String),
-                            style: TextStyle(
-                              color: isFromCurrentUser
-                                  ? Colors.white
-                                  : (isDark
-                                      ? AppColors.darkText
-                                      : Colors.black87),
-                            ),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-          ),
-          // Message input
-          if (_isSessionActive)
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: isDark ? AppColors.darkCardBackground : Colors.white,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
-                    blurRadius: 4,
-                    offset: const Offset(0, -2),
-                  ),
-                ],
+    return ListView.builder(
+      controller: _scrollController,
+      padding: const EdgeInsets.all(16),
+      itemCount: _messages.length,
+      itemBuilder: (context, index) {
+        final message = _messages[index];
+        return _buildMessageBubble(message);
+      },
+    );
+  }
+
+  Widget _buildMessageBubble(Map<String, dynamic> message) {
+    final isMe = message['isMe'] as bool;
+    final messageText = message['message'] as String;
+    final timestamp = DateTime.tryParse(message['timestamp'] ?? '') ?? DateTime.now();
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        mainAxisAlignment: isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
+        children: [
+          if (!isMe) ...[
+            CircleAvatar(
+              radius: 16,
+              backgroundColor: const Color(0xFF8B5CF6),
+              child: const Icon(
+                Icons.person,
+                color: Colors.white,
+                size: 16,
               ),
-              child: Row(
+            ),
+            const SizedBox(width: 8),
+          ],
+          
+          Flexible(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                color: isMe 
+                  ? const Color(0xFF8B5CF6)
+                  : Colors.white.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: Colors.white.withOpacity(0.2),
+                  width: 1,
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        TextField(
-                          controller: _messageController,
-                          decoration: InputDecoration(
-                            hintText: 'Type a message...',
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(24),
-                              borderSide: BorderSide.none,
-                            ),
-                            filled: true,
-                            fillColor: isDark
-                                ? AppColors.darkInputBackground
-                                : Colors.grey[100],
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 20,
-                              vertical: 10,
-                            ),
-                            suffixIcon: _messageController.text.length > 900
-                                ? Icon(
-                                    Icons.warning,
-                                    color:
-                                        _messageController.text.length >= 1000
-                                            ? Colors.red
-                                            : Colors.orange,
-                                    size: 16,
-                                  )
-                                : null,
-                          ),
-                          onChanged: (value) {
-                            setState(() {});
-                          },
-                          onSubmitted: (_) => _sendMessage(),
-                          textInputAction: TextInputAction.send,
-                          maxLines: 2, // Reduced from 4 to 2 for shorter height
-                          maxLength: 1000,
-                          maxLengthEnforcement: MaxLengthEnforcement.enforced,
-                        ),
-                        if (_messageController.text.length > 900)
-                          Padding(
-                            padding: const EdgeInsets.only(top: 4, left: 16),
-                            child: Text(
-                              '${_messageController.text.length}/1000',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: _messageController.text.length >= 1000
-                                    ? Colors.red
-                                    : Colors.orange,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ),
-                      ],
+                  Text(
+                    messageText,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
                     ),
                   ),
-                  const SizedBox(width: 8),
-                  GestureDetector(
-                    onTap: _sendMessage,
-                    child: Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color:
-                            isDark ? AppColors.darkPrimary : AppColors.primary,
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.send,
-                        color: Colors.white,
-                        size: 20,
-                      ),
+                  const SizedBox(height: 4),
+                  Text(
+                    _formatTimestamp(timestamp),
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.6),
+                      fontSize: 12,
                     ),
                   ),
                 ],
               ),
             ),
+          ),
+          
+          if (isMe) ...[
+            const SizedBox(width: 8),
+            CircleAvatar(
+              radius: 16,
+              backgroundColor: Colors.white.withOpacity(0.2),
+              child: const Icon(
+                Icons.person,
+                color: Colors.white,
+                size: 16,
+              ),
+            ),
+          ],
         ],
       ),
+    );
+  }
+
+  Widget _buildInputArea() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.black.withOpacity(0.3),
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(16),
+          topRight: Radius.circular(16),
+        ),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: TextField(
+              controller: _messageController,
+              style: const TextStyle(color: Colors.white),
+              decoration: InputDecoration(
+                hintText: 'Type a message...',
+                hintStyle: TextStyle(color: Colors.white.withOpacity(0.7)),
+                filled: true,
+                fillColor: Colors.white.withOpacity(0.1),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(24),
+                  borderSide: BorderSide(color: Colors.white.withOpacity(0.3)),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(24),
+                  borderSide: BorderSide(color: Colors.white.withOpacity(0.3)),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(24),
+                  borderSide: const BorderSide(color: Color(0xFF8B5CF6), width: 2),
+                ),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              ),
+              onSubmitted: (_) => _sendMessage(),
+            ),
+          ),
+          const SizedBox(width: 12),
+          IconButton(
+            onPressed: _sendMessage,
+            icon: const Icon(
+              Icons.send,
+              color: Color(0xFF8B5CF6),
+              size: 24,
+            ),
+          ),
+        ],
       ),
     );
+  }
+
+  String _formatTimestamp(DateTime timestamp) {
+    final now = DateTime.now();
+    final difference = now.difference(timestamp);
+
+    if (difference.inMinutes < 1) {
+      return 'Just now';
+    } else if (difference.inMinutes < 60) {
+      return '${difference.inMinutes}m ago';
+    } else {
+      return '${timestamp.hour.toString().padLeft(2, '0')}:${timestamp.minute.toString().padLeft(2, '0')}';
+    }
   }
 }

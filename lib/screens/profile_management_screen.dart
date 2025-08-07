@@ -97,9 +97,6 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
               (interest) => AppConstants.availableInterests.contains(interest))
           .toList();
     });
-
-    // print('🎭 DEBUG: Pre-filled guest user form with default values');
-
   }
 
   Future<void> _initializeApiService() async {
@@ -248,129 +245,314 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Complete Your Profile'),
-        backgroundColor: Theme.of(context).colorScheme.primary,
-        foregroundColor: Colors.white,
-        automaticallyImplyLeading:
-            _hasExistingProfile, // Show back button for existing users
-        leading: _hasExistingProfile
-            ? IconButton(
-                icon: const Icon(Icons.arrow_back),
-                onPressed: () => Navigator.of(context).pop(),
-              )
-            : null,
+      backgroundColor: const Color(0xFF2D1B69), // Dark purple background
+      body: Container(
+        decoration: const BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage('assets/images/general-overlay.png'),
+            fit: BoxFit.cover,
+          ),
+        ),
+        child: SafeArea(
+          child: Column(
+            children: [
+              // Header
+              _buildHeader(),
+              
+              // Content
+              Expanded(
+                child: _isLoading
+                    ? const Center(
+                        child: CircularProgressIndicator(
+                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                        ),
+                      )
+                    : SingleChildScrollView(
+                        padding: const EdgeInsets.all(16),
+                        child: _buildForm(),
+                      ),
+              ),
+            ],
+          ),
+        ),
       ),
-      body: _currentUser == null
-          ? const Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Header
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.primary,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            '👤 Complete Your Profile',
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Please fill out the required information to continue',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.white.withOpacity(0.9),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 24),
+    );
+  }
 
-                    // Create/Update Profile Section
-                    Text(
-                      'Required Information',
+  Widget _buildHeader() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Row(
+        children: [
+          // Back button
+          IconButton(
+            onPressed: () {
+              Navigator.pop(context);
+            },
+            icon: const Icon(
+              Icons.arrow_back,
+              color: Colors.white,
+              size: 24,
+            ),
+          ),
+          
+          // Title in center
+          const Expanded(
+            child: Text(
+              'Profile Management',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+          
+          // Save button
+          TextButton(
+            onPressed: _isUpdatingProfile ? null : _saveProfile,
+            child: _isUpdatingProfile
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    ),
+                  )
+                : const Text(
+                    'Save',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildForm() {
+    return Form(
+      key: _formKey,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Profile Picture Section
+          _buildProfilePictureSection(),
+          const SizedBox(height: 24),
+          
+          // Basic Information Section
+          _buildBasicInformationSection(),
+          const SizedBox(height: 24),
+          
+          // Interests Section
+          _buildInterestsSection(),
+          const SizedBox(height: 24),
+          
+          // Gallery Section
+          _buildGallerySection(),
+          const SizedBox(height: 32),
+          
+          // Save Button
+          SizedBox(
+            width: double.infinity,
+            height: 56,
+            child: ElevatedButton(
+              onPressed: _isUpdatingProfile ? null : _saveProfile,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF8B5CF6),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                elevation: 8,
+              ),
+              child: _isUpdatingProfile
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                      ),
+                    )
+                  : const Text(
+                      'Save Profile',
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
-                        color: Theme.of(context).colorScheme.onSurface,
                       ),
                     ),
-                    const SizedBox(height: 16),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
-                    // Display Name
-                    _buildTextField(
-                      controller: _displayNameController,
-                      label: 'Display Name',
-                      hint: 'Enter display name',
-                      maxLength: 50,
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return 'Display name is required';
-                        }
-                        if (value.trim().length < 2) {
-                          return 'Display name must be at least 2 characters';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Username with availability check
-                    _buildUsernameField(),
-                    const SizedBox(height: 16),
-
-                    // Bio
-                    _buildTextField(
-                      controller: _bioController,
-                      label: 'Bio',
-                      hint: 'Tell us about yourself...',
-                      maxLines: 4,
-                      maxLength: 500,
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Profile Picture
-                    _buildProfilePictureSection(),
-                    const SizedBox(height: 16),
-
-                    // Photo Gallery
-                    _buildGallerySection(),
-                    const SizedBox(height: 16),
-
-                    // Gender
-                    _buildGenderField(),
-                    const SizedBox(height: 16),
-
-                    // Age
-                    _buildAgeField(),
-                    const SizedBox(height: 16),
-
-                    // Interests
-                    _buildInterestsSection(),
-                    const SizedBox(height: 24),
-
-                    // Action Buttons - Simplified for now
-                    _buildActionButtons(),
-                  ],
+  Widget _buildProfilePictureSection() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: Colors.white.withOpacity(0.2),
+          width: 1,
+        ),
+      ),
+      child: Column(
+        children: [
+          const Text(
+            'Profile Picture',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 16),
+          
+          // Profile Picture Display
+          GestureDetector(
+            onTap: _pickProfilePicture,
+            child: Container(
+              width: 120,
+              height: 120,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: Colors.white.withOpacity(0.3),
+                  width: 3,
                 ),
               ),
+              child: ClipOval(
+                child: _profilePicture != null
+                    ? Image.file(
+                        _profilePicture!,
+                        fit: BoxFit.cover,
+                      )
+                    : _existingProfilePictureUrl != null
+                        ? Image.network(
+                            _existingProfilePictureUrl!,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) =>
+                                _buildDefaultProfilePicture(),
+                          )
+                        : _buildDefaultProfilePicture(),
+              ),
             ),
+          ),
+          const SizedBox(height: 12),
+          
+          TextButton.icon(
+            onPressed: _pickProfilePicture,
+            icon: const Icon(Icons.camera_alt, color: Colors.white),
+            label: const Text(
+              'Change Photo',
+              style: TextStyle(color: Colors.white),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDefaultProfilePicture() {
+    return Container(
+      color: const Color(0xFF8B5CF6),
+      child: const Icon(
+        Icons.person,
+        color: Colors.white,
+        size: 60,
+      ),
+    );
+  }
+
+  Widget _buildBasicInformationSection() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: Colors.white.withOpacity(0.2),
+          width: 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Basic Information',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 16),
+          
+          // Display Name
+          _buildTextField(
+            controller: _displayNameController,
+            label: 'Display Name',
+            hint: 'Enter your display name',
+            icon: Icons.person,
+          ),
+          const SizedBox(height: 16),
+          
+          // Username
+          _buildTextField(
+            controller: _usernameController,
+            label: 'Username',
+            hint: 'Enter your username',
+            icon: Icons.alternate_email,
+            onChanged: (value) => _checkUsernameAvailability(),
+            errorText: _usernameError,
+            suffix: _isCheckingUsername
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    ),
+                  )
+                : _isUsernameAvailable
+                    ? const Icon(Icons.check_circle, color: Colors.green)
+                    : null,
+          ),
+          const SizedBox(height: 16),
+          
+          // Bio
+          _buildTextField(
+            controller: _bioController,
+            label: 'Bio',
+            hint: 'Tell us about yourself',
+            icon: Icons.info,
+            maxLines: 3,
+          ),
+          const SizedBox(height: 16),
+          
+          // Age
+          _buildTextField(
+            controller: _ageController,
+            label: 'Age',
+            hint: 'Enter your age',
+            icon: Icons.cake,
+            keyboardType: TextInputType.number,
+          ),
+          const SizedBox(height: 16),
+          
+          // Gender
+          _buildGenderSelector(),
+        ],
+      ),
     );
   }
 
@@ -378,921 +560,447 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
     required TextEditingController controller,
     required String label,
     required String hint,
+    required IconData icon,
     int maxLines = 1,
-    int? maxLength,
     TextInputType? keyboardType,
-    String? Function(String?)? validator,
+    String? errorText,
+    Widget? suffix,
+    Function(String)? onChanged,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          '$label:',
-          style: TextStyle(
-            fontWeight: FontWeight.w600,
-            color: Theme.of(context).colorScheme.onSurface,
+          label,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 16,
+            fontWeight: FontWeight.w500,
           ),
         ),
         const SizedBox(height: 8),
         TextFormField(
           controller: controller,
+          style: const TextStyle(color: Colors.white),
           maxLines: maxLines,
-          maxLength: maxLength,
           keyboardType: keyboardType,
-          validator: validator,
+          onChanged: onChanged,
           decoration: InputDecoration(
             hintText: hint,
-            border: const OutlineInputBorder(),
-            counterText: maxLength != null ? null : '',
+            hintStyle: TextStyle(color: Colors.white.withOpacity(0.7)),
+            prefixIcon: Icon(icon, color: Colors.white),
+            suffixIcon: suffix,
+            filled: true,
+            fillColor: Colors.white.withOpacity(0.1),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Colors.white.withOpacity(0.3)),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Colors.white.withOpacity(0.3)),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Color(0xFF8B5CF6), width: 2),
+            ),
+            errorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Colors.red, width: 2),
+            ),
+            errorText: errorText,
           ),
         ),
       ],
     );
   }
 
-  Widget _buildUsernameField() {
+  Widget _buildGenderSelector() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Username:',
+        const Text(
+          'Gender',
           style: TextStyle(
-            fontWeight: FontWeight.w600,
-            color: Theme.of(context).colorScheme.onSurface,
+            color: Colors.white,
+            fontSize: 16,
+            fontWeight: FontWeight.w500,
           ),
         ),
         const SizedBox(height: 8),
-        Row(
-          children: [
-            Expanded(
-              child: TextFormField(
-                controller: _usernameController,
-                decoration: InputDecoration(
-                  hintText: 'Enter username',
-                  border: const OutlineInputBorder(),
-                  errorText: _usernameError,
-                  suffixIcon: _isCheckingUsername
-                      ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : _isUsernameAvailable
-                          ? const Icon(Icons.check, color: Colors.green)
-                          : null,
-                ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Username is required';
-                  }
-                  if (value.length < 3 || value.length > 30) {
-                    return 'Username must be 3-30 characters';
-                  }
-                  if (!RegExp(r'^[a-zA-Z0-9_]+$').hasMatch(value)) {
-                    return 'Username can only contain letters, numbers, and underscores';
-                  }
-                  return null;
-                },
-              ),
-            ),
-            const SizedBox(width: 12),
-            ElevatedButton(
-              onPressed:
-                  _isCheckingUsername ? null : _checkUsernameAvailability,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.grey[700],
-                foregroundColor: Colors.white,
-              ),
-              child: const Text('Check Availability'),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildAgeField() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Text(
-              'Age:',
-              style: TextStyle(
-                fontWeight: FontWeight.w600,
-                color: Theme.of(context).colorScheme.onSurface,
-              ),
-            ),
-            const Text(
-              ' *',
-              style: TextStyle(
-                color: Colors.red,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        TextFormField(
-          controller: _ageController,
-          keyboardType: TextInputType.number,
-          decoration: const InputDecoration(
-            hintText: 'Enter your age',
-            border: OutlineInputBorder(),
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.white.withOpacity(0.3)),
           ),
-          validator: (value) {
-            if (value == null || value.isEmpty) {
-              return 'Age is required';
-            }
-            final age = int.tryParse(value);
-            if (age == null) {
-              return 'Please enter a valid number';
-            }
-            if (age < 13) {
-              return 'Age must be at least 13';
-            }
-            if (age > 120) {
-              return 'Age must be less than 120';
-            }
-            return null;
-          },
-        ),
-      ],
-    );
-  }
-
-  Widget _buildActionButtons() {
-    return Column(
-      children: [
-        Row(
-          children: [
-            if (!_hasExistingProfile) ...[
-              Expanded(
-                child: ElevatedButton(
-                  onPressed: _isLoading ? null : _createProfile,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                  ),
-                  child: _isLoading
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Text('Complete Profile'),
-                ),
-              ),
-            ] else ...[
-              Expanded(
-                child: ElevatedButton(
-                  onPressed: _isLoading ? null : _updateProfile,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                  ),
-                  child: _isLoading
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Text('Update Profile'),
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: ElevatedButton(
-                  onPressed: _isLoading
-                      ? null
-                      : () {
-                          // Reset form to original values
-                          _loadExistingProfile();
-                          Navigator.of(context).pop();
-                        },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.grey,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                  ),
-                  child: const Text('Cancel'),
-                ),
-              ),
+          child: DropdownButtonFormField<String>(
+            value: _selectedGender,
+            style: const TextStyle(color: Colors.white),
+            dropdownColor: const Color(0xFF2D1B69),
+            decoration: const InputDecoration(
+              border: InputBorder.none,
+              contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            ),
+            items: [
+              DropdownMenuItem(value: 'male', child: const Text('Male')),
+              DropdownMenuItem(value: 'female', child: const Text('Female')),
+              DropdownMenuItem(value: 'other', child: const Text('Other')),
+              DropdownMenuItem(value: 'prefer-not-to-say', child: const Text('Prefer not to say')),
             ],
-            if (_hasExistingProfile) ...[
-              const SizedBox(width: 16),
-              Expanded(
-                child: ElevatedButton(
-                  onPressed: _isLoading ? null : _loadExistingProfile,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.orange,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                  ),
-                  child: const Text('Reset to Original'),
-                ),
-              ),
-            ],
-          ],
-        ),
-      ],
-    );
-  }
-
-  Future<void> _createProfile() async {
-    if (!_formKey.currentState!.validate()) return;
-
-    // Prevent multiple simultaneous profile creations
-    if (_isUpdatingProfile) {
-      //print('⚠️ DEBUG: Profile creation already in progress, skipping...');
-      return;
-    }
-
-    // Validate mandatory fields
-    if (_displayNameController.text.trim().isEmpty) {
-      _showError('Display name is required');
-      return;
-    }
-
-    if (_usernameController.text.trim().isEmpty) {
-      _showError('Username is required');
-      return;
-    }
-
-    if (_ageController.text.trim().isEmpty) {
-      _showError('Age is required');
-      return;
-    }
-
-    if (_selectedGender.isEmpty) {
-      _showError('Gender is required');
-      return;
-    }
-
-    // Validate interests selection
-    if (_interests.length < AppConstants.minInterestsRequired) {
-      _showError(
-          'Please select at least ${AppConstants.minInterestsRequired} interests to continue');
-      return;
-    }
-
-    setState(() {
-      _isLoading = true;
-      _isUpdatingProfile = true;
-    });
-
-    try {
-      final profileData = {
-        'displayName': _displayNameController.text.trim(),
-        'username': _usernameController.text.trim(),
-        'bio': _bioController.text.trim(),
-        'gender': _selectedGender,
-        'age': int.parse(_ageController.text.trim()),
-        'interests': _interests,
-      };
-
-      //print('🔄 [PROFILE DEBUG] Creating profile with data: $profileData');
-
-      final result = await _apiService.createProfile(profileData);
-
-      // Upload profile picture if selected
-      if (_profilePicture != null) {
-        await _apiService.uploadProfilePicture(_profilePicture!);
-      }
-
-      // Upload gallery images if selected
-      if (_galleryImages.isNotEmpty) {
-        for (final imageFile in _galleryImages) {
-          try {
-            await _apiService.addGalleryPicture(imageFile);
-          } catch (e) {
-            //print('Failed to upload gallery image: $e');
-            // Continue with other images even if one fails
-          }
-        }
-        // Clear the gallery images list after successful uploads
-        setState(() {
-          _galleryImages.clear();
-        });
-      }
-
-      _showSuccess('Profile created successfully!');
-      setState(() {
-        _hasExistingProfile = true;
-      });
-
-      // Redirect to home screen after successful profile creation
-      await Future.delayed(const Duration(seconds: 1));
-      Navigator.of(context).pushReplacementNamed('/home');
-    } catch (e) {
-      _showError('Error creating profile: $e');
-    } finally {
-      setState(() {
-        _isLoading = false;
-        _isUpdatingProfile = false;
-      });
-    }
-  }
-
-  Future<void> _updateProfile() async {
-    if (!_formKey.currentState!.validate()) return;
-
-    // Prevent multiple simultaneous profile updates
-    if (_isUpdatingProfile) {
-      //print('⚠️ DEBUG: Profile update already in progress, skipping...');
-      return;
-    }
-
-    // Validate mandatory fields
-    if (_displayNameController.text.trim().isEmpty) {
-      _showError('Display name is required');
-      return;
-    }
-
-    if (_usernameController.text.trim().isEmpty) {
-      _showError('Username is required');
-      return;
-    }
-
-    if (_ageController.text.trim().isEmpty) {
-      _showError('Age is required');
-      return;
-    }
-
-    if (_selectedGender.isEmpty) {
-      _showError('Gender is required');
-      return;
-    }
-
-    // Validate interests selection
-    if (_interests.length < AppConstants.minInterestsRequired) {
-      _showError(
-          'Please select at least ${AppConstants.minInterestsRequired} interests to continue');
-      return;
-    }
-
-    setState(() {
-      _isLoading = true;
-      _isUpdatingProfile = true;
-    });
-
-    try {
-      final profileData = {
-        'displayName': _displayNameController.text.trim(),
-        'username': _usernameController.text.trim(),
-        'bio': _bioController.text.trim(),
-        'gender': _selectedGender,
-        'age': int.parse(_ageController.text.trim()),
-        'interests': _interests,
-      };
-
-      print('🔄 [PROFILE DEBUG] Updating profile with data: $profileData');
-      print(
-          '🔄 [PROFILE DEBUG] Gallery images count: ${_galleryImages.length}');
-      print(
-          '🔄 [PROFILE DEBUG] Existing gallery images count: ${_existingGalleryImages.length}');
-
-      final result = await _apiService.updateProfile(profileData);
-
-      // print('✅ [PROFILE DEBUG] Profile update result: $result');
-
-      // Upload profile picture if selected
-      if (_profilePicture != null) {
-        await _apiService.uploadProfilePicture(_profilePicture!);
-      }
-
-      // Upload gallery images if selected
-      if (_galleryImages.isNotEmpty) {
-        print(
-            '🔄 [PROFILE DEBUG] Uploading ${_galleryImages.length} gallery images');
-        for (final imageFile in _galleryImages) {
-          try {
-            print(
-                '🔄 [PROFILE DEBUG] Uploading gallery image: ${imageFile.path}');
-            await _apiService.addGalleryPicture(imageFile);
-            // print('✅ [PROFILE DEBUG] Gallery image uploaded successfully');
-          } catch (e) {
-            // print('❌ [PROFILE DEBUG] Failed to upload gallery image: $e');
-            // Continue with other images even if one fails
-          }
-        }
-        // Clear the gallery images list after successful uploads
-        setState(() {
-          _galleryImages.clear();
-        });
-        // print('🔄 [PROFILE DEBUG] Cleared gallery images list');
-      } else {
-        // print('🔄 [PROFILE DEBUG] No new gallery images to upload');
-      }
-
-      _showSuccess('Profile updated successfully!');
-    } catch (e) {
-      _showError('Error updating profile: $e');
-    } finally {
-      setState(() {
-        _isLoading = false;
-        _isUpdatingProfile = false;
-      });
-    }
-  }
-
-  void _clearForm() {
-    _displayNameController.clear();
-    _usernameController.clear();
-    _bioController.clear();
-    _ageController.clear(); // Clear age field
-    setState(() {
-      _selectedGender = 'male'; // Reset to male instead of prefer-not-to-say
-      _interests.clear();
-      _profilePicture = null;
-      _existingProfilePictureUrl = null;
-      _galleryImages.clear();
-    });
-  }
-
-  Widget _buildProfilePictureSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Profile Picture:',
-          style: TextStyle(
-            fontWeight: FontWeight.w600,
-            color: Theme.of(context).colorScheme.onSurface,
+            onChanged: (value) {
+              setState(() {
+                _selectedGender = value!;
+              });
+            },
           ),
-        ),
-        const SizedBox(height: 8),
-        Row(
-          children: [
-            Expanded(
-              child: Container(
-                height: 50,
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: Center(
-                  child: Text(
-                    _profilePicture != null
-                        ? 'New image selected'
-                        : (_existingProfilePictureUrl != null
-                            ? 'Current profile picture'
-                            : 'No file chosen'),
-                    style: const TextStyle(color: Colors.grey),
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 12),
-            ElevatedButton(
-              onPressed: _pickProfilePicture,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.green,
-                foregroundColor: Colors.white,
-              ),
-              child: Text(_existingProfilePictureUrl != null
-                  ? 'Change Picture'
-                  : 'Upload Picture'),
-            ),
-          ],
-        ),
-        // Show image preview
-        if (_profilePicture != null || _existingProfilePictureUrl != null) ...[
-          const SizedBox(height: 8),
-          Container(
-            height: 100,
-            width: 100,
-            decoration: BoxDecoration(
-              border: Border.all(color: Colors.grey),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: _profilePicture != null
-                  ? Image.file(_profilePicture!, fit: BoxFit.cover)
-                  : (_existingProfilePictureUrl != null
-                      ? Image.network(
-                          _existingProfilePictureUrl!,
-                          fit: BoxFit.cover,
-                          loadingBuilder: (context, child, loadingProgress) {
-                            if (loadingProgress == null) return child;
-                            return Center(
-                              child: CircularProgressIndicator(
-                                value: loadingProgress.expectedTotalBytes !=
-                                        null
-                                    ? loadingProgress.cumulativeBytesLoaded /
-                                        loadingProgress.expectedTotalBytes!
-                                    : null,
-                              ),
-                            );
-                          },
-                          errorBuilder: (context, error, stackTrace) {
-                            return const Center(
-                              child: Icon(Icons.error, color: Colors.red),
-                            );
-                          },
-                        )
-                      : const SizedBox.shrink()),
-            ),
-          ),
-        ],
-      ],
-    );
-  }
-
-  Widget _buildGallerySection() {
-    final totalImages = _existingGalleryImages.length + _galleryImages.length;
-    final canAddMore = totalImages < 5;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Photo Gallery (${totalImages}/5 pictures):',
-          style: TextStyle(
-            fontWeight: FontWeight.w600,
-            color: Theme.of(context).colorScheme.onSurface,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Row(
-          children: [
-            Expanded(
-              child: Container(
-                height: 50,
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: Center(
-                  child: Text(
-                    totalImages > 0
-                        ? '$totalImages images in gallery'
-                        : 'No images in gallery',
-                    style: const TextStyle(color: Colors.grey),
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 12),
-            ElevatedButton(
-              onPressed: canAddMore ? _pickGalleryImages : null,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.green,
-                foregroundColor: Colors.white,
-              ),
-              child: Text(canAddMore ? 'Add to Gallery' : 'Gallery Full'),
-            ),
-          ],
-        ),
-        if (totalImages > 0) ...[
-          const SizedBox(height: 16),
-          Text(
-            'Existing Gallery Images:',
-            style: TextStyle(
-              fontSize: 14,
-              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
-            ),
-          ),
-          const SizedBox(height: 8),
-          SizedBox(
-            height: 80,
-            child: ListView.builder(
-              scrollDirection: Axis.horizontal,
-              itemCount: _existingGalleryImages.length,
-              itemBuilder: (context, index) {
-                final image = _existingGalleryImages[index];
-                return Container(
-                  width: 80,
-                  height: 80,
-                  margin: const EdgeInsets.only(right: 8),
-                  decoration: BoxDecoration(
-                    border: Border.all(color: Colors.grey),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: Stack(
-                      fit: StackFit.expand,
-                      children: [
-                        Image.network(
-                          image['url'],
-                          fit: BoxFit.cover,
-                          loadingBuilder: (context, child, loadingProgress) {
-                            if (loadingProgress == null) return child;
-                            return Center(
-                              child: CircularProgressIndicator(
-                                value: loadingProgress.expectedTotalBytes !=
-                                        null
-                                    ? loadingProgress.cumulativeBytesLoaded /
-                                        loadingProgress.expectedTotalBytes!
-                                    : null,
-                              ),
-                            );
-                          },
-                          errorBuilder: (context, error, stackTrace) {
-                            return const Center(
-                              child: Icon(Icons.error, color: Colors.red),
-                            );
-                          },
-                        ),
-                        Positioned(
-                          top: 4,
-                          right: 4,
-                          child: GestureDetector(
-                            onTap: () => _removeExistingGalleryImage(index),
-                            child: Container(
-                              width: 20,
-                              height: 20,
-                              decoration: const BoxDecoration(
-                                color: Colors.red,
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Icon(
-                                Icons.close,
-                                color: Colors.white,
-                                size: 16,
-                              ),
-                            ),
-                          ),
-                        ),
-                        Positioned(
-                          bottom: 4,
-                          right: 4,
-                          child: GestureDetector(
-                            onTap: () =>
-                                _setAsMainProfilePicture(image['filename']),
-                            child: Container(
-                              width: 20,
-                              height: 20,
-                              decoration: BoxDecoration(
-                                color: Colors.blue.withOpacity(0.8),
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Icon(
-                                Icons.person,
-                                color: Colors.white,
-                                size: 16,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
-        ],
-        if (_galleryImages.isNotEmpty) ...[
-          const SizedBox(height: 16),
-          Text(
-            'New Images to Upload:',
-            style: TextStyle(
-              fontSize: 14,
-              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
-            ),
-          ),
-          const SizedBox(height: 8),
-          SizedBox(
-            height: 80,
-            child: ListView.builder(
-              scrollDirection: Axis.horizontal,
-              itemCount: _galleryImages.length,
-              itemBuilder: (context, index) {
-                return Container(
-                  width: 80,
-                  height: 80,
-                  margin: const EdgeInsets.only(right: 8),
-                  decoration: BoxDecoration(
-                    border: Border.all(color: Colors.grey),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: Stack(
-                      children: [
-                        Image.file(_galleryImages[index], fit: BoxFit.cover),
-                        Positioned(
-                          top: 4,
-                          right: 4,
-                          child: GestureDetector(
-                            onTap: () =>
-                                setState(() => _galleryImages.removeAt(index)),
-                            child: Container(
-                              width: 20,
-                              height: 20,
-                              decoration: const BoxDecoration(
-                                color: Colors.red,
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Icon(
-                                Icons.close,
-                                color: Colors.white,
-                                size: 16,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
-        ],
-      ],
-    );
-  }
-
-  Widget _buildGenderField() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Text(
-              'Gender:',
-              style: TextStyle(
-                fontWeight: FontWeight.w600,
-                color: Theme.of(context).colorScheme.onSurface,
-              ),
-            ),
-            const Text(
-              ' *',
-              style: TextStyle(
-                color: Colors.red,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        DropdownButtonFormField<String>(
-          value: _selectedGender,
-          decoration: const InputDecoration(
-            border: OutlineInputBorder(),
-            hintText: 'Select gender',
-          ),
-          items: const [
-            DropdownMenuItem(value: 'male', child: Text('Male')),
-            DropdownMenuItem(value: 'female', child: Text('Female')),
-          ],
-          validator: (value) {
-            if (value == null || value.isEmpty) {
-              return 'Please select a gender';
-            }
-            return null;
-          },
-          onChanged: (value) {
-            setState(() {
-              _selectedGender = value ?? 'male';
-            });
-          },
         ),
       ],
     );
   }
 
   Widget _buildInterestsSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Text(
-              'Interests:',
-              style: TextStyle(
-                fontWeight: FontWeight.w600,
-                color: Theme.of(context).colorScheme.onSurface,
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: Colors.white.withOpacity(0.2),
+          width: 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Interests',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 16),
+          
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: AppConstants.availableInterests.map((interest) {
+              final isSelected = _interests.contains(interest);
+              return GestureDetector(
+                onTap: () {
+                  setState(() {
+                    if (isSelected) {
+                      _interests.remove(interest);
+                    } else {
+                      _interests.add(interest);
+                    }
+                  });
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: isSelected
+                        ? const Color(0xFF8B5CF6)
+                        : Colors.white.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: isSelected
+                          ? const Color(0xFF8B5CF6)
+                          : Colors.white.withOpacity(0.3),
+                    ),
+                  ),
+                  child: Text(
+                    interest,
+                    style: TextStyle(
+                      color: isSelected ? Colors.white : Colors.white.withOpacity(0.8),
+                      fontSize: 14,
+                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                    ),
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGallerySection() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: Colors.white.withOpacity(0.2),
+          width: 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Gallery',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              TextButton.icon(
+                onPressed: _pickGalleryImages,
+                icon: const Icon(Icons.add_photo_alternate, color: Colors.white),
+                label: const Text(
+                  'Add Photos',
+                  style: TextStyle(color: Colors.white),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          
+          if (_galleryImages.isNotEmpty || _existingGalleryImages.isNotEmpty)
+            GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 3,
+                crossAxisSpacing: 8,
+                mainAxisSpacing: 8,
+              ),
+              itemCount: _galleryImages.length + _existingGalleryImages.length,
+              itemBuilder: (context, index) {
+                if (index < _galleryImages.length) {
+                  return _buildGalleryImageTile(_galleryImages[index], isNew: true);
+                } else {
+                  final existingIndex = index - _galleryImages.length;
+                  return _buildGalleryImageTile(_existingGalleryImages[existingIndex], isNew: false);
+                }
+              },
+            )
+          else
+            Container(
+              height: 100,
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.05),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.white.withOpacity(0.2)),
+              ),
+              child: const Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.photo_library,
+                      color: Colors.white,
+                      size: 32,
+                    ),
+                    SizedBox(height: 8),
+                    Text(
+                      'No photos yet',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
-            const SizedBox(width: 8),
-            Text(
-              '(Select at least ${AppConstants.minInterestsRequired})',
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.grey[600],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGalleryImageTile(dynamic image, {required bool isNew}) {
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.white.withOpacity(0.2)),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: Stack(
+          children: [
+            isNew
+                ? Image.file(
+                    image as File,
+                    fit: BoxFit.cover,
+                    width: double.infinity,
+                    height: double.infinity,
+                  )
+                : Image.network(
+                    image['url'],
+                    fit: BoxFit.cover,
+                    width: double.infinity,
+                    height: double.infinity,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Container(
+                        color: Colors.grey.withOpacity(0.3),
+                        child: const Icon(
+                          Icons.broken_image,
+                          color: Colors.white,
+                          size: 32,
+                        ),
+                      );
+                    },
+                  ),
+            Positioned(
+              top: 4,
+              right: 4,
+              child: GestureDetector(
+                onTap: () => _removeGalleryImage(image, isNew),
+                child: Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: const BoxDecoration(
+                    color: Colors.red,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.close,
+                    color: Colors.white,
+                    size: 16,
+                  ),
+                ),
               ),
             ),
           ],
         ),
-        const SizedBox(height: 12),
-        // Predefined interests selection
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: AppConstants.availableInterests.map((interest) {
-            final isSelected = _interests.contains(interest);
-            return FilterChip(
-              label: Text(interest),
-              selected: isSelected,
-              onSelected: (selected) {
-                setState(() {
-                  if (selected) {
-                    _interests.add(interest);
-                  } else {
-                    _interests.remove(interest);
-                  }
-                });
-              },
-              selectedColor: AppColors.primary.withOpacity(0.2),
-              checkmarkColor: AppColors.primary,
-              labelStyle: TextStyle(
-                color: isSelected ? AppColors.primary : null,
-                fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-              ),
-            );
-          }).toList(),
-        ),
-        if (_interests.length < AppConstants.minInterestsRequired)
-          Padding(
-            padding: const EdgeInsets.only(top: 8),
-            child: Text(
-              'Please select at least ${AppConstants.minInterestsRequired} interests',
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.red[600],
-              ),
-            ),
-          ),
-      ],
+      ),
     );
+  }
+
+  // Add missing methods
+  Future<void> _saveProfile() async {
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+
+    if (_isUpdatingProfile) {
+      return;
+    }
+
+    setState(() {
+      _isUpdatingProfile = true;
+    });
+
+    try {
+      final profileData = {
+        'displayName': _displayNameController.text.trim(),
+        'username': _usernameController.text.trim(),
+        'bio': _bioController.text.trim(),
+        'age': int.tryParse(_ageController.text.trim()) ?? 0,
+        'gender': _selectedGender,
+        'interests': _interests,
+      };
+
+      if (_hasExistingProfile) {
+        await _apiService.updateProfile(profileData);
+        _showSuccess('Profile updated successfully!');
+      } else {
+        await _apiService.createProfile(profileData);
+        _showSuccess('Profile created successfully!');
+        setState(() {
+          _hasExistingProfile = true;
+        });
+      }
+
+      // Reload the profile to get the latest data
+      await _loadExistingProfile();
+    } catch (e) {
+      _showError('Failed to save profile: $e');
+    } finally {
+      setState(() {
+        _isUpdatingProfile = false;
+      });
+    }
+  }
+
+  void _removeGalleryImage(dynamic image, bool isNew) {
+    if (isNew) {
+      setState(() {
+        _galleryImages.remove(image);
+      });
+    } else {
+      // For existing images, we need to call the API to remove them
+      final index = _existingGalleryImages.indexOf(image);
+      if (index != -1) {
+        _removeExistingGalleryImage(index);
+      }
+    }
   }
 
   Future<void> _pickProfilePicture() async {
     try {
-      // Request gallery permission
-      final hasPermission = await PermissionHelper.requestGalleryPermission(context);
-      if (!hasPermission) {
-        return;
+      // Check permissions first
+      final status = await Permission.photos.status;
+      if (!status.isGranted) {
+        final result = await Permission.photos.request();
+        if (!result.isGranted) {
+          _showError('Photo permission is required to change profile picture');
+          return;
+        }
       }
 
-      final picker = ImagePicker();
-      final pickedFile = await picker.pickImage(
+      // Pick image from gallery
+      final XFile? image = await _imagePicker.pickImage(
         source: ImageSource.gallery,
         imageQuality: 80,
       );
 
-      if (pickedFile != null) {
-        final imageFile = File(pickedFile.path);
-
+      if (image != null) {
+        final imageFile = File(image.path);
+        
         // Show editing options
         final editedFile = await _showImageEditingOptions(imageFile, true);
-
+        
         if (editedFile != null) {
+          // Upload the profile picture
           await _uploadProfilePicture(editedFile);
         }
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error picking image: $e')),
-      );
+      _showError('Failed to pick profile picture: $e');
     }
   }
 
   Future<void> _pickGalleryImages() async {
-    // Prevent multiple simultaneous picks
-    if (_isUploadingGallery || _isLoading) {
-      // print('⚠️ DEBUG: Upload already in progress, skipping gallery pick...');
-      return;
-    }
-
     try {
-      // Request gallery permission
-      final hasPermission = await PermissionHelper.requestGalleryPermission(context);
-      if (!hasPermission) {
-        return;
+      // Check permissions first
+      final status = await Permission.photos.status;
+      if (!status.isGranted) {
+        final result = await Permission.photos.request();
+        if (!result.isGranted) {
+          _showError('Photo permission is required to add gallery images');
+          return;
+        }
       }
 
-      final picker = ImagePicker();
-      final pickedFiles = await picker.pickMultiImage(
+      // Pick image from gallery
+      final XFile? image = await _imagePicker.pickImage(
+        source: ImageSource.gallery,
         imageQuality: 80,
       );
 
-      if (pickedFiles.isNotEmpty) {
-        print('📤 DEBUG: Picked ${pickedFiles.length} images for gallery');
-        for (final pickedFile in pickedFiles) {
-          final imageFile = File(pickedFile.path);
-
-          // Show editing options for each image
-          final editedFile = await _showGalleryImageEditingOptions(imageFile);
-
-          if (editedFile != null) {
-            await _uploadGalleryImage(editedFile);
-          }
+      if (image != null) {
+        final imageFile = File(image.path);
+        
+        // Show editing options
+        final editedFile = await _showGalleryImageEditingOptions(imageFile);
+        
+        if (editedFile != null) {
+          // Upload the image
+          await _uploadGalleryImage(editedFile);
         }
       }
     } catch (e) {
-      // print('❌ DEBUG: Error picking gallery images: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error picking images: $e')),
-      );
+      _showError('Failed to pick gallery image: $e');
     }
   }
 

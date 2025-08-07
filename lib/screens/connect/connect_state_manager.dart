@@ -21,10 +21,14 @@ class ConnectStateManager {
   
   late ApiService apiService;
   late SocketService socketService;
-  late StreamSubscription matchSubscription;
-  late StreamSubscription errorSubscription;
   late AnimationController animationController;
   late Animation<double> scaleAnimation;
+  
+  // Stream subscriptions for cleanup
+  StreamSubscription? _matchingStateSubscription;
+  StreamSubscription? _connectionStateSubscription;
+  StreamSubscription? _messageSubscription;
+  StreamSubscription? _queueTimeSubscription;
 
   // Callbacks for state changes
   final VoidCallback onStateChanged;
@@ -83,22 +87,22 @@ class ConnectStateManager {
   }
 
   void _setupGlobalServiceListeners() {
-    globalMatchingService.matchingStateStream.listen((matching) {
+    _matchingStateSubscription = globalMatchingService.matchingStateStream.listen((matching) {
       isMatching = matching;
       onStateChanged();
     });
 
-    globalMatchingService.connectionStateStream.listen((connected) {
+    _connectionStateSubscription = globalMatchingService.connectionStateStream.listen((connected) {
       isConnected = connected;
       onStateChanged();
     });
 
-    globalMatchingService.messageStream.listen((message) {
+    _messageSubscription = globalMatchingService.messageStream.listen((message) {
       matchMessage = message;
       onStateChanged();
     });
 
-    globalMatchingService.queueTimeStream.listen((time) {
+    _queueTimeSubscription = globalMatchingService.queueTimeStream.listen((time) {
       queueTime = time;
       onStateChanged();
     });
@@ -204,8 +208,13 @@ class ConnectStateManager {
   }
 
   void dispose() {
-    // Socket listeners are now handled by the global matching service
-    // Only dispose animation controller
+    // Cancel all stream subscriptions
+    _matchingStateSubscription?.cancel();
+    _connectionStateSubscription?.cancel();
+    _messageSubscription?.cancel();
+    _queueTimeSubscription?.cancel();
+    
+    // Dispose animation controller
     animationController.dispose();
   }
 } 
