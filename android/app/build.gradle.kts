@@ -72,4 +72,7 @@ dependencies {
     
     // Required for multiDexEnabled
     implementation("androidx.multidex:multidex:2.0.1")
+    
+    // Required for AD_ID permission and AdMob functionality
+    implementation("com.google.android.gms:play-services-ads:22.6.0")
 }
