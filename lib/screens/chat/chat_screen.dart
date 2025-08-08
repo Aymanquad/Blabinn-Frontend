@@ -469,13 +469,24 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       final padding = 16.0; // Padding to show some context above
       
       // Calculate position to show unread indicator at top with first unread message below
-      final offset = (_firstUnreadMessageIndex * itemHeight) - indicatorHeight - padding;
+      // For small numbers of unread messages, ensure we still scroll to show them
+      final baseOffset = (_firstUnreadMessageIndex * itemHeight);
+      final adjustedOffset = baseOffset - indicatorHeight - padding;
       
-      // Ensure we don't scroll beyond the content
+      // Ensure we don't scroll beyond the content and set a minimum offset
       final maxScroll = _scrollController.position.maxScrollExtent;
-      final targetOffset = offset.clamp(0.0, maxScroll);
+      final minOffset = 0.0; // Ensure we don't go negative
+      var targetOffset = adjustedOffset.clamp(minOffset, maxScroll);
       
-      print('🔍 DEBUG: Calculated offset: $offset');
+      // If the target offset is too small (near the top), ensure we scroll to show the unread messages
+      if (targetOffset < 100 && _firstUnreadMessageIndex > 0) {
+        // Force scroll to show the unread messages more prominently
+        targetOffset = (_firstUnreadMessageIndex * itemHeight).clamp(minOffset, maxScroll);
+        print('🔍 DEBUG: Using fallback offset for small unread count: $targetOffset');
+      }
+      
+      print('🔍 DEBUG: Base offset: $baseOffset');
+      print('🔍 DEBUG: Adjusted offset: $adjustedOffset');
       print('🔍 DEBUG: Target offset: $targetOffset');
       print('🔍 DEBUG: Max scroll: $maxScroll');
       
