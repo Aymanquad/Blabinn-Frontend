@@ -43,6 +43,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   String? _errorMessage;
   String? _currentUserId;
   String? _friendId;
+  bool _isOtherUserTyping = false;
 
   // Unread message tracking
   int _firstUnreadMessageIndex = -1;
@@ -194,6 +195,30 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       switch (event) {
         case SocketEvent.message:
           // print('📨 DEBUG: New message event received');
+          break;
+        case SocketEvent.typing:
+          // print('⌨️ DEBUG: Typing event received');
+          if (_friendId != null) {
+            setState(() {
+              _isOtherUserTyping = true;
+            });
+            // Auto-clear typing indicator after 3 seconds
+            Timer(const Duration(seconds: 3), () {
+              if (_mounted) {
+                setState(() {
+                  _isOtherUserTyping = false;
+                });
+              }
+            });
+          }
+          break;
+        case SocketEvent.stopTyping:
+          // print('⏹️ DEBUG: Stop typing event received');
+          if (_friendId != null) {
+            setState(() {
+              _isOtherUserTyping = false;
+            });
+          }
           break;
         case SocketEvent.error:
           // print('🚨 DEBUG: Socket error event');
@@ -1040,7 +1065,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                   Row(
                     children: [
                       // Removed the online status display completely
-                      if (_isTyping) ...[
+                      if (_isOtherUserTyping) ...[
                         Text(
                           'typing...',
                           style: TextStyle(
