@@ -174,7 +174,7 @@ class _AnimatedConnectNowSectionState extends State<_AnimatedConnectNowSection>
     final theme = Theme.of(context);
     final height = MediaQuery.of(context).size.height;
     return Container(
-      height: height * 0.35, // Increased from 0.25 to 0.35
+      height: height * 0.32, // Reduced from 0.35 to 0.32
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(24),
         gradient: LinearGradient(
@@ -194,14 +194,14 @@ class _AnimatedConnectNowSectionState extends State<_AnimatedConnectNowSection>
         ],
       ),
       child: Padding(
-        padding: const EdgeInsets.all(20), // Increased padding from 16 to 20
+        padding: const EdgeInsets.all(16), // Reduced padding from 20 to 16
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             // Enhanced image container with background
             Container(
-              width: height * 0.15, // Increased from 0.12 to 0.15
-              height: height * 0.15, // Increased from 0.12 to 0.15
+              width: height * 0.12, // Reduced from 0.15 to 0.12
+              height: height * 0.12, // Reduced from 0.15 to 0.12
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 gradient: LinearGradient(
@@ -227,7 +227,7 @@ class _AnimatedConnectNowSectionState extends State<_AnimatedConnectNowSection>
                 ),
               ),
             ),
-            const SizedBox(width: 20), // Increased spacing from 16 to 20
+            const SizedBox(width: 16), // Reduced spacing from 20 to 16
             // Enhanced connect button section
             Expanded(
               child: Column(
@@ -237,45 +237,42 @@ class _AnimatedConnectNowSectionState extends State<_AnimatedConnectNowSection>
                   Text(
                     'Ready to Connect?',
                     style: TextStyle(
-                      fontSize: 22, // Increased from 18 to 22
+                      fontSize: 20, // Reduced from 22 to 20
                       fontWeight: FontWeight.bold,
                       color: theme.colorScheme.primary,
                     ),
                   ),
-                  const SizedBox(height: 8), // Increased from 6 to 8
+                  const SizedBox(height: 6), // Reduced from 8 to 6
                   Text(
                     'Find and chat with new people around you',
                     style: TextStyle(
-                      fontSize: 15, // Increased from 13 to 15
+                      fontSize: 14, // Reduced from 15 to 14
                       color: theme.colorScheme.onSurface.withOpacity(0.7),
                     ),
                   ),
-                  const SizedBox(height: 16), // Increased from 12 to 16
+                  const SizedBox(height: 12), // Reduced from 16 to 12
                   ScaleTransition(
                     scale: _scaleAnim,
-                    child: SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: widget.onConnect,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: theme.colorScheme.primary,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(
-                            vertical: 16, // Increased from 12 to 16
-                            horizontal: 24, // Increased from 20 to 24
-                          ),
-                          textStyle: const TextStyle(
-                            fontSize: 18, // Increased from 16 to 18
-                            fontWeight: FontWeight.bold,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(
-                                16), // Increased from 14 to 16
-                          ),
-                          elevation: 8, // Increased from 6 to 8
+                    child: ElevatedButton(
+                      onPressed: widget.onConnect,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: theme.colorScheme.primary,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 14, // Reduced from 16 to 14
+                          horizontal: 20, // Reduced from 24 to 20
                         ),
-                        child: const Text('Connect Now'),
+                        textStyle: const TextStyle(
+                          fontSize: 16, // Reduced from 18 to 16
+                          fontWeight: FontWeight.bold,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(
+                              14), // Reduced from 16 to 14
+                        ),
+                        elevation: 6, // Reduced from 8 to 6
                       ),
+                      child: const Text('Connect Now'),
                     ),
                   ),
                 ],
