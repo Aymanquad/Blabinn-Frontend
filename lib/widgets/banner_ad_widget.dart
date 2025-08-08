@@ -40,7 +40,7 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
   Future<void> _loadAd() async {
     // Check if ads are disabled
     if (!AdConfig.adsEnabled) {
-      debugPrint('🚫 Ads are disabled - banner widget hidden');
+      // debugPrint('🚫 Ads are disabled - banner widget hidden');
       return;
     }
 
@@ -61,13 +61,13 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
           _isLoaded = true;
           _isLoading = false;
         });
-        debugPrint('✅ Banner ad loaded successfully in widget');
+        // debugPrint('✅ Banner ad loaded successfully in widget');
       } else {
         setState(() {
           _isLoading = false;
           _errorMessage = 'Failed to load ad';
         });
-        debugPrint('❌ Banner ad failed to load in widget');
+        // debugPrint('❌ Banner ad failed to load in widget');
       }
     } catch (e) {
       if (mounted) {
@@ -76,7 +76,7 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
           _errorMessage = 'Error loading ad: ${e.toString()}';
         });
       }
-      debugPrint('❌ Error loading banner ad in widget: $e');
+      // debugPrint('❌ Error loading banner ad in widget: $e');
     }
   }
 

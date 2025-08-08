@@ -36,7 +36,7 @@ class _InterstitialAdManagerState extends State<InterstitialAdManager>
   Future<void> _initializeAds() async {
     // Check if ads are disabled
     if (!AdConfig.adsEnabled) {
-      debugPrint('🚫 Ads are disabled - interstitial ad manager skipped');
+      // debugPrint('🚫 Ads are disabled - interstitial ad manager skipped');
       return;
     }
 
@@ -45,7 +45,7 @@ class _InterstitialAdManagerState extends State<InterstitialAdManager>
       // Load the first interstitial ad
       await _adService.loadInterstitialAd();
     } catch (e) {
-      debugPrint('❌ Failed to initialize ads: $e');
+      // debugPrint('❌ Failed to initialize ads: $e');
     }
   }
 

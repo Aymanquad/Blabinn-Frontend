@@ -21,7 +21,7 @@ class AdService {
 
     // Check if ads are enabled
     if (!AdConfig.adsEnabled) {
-      debugPrint('🚫 Ads are disabled - skipping AdMob initialization');
+      // debugPrint('🚫 Ads are disabled - skipping AdMob initialization');
       _isInitialized = true;
       return;
     }
@@ -29,12 +29,12 @@ class AdService {
     try {
       await MobileAds.instance.initialize();
       _isInitialized = true;
-      debugPrint('✅ AdMob SDK initialized successfully');
+      // debugPrint('✅ AdMob SDK initialized successfully');
 
       // Start the interstitial ad timer
       _startInterstitialTimer();
     } catch (e) {
-      debugPrint('❌ Failed to initialize AdMob SDK: $e');
+      // debugPrint('❌ Failed to initialize AdMob SDK: $e');
     }
   }
 
@@ -66,7 +66,7 @@ class AdService {
   BannerAd createBannerAd() {
     // Check if ads are disabled
     if (!AdConfig.adsEnabled) {
-      debugPrint('🚫 Ads are disabled - banner ad creation skipped');
+      // debugPrint('🚫 Ads are disabled - banner ad creation skipped');
       // Return a dummy banner ad that won't load
       return BannerAd(
         adUnitId: 'dummy-id',
@@ -86,17 +86,17 @@ class AdService {
       request: const AdRequest(),
       listener: BannerAdListener(
         onAdLoaded: (ad) {
-          debugPrint('✅ Banner ad loaded successfully');
+          // debugPrint('✅ Banner ad loaded successfully');
         },
         onAdFailedToLoad: (ad, error) {
-          debugPrint('❌ Banner ad failed to load: ${error.message}');
+          // debugPrint('❌ Banner ad failed to load: ${error.message}');
           ad.dispose();
         },
         onAdOpened: (ad) {
-          debugPrint('🔓 Banner ad opened');
+          // debugPrint('🔓 Banner ad opened');
         },
         onAdClosed: (ad) {
-          debugPrint('🔒 Banner ad closed');
+          // debugPrint('🔒 Banner ad closed');
         },
       ),
     );
@@ -110,7 +110,7 @@ class AdService {
 
     // Check if ads are disabled
     if (!AdConfig.adsEnabled) {
-      debugPrint('🚫 Ads are disabled - banner ad loading skipped');
+      // debugPrint('🚫 Ads are disabled - banner ad loading skipped');
       return null;
     }
 
@@ -119,7 +119,7 @@ class AdService {
       await bannerAd.load();
       return bannerAd;
     } catch (e) {
-      debugPrint('❌ Failed to load banner ad: $e');
+      // debugPrint('❌ Failed to load banner ad: $e');
       return null;
     }
   }
@@ -132,7 +132,7 @@ class AdService {
 
     // Check if ads are disabled
     if (!AdConfig.adsEnabled) {
-      debugPrint('🚫 Ads are disabled - interstitial ad loading skipped');
+      // debugPrint('🚫 Ads are disabled - interstitial ad loading skipped');
       return;
     }
 
@@ -141,7 +141,7 @@ class AdService {
     }
 
     _isInterstitialAdLoading = true;
-    debugPrint('🔄 Loading interstitial ad...');
+    // debugPrint('🔄 Loading interstitial ad...');
 
     try {
       await InterstitialAd.load(
@@ -151,39 +151,39 @@ class AdService {
           onAdLoaded: (InterstitialAd ad) {
             _interstitialAd = ad;
             _isInterstitialAdLoading = false;
-            debugPrint('✅ Interstitial ad loaded successfully');
+            // debugPrint('✅ Interstitial ad loaded successfully');
 
             ad.fullScreenContentCallback = FullScreenContentCallback(
               onAdDismissedFullScreenContent: (ad) {
-                debugPrint('🔒 Interstitial ad dismissed');
+                // debugPrint('🔒 Interstitial ad dismissed');
                 _interstitialAd = null;
                 _isInterstitialAdShowing = false;
                 // Load the next ad
                 loadInterstitialAd();
               },
               onAdFailedToShowFullScreenContent: (ad, error) {
-                debugPrint(
-                    '❌ Interstitial ad failed to show: ${error.message}');
+                // debugPrint(
+                //     '❌ Interstitial ad failed to show: ${error.message}');
                 _interstitialAd = null;
                 _isInterstitialAdShowing = false;
                 // Load the next ad
                 loadInterstitialAd();
               },
               onAdShowedFullScreenContent: (ad) {
-                debugPrint('🔓 Interstitial ad showed');
+                // debugPrint('🔓 Interstitial ad showed');
                 _isInterstitialAdShowing = true;
               },
             );
           },
           onAdFailedToLoad: (LoadAdError error) {
-            debugPrint('❌ Interstitial ad failed to load: ${error.message}');
+            // debugPrint('❌ Interstitial ad failed to load: ${error.message}');
             _isInterstitialAdLoading = false;
             _interstitialAd = null;
           },
         ),
       );
     } catch (e) {
-      debugPrint('❌ Failed to load interstitial ad: $e');
+      // debugPrint('❌ Failed to load interstitial ad: $e');
       _isInterstitialAdLoading = false;
     }
   }
@@ -192,21 +192,21 @@ class AdService {
   Future<void> showInterstitialAd() async {
     // Check if ads are disabled
     if (!AdConfig.adsEnabled) {
-      debugPrint('🚫 Ads are disabled - interstitial ad showing skipped');
+      // debugPrint('🚫 Ads are disabled - interstitial ad showing skipped');
       return;
     }
 
     if (_interstitialAd != null && !_isInterstitialAdShowing) {
       try {
         await _interstitialAd!.show();
-        debugPrint('🎬 Showing interstitial ad');
+        // debugPrint('🎬 Showing interstitial ad');
       } catch (e) {
-        debugPrint('❌ Failed to show interstitial ad: $e');
+        // debugPrint('❌ Failed to show interstitial ad: $e');
         _interstitialAd = null;
         _isInterstitialAdShowing = false;
       }
     } else {
-      debugPrint('⚠️ No interstitial ad available to show');
+      // debugPrint('⚠️ No interstitial ad available to show');
     }
   }
 
@@ -214,7 +214,7 @@ class AdService {
   void _startInterstitialTimer() {
     // Check if ads are disabled
     if (!AdConfig.adsEnabled) {
-      debugPrint('🚫 Ads are disabled - interstitial timer not started');
+      // debugPrint('🚫 Ads are disabled - interstitial timer not started');
       return;
     }
 
@@ -224,32 +224,32 @@ class AdService {
         showInterstitialAd();
       }
     });
-    debugPrint('⏰ Interstitial ad timer started (20 seconds)');
+    // debugPrint('⏰ Interstitial ad timer started (20 seconds)');
   }
 
   /// Stop the interstitial ad timer
   void stopInterstitialTimer() {
     _interstitialTimer?.cancel();
     _interstitialTimer = null;
-    debugPrint('⏹️ Interstitial ad timer stopped');
+    // debugPrint('⏹️ Interstitial ad timer stopped');
   }
 
   /// Pause the interstitial ad timer (useful when app goes to background)
   void pauseInterstitialTimer() {
     _interstitialTimer?.cancel();
-    debugPrint('⏸️ Interstitial ad timer paused');
+    // debugPrint('⏸️ Interstitial ad timer paused');
   }
 
   /// Resume the interstitial ad timer (useful when app comes to foreground)
   void resumeInterstitialTimer() {
     // Check if ads are disabled
     if (!AdConfig.adsEnabled) {
-      debugPrint('🚫 Ads are disabled - interstitial timer not resumed');
+      // debugPrint('🚫 Ads are disabled - interstitial timer not resumed');
       return;
     }
 
     _startInterstitialTimer();
-    debugPrint('▶️ Interstitial ad timer resumed');
+    // debugPrint('▶️ Interstitial ad timer resumed');
   }
 
   /// Dispose of an ad
@@ -262,6 +262,6 @@ class AdService {
     _interstitialTimer?.cancel();
     _interstitialAd?.dispose();
     _interstitialAd = null;
-    debugPrint('🗑️ Ad service disposed');
+    // debugPrint('🗑️ Ad service disposed');
   }
 }

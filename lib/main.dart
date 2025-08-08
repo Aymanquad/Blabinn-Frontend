@@ -35,33 +35,33 @@ void main() async {
 
   // Try to initialize Firebase, but don't crash if it fails
   try {
-    print('🔍 DEBUG: Initializing Firebase...');
+    // print('🔍 DEBUG: Initializing Firebase...');
     await Firebase.initializeApp();
-    print('✅ DEBUG: Firebase initialized successfully');
+    // print('✅ DEBUG: Firebase initialized successfully');
 
     // Set up background message handler
     FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
-    print('✅ DEBUG: Firebase messaging background handler set up');
+    // print('✅ DEBUG: Firebase messaging background handler set up');
   } catch (e) {
-    print('❌ DEBUG: Firebase initialization failed: $e');
-    print('❌ DEBUG: Error type: ${e.runtimeType}');
-    print('⚠️ DEBUG: Running without Firebase - some features may not work');
+    // print('❌ DEBUG: Firebase initialization failed: $e');
+    // print('❌ DEBUG: Error type: ${e.runtimeType}');
+    // print('⚠️ DEBUG: Running without Firebase - some features may not work');
   }
 
   // Initialize AdMob
   try {
-    print('🔍 DEBUG: Initializing AdMob...');
-    
+    // print('🔍 DEBUG: Initializing AdMob...');
+
     // Print debug information
     AdDebugHelper.printAdConfig();
     AdDebugHelper.validateAdConfig();
-    
+
     await MobileAds.instance.initialize();
-    print('✅ DEBUG: AdMob initialized successfully');
+    // print('✅ DEBUG: AdMob initialized successfully');
   } catch (e) {
-    print('❌ DEBUG: AdMob initialization failed: $e');
-    print('⚠️ DEBUG: Running without AdMob - ads will not be displayed');
-    print('💡 DEBUG: Make sure you have internet connection and valid AdMob IDs');
+    // print('❌ DEBUG: AdMob initialization failed: $e');
+    // print('⚠️ DEBUG: Running without AdMob - ads will not be displayed');
+    // print('💡 DEBUG: Make sure you have internet connection and valid AdMob IDs');
   }
 
   runApp(const ChatApp());
