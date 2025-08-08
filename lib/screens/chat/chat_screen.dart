@@ -65,6 +65,9 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   late ChatImageHandler _imageHandler;
   late ChatUserActions _userActions;
 
+  // Add a GlobalKey for the unread indicator
+  final GlobalKey _unreadIndicatorKey = GlobalKey();
+
   @override
   void initState() {
     super.initState();
@@ -587,9 +590,14 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       if (_hasUnreadMessages &&
           _firstUnreadMessageIndex >= 0 &&
           !_hasScrolledToUnread) {
-        // Scroll to the unread messages indicator
-        _scrollToUnreadIndicator();
-        _hasScrolledToUnread = true;
+        // Add a delay to ensure the ListView is properly built
+        Future.delayed(const Duration(milliseconds: 200), () {
+          if (mounted) {
+            // Scroll to the unread messages indicator
+            _scrollToUnreadIndicator();
+            _hasScrolledToUnread = true;
+          }
+        });
 
         // Don't automatically scroll to bottom - let user control this
         // User can scroll down or tap to see newer messages
@@ -613,105 +621,126 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     print('🔍 DEBUG: _scrollToUnreadIndicator called');
     print('🔍 DEBUG: First unread index: $_firstUnreadMessageIndex');
 
-    // Aggressive approach to ensure it reaches the unread indicator position
+    // Try multiple times with increasing delays to find the unread indicator
+    _tryScrollToUnreadIndicator(0);
+  }
+
+  void _tryScrollToUnreadIndicator(int attempt) {
+    if (attempt >= 5) {
+      // After 5 attempts, use fallback
+      print('🔍 DEBUG: Max attempts reached, using fallback');
+      _scrollToUnreadIndicatorFallback();
+      return;
+    }
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!_scrollController.hasClients) return;
-
-      // Calculate a more precise offset that shows the unread indicator at the top
-      // and the first unread message right below it
-      final itemHeight = 150.0; // Increased for very long messages
-      final indicatorHeight = 50.0; // Height of the unread indicator
-      final padding = 16.0; // Padding to show some context above
-
-      // Calculate position to show unread indicator at top with first unread message below
-      // For small numbers of unread messages, ensure we still scroll to show them
-      final baseOffset = (_firstUnreadMessageIndex * itemHeight);
-      final adjustedOffset = baseOffset - indicatorHeight - padding;
-
-      // Ensure we don't scroll beyond the content and set a minimum offset
-      final maxScroll = _scrollController.position.maxScrollExtent;
-      final minOffset = 0.0; // Ensure we don't go negative
-      var targetOffset = adjustedOffset.clamp(minOffset, maxScroll);
-
-      // If the target offset is too small (near the top), ensure we scroll to show the unread messages
-      if (targetOffset < 100 && _firstUnreadMessageIndex > 0) {
-        // Force scroll to show the unread messages more prominently
-        targetOffset =
-            (_firstUnreadMessageIndex * itemHeight).clamp(minOffset, maxScroll);
-        print(
-            '🔍 DEBUG: Using fallback offset for small unread count: $targetOffset');
+      if (!_scrollController.hasClients) {
+        // Try again after a delay
+        Future.delayed(Duration(milliseconds: 100 * (attempt + 1)), () {
+          _tryScrollToUnreadIndicator(attempt + 1);
+        });
+        return;
       }
 
-      print('🔍 DEBUG: Base offset: $baseOffset');
-      print('🔍 DEBUG: Adjusted offset: $adjustedOffset');
-      print('🔍 DEBUG: Target offset: $targetOffset');
-      print('🔍 DEBUG: Max scroll: $maxScroll');
+      // Try to find the unread indicator widget and get its position
+      final RenderBox? renderBox =
+          _unreadIndicatorKey.currentContext?.findRenderObject() as RenderBox?;
 
-      // Force scroll to the unread indicator position immediately
-      _scrollController.animateTo(
-        targetOffset,
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeOut,
-      );
+      if (renderBox != null) {
+        // Get the position of the unread indicator relative to the viewport
+        final position = renderBox.localToGlobal(Offset.zero);
+        final scrollOffset = _scrollController.offset;
 
-      // Multiple aggressive attempts to ensure it reaches the unread indicator
-      Future.delayed(const Duration(milliseconds: 25), () {
+        // Calculate the target scroll position to show the unread indicator at the top
+        final targetOffset = scrollOffset +
+            position.dy -
+            120; // 120px from top for better visibility
+
+        print('🔍 DEBUG: Unread indicator position: ${position.dy}');
+        print('🔍 DEBUG: Current scroll offset: $scrollOffset');
+        print('🔍 DEBUG: Target offset: $targetOffset');
+        print('🔍 DEBUG: Attempt: ${attempt + 1}');
+
+        // Ensure we don't scroll beyond the content
+        final maxScroll = _scrollController.position.maxScrollExtent;
+        final finalOffset = targetOffset.clamp(0.0, maxScroll);
+
+        // Smooth scroll to the unread indicator
+        _scrollController.animateTo(
+          finalOffset,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      } else {
+        // Try again after a delay
+        print('🔍 DEBUG: Unread indicator not found, retrying...');
+        Future.delayed(Duration(milliseconds: 100 * (attempt + 1)), () {
+          _tryScrollToUnreadIndicator(attempt + 1);
+        });
+      }
+    });
+  }
+
+  void _scrollToUnreadIndicatorFallback() {
+    if (_firstUnreadMessageIndex < 0 || !_scrollController.hasClients) {
+      return;
+    }
+
+    // More accurate calculation considering the ListView structure
+    final messageHeight = 80.0; // Average message height
+    final indicatorHeight = 60.0; // Unread indicator height
+    final loadEarlierButtonHeight = 60.0; // Load earlier button height
+    final padding = 16.0; // ListView padding
+
+    // Calculate the position where the unread indicator should be
+    // Account for the "Load Earlier Messages" button if present
+    double unreadIndicatorPosition = padding;
+    if (_hasMoreMessages) {
+      unreadIndicatorPosition +=
+          loadEarlierButtonHeight + 16; // Button + margin
+    }
+
+    // Add the position of the first unread message
+    unreadIndicatorPosition += (_firstUnreadMessageIndex * messageHeight);
+
+    // Target position: show unread indicator at the top with some context above
+    final targetOffset =
+        unreadIndicatorPosition - 120; // 120px from top for better visibility
+
+    // Ensure we don't scroll beyond the content
+    final maxScroll = _scrollController.position.maxScrollExtent;
+    final finalOffset = targetOffset.clamp(0.0, maxScroll);
+
+    print(
+        '🔍 DEBUG: Fallback calculation - unread indicator position: $unreadIndicatorPosition');
+    print('🔍 DEBUG: Fallback calculation - target offset: $finalOffset');
+    print('🔍 DEBUG: Has more messages: $_hasMoreMessages');
+
+    // Use a more precise scrolling approach
+    _scrollController
+        .animateTo(
+      finalOffset,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeOut,
+    )
+        .then((_) {
+      // Fine-tune the position after the initial scroll
+      Future.delayed(const Duration(milliseconds: 100), () {
         if (_scrollController.hasClients) {
-          _scrollController.animateTo(
-            targetOffset,
-            duration: const Duration(milliseconds: 150),
-            curve: Curves.easeOut,
-          );
-        }
-      });
+          // Check if we need to adjust the position
+          final currentPosition = _scrollController.position.pixels;
+          final expectedPosition = finalOffset;
 
-      Future.delayed(const Duration(milliseconds: 75), () {
-        if (_scrollController.hasClients) {
-          _scrollController.animateTo(
-            targetOffset,
-            duration: const Duration(milliseconds: 100),
-            curve: Curves.easeOut,
-          );
-        }
-      });
-
-      Future.delayed(const Duration(milliseconds: 150), () {
-        if (_scrollController.hasClients) {
-          _scrollController.animateTo(
-            targetOffset,
-            duration: const Duration(milliseconds: 100),
-            curve: Curves.easeOut,
-          );
-        }
-      });
-
-      Future.delayed(const Duration(milliseconds: 250), () {
-        if (_scrollController.hasClients) {
-          _scrollController.animateTo(
-            targetOffset,
-            duration: const Duration(milliseconds: 100),
-            curve: Curves.easeOut,
-          );
-        }
-      });
-
-      Future.delayed(const Duration(milliseconds: 400), () {
-        if (_scrollController.hasClients) {
-          _scrollController.animateTo(
-            targetOffset,
-            duration: const Duration(milliseconds: 100),
-            curve: Curves.easeOut,
-          );
-        }
-      });
-
-      Future.delayed(const Duration(milliseconds: 600), () {
-        if (_scrollController.hasClients) {
-          _scrollController.animateTo(
-            targetOffset,
-            duration: const Duration(milliseconds: 100),
-            curve: Curves.easeOut,
-          );
+          if ((currentPosition - expectedPosition).abs() > 50) {
+            // If we're off by more than 50px, adjust
+            print(
+                '🔍 DEBUG: Adjusting scroll position from $currentPosition to $expectedPosition');
+            _scrollController.animateTo(
+              expectedPosition,
+              duration: const Duration(milliseconds: 200),
+              curve: Curves.easeOut,
+            );
+          }
         }
       });
     });
@@ -1384,6 +1413,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                           unreadCount: _unreadCount,
                           onChatTap: _onChatTap,
                           onUnreadIndicatorTap: _scrollToNewerMessages,
+                          unreadIndicatorKey: _unreadIndicatorKey,
                         )),
             ),
             _buildMessageInput(),

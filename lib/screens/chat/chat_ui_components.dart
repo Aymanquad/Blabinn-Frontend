@@ -53,6 +53,7 @@ class ChatUIComponents {
     int unreadCount = 0,
     VoidCallback? onChatTap,
     VoidCallback? onUnreadIndicatorTap,
+    GlobalKey? unreadIndicatorKey,
   }) {
     Widget listView = ListView.builder(
       controller: scrollController,
@@ -75,7 +76,7 @@ class ChatUIComponents {
         if (hasUnreadMessages && 
             firstUnreadMessageIndex != null && 
             index == unreadIndicatorPosition) {
-          return _buildUnreadMessagesIndicator(context, unreadCount, onUnreadIndicatorTap);
+          return _buildUnreadMessagesIndicator(context, unreadCount, onUnreadIndicatorTap, unreadIndicatorKey);
         }
 
         // Adjust index for messages
@@ -142,8 +143,9 @@ class ChatUIComponents {
     );
   }
 
-  static Widget _buildUnreadMessagesIndicator(BuildContext context, int unreadCount, VoidCallback? onTap) {
+  static Widget _buildUnreadMessagesIndicator(BuildContext context, int unreadCount, VoidCallback? onTap, GlobalKey? key) {
     return Container(
+      key: key,
       margin: const EdgeInsets.symmetric(vertical: 8),
       child: Center(
         child: GestureDetector(
