@@ -43,6 +43,8 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   String? _errorMessage;
   String? _currentUserId;
   String? _friendId;
+  bool _showScrollToBottomButton = false;
+  bool _isKeyboardVisible = false;
 
   // Stream subscriptions for real-time events
   StreamSubscription<Message>? _messageSubscription;
@@ -61,6 +63,102 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     _initializeHandlers();
     _initializeAndLoadHistory();
     _setupRealtimeListeners();
+    _setupScrollListener();
+    _setupKeyboardListener();
+  }
+
+  void _setupKeyboardListener() {
+    // Listen for keyboard visibility changes
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final mediaQuery = MediaQuery.of(context);
+      final keyboardHeight = mediaQuery.viewInsets.bottom;
+      final isKeyboardVisible = keyboardHeight > 0;
+
+      if (isKeyboardVisible != _isKeyboardVisible) {
+        setState(() {
+          _isKeyboardVisible = isKeyboardVisible;
+        });
+
+        // If keyboard just appeared and we have messages, scroll to bottom
+        if (isKeyboardVisible && _messages.isNotEmpty) {
+          // Multiple attempts to ensure scrolling works when keyboard appears
+          Future.delayed(const Duration(milliseconds: 10), () {
+            if (mounted) {
+              _scrollToBottom();
+            }
+          });
+
+          Future.delayed(const Duration(milliseconds: 50), () {
+            if (mounted) {
+              _scrollToBottom();
+            }
+          });
+
+          Future.delayed(const Duration(milliseconds: 100), () {
+            if (mounted) {
+              _scrollToBottom();
+            }
+          });
+        }
+      }
+    });
+  }
+
+  @override
+  void didChangeMetrics() {
+    super.didChangeMetrics();
+    // This is called when the keyboard appears/disappears
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        final mediaQuery = MediaQuery.of(context);
+        final keyboardHeight = mediaQuery.viewInsets.bottom;
+        final isKeyboardVisible = keyboardHeight > 0;
+
+        if (isKeyboardVisible != _isKeyboardVisible) {
+          setState(() {
+            _isKeyboardVisible = isKeyboardVisible;
+          });
+
+          // If keyboard just appeared and we have messages, scroll to bottom
+          if (isKeyboardVisible && _messages.isNotEmpty) {
+            // Multiple attempts to ensure scrolling works when keyboard appears
+            Future.delayed(const Duration(milliseconds: 10), () {
+              if (mounted) {
+                _scrollToBottom();
+              }
+            });
+
+            Future.delayed(const Duration(milliseconds: 50), () {
+              if (mounted) {
+                _scrollToBottom();
+              }
+            });
+
+            Future.delayed(const Duration(milliseconds: 100), () {
+              if (mounted) {
+                _scrollToBottom();
+              }
+            });
+          }
+        }
+      }
+    });
+  }
+
+  void _setupScrollListener() {
+    _scrollController.addListener(() {
+      if (_scrollController.hasClients) {
+        final maxScroll = _scrollController.position.maxScrollExtent;
+        final currentScroll = _scrollController.position.pixels;
+        final isAtBottom = currentScroll >= maxScroll - 100; // 100px threshold
+
+        setState(() {
+          // Only show scroll button if not at bottom and keyboard is not visible
+          // When keyboard is visible, we want to always show the scroll button if not at bottom
+          _showScrollToBottomButton = !isAtBottom && _messages.isNotEmpty;
+        });
+      }
+    });
   }
 
   void _initializeHandlers() {
@@ -147,7 +245,8 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
         if (!messageExists) {
           // Apply moderation to received message content
           final moderatedMessage = message.copyWith(
-            content: _moderationService.moderateReceivedMessage(message.content),
+            content:
+                _moderationService.moderateReceivedMessage(message.content),
           );
 
           setState(() {
@@ -162,7 +261,17 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
               _hasMoreMessages = true;
             }
           });
-          _scrollToBottom();
+
+          // Always scroll to bottom for new messages
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            _scrollToBottom();
+          });
+
+          // Update scroll button state
+          setState(() {
+            _showScrollToBottomButton =
+                false; // Hide button since we're at bottom
+          });
 
           // Note: Image auto-saving is now handled globally by BackgroundImageService
           // through the SocketService, so no need to handle it here specifically
@@ -208,7 +317,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    
+
     // Leave the chat room when disposing
     if (widget.chat.isFriendChat && _friendId != null) {
       // print('🔌 DEBUG: Leaving friend chat room with friendId: $_friendId');
@@ -232,6 +341,8 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   }
 
   Future<void> _loadChatHistory() async {
+    if (_isLoading) return;
+
     setState(() {
       _isLoading = true;
       _errorMessage = null;
@@ -264,6 +375,9 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
         if (friendId == null || friendId.isEmpty) {
           throw Exception('Invalid friend ID');
         }
+
+        // Store friendId for later use
+        _friendId = friendId;
 
         // print(
         //     '🔍 DEBUG: Calling getChatHistoryWithUser with friendId: $friendId');
@@ -326,18 +440,58 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       });
 
       // print('🔍 DEBUG: Set ${_messages.length} messages in state');
-      // Scroll to bottom after loading messages with a post-frame callback
+
+      // Ensure we scroll to the bottom after loading messages
+      // Use multiple post-frame callbacks to ensure scrolling works
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _scrollToBottom();
       });
+
+      // Additional scroll attempt with delay to ensure it works
+      Future.delayed(const Duration(milliseconds: 100), () {
+        if (mounted) {
+          _scrollToBottom();
+        }
+      });
+
       // After loading messages, check for last friend image
       _checkAndSaveLastFriendImage();
+
+      // Check if we need to load more recent messages
+      await _ensureLatestMessages();
     } catch (e) {
       // print('🚨 DEBUG: _loadChatHistory error: $e');
       setState(() {
         _errorMessage = 'Failed to load chat history: ${e.toString()}';
         _isLoading = false;
       });
+    }
+  }
+
+  /// Ensure we have the latest messages by checking if there are newer messages
+  Future<void> _ensureLatestMessages() async {
+    if (_friendId == null || _messages.isEmpty) return;
+
+    try {
+      // Get the latest message to compare with our current messages
+      final latestMessageData =
+          await _apiService.getLatestMessageWithUser(_friendId!);
+      if (latestMessageData != null && latestMessageData['message'] != null) {
+        final latestMessage = Message.fromJson(latestMessageData['message']);
+
+        // Check if we already have this message
+        final hasLatestMessage =
+            _messages.any((msg) => msg.id == latestMessage.id);
+
+        if (!hasLatestMessage) {
+          // We don't have the latest message, so we need to reload
+          // print('🔍 DEBUG: Latest message not found in current messages, reloading...');
+          await _loadChatHistory();
+        }
+      }
+    } catch (e) {
+      // print('🚨 DEBUG: Error ensuring latest messages: $e');
+      // Don't throw here, just log the error
     }
   }
 
@@ -445,8 +599,9 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
 
     try {
       // Process message through moderation service
-      final processedMessage = await _moderationService.processMessageForSending(context, messageContent);
-      
+      final processedMessage = await _moderationService
+          .processMessageForSending(context, messageContent);
+
       if (processedMessage == null) {
         // User cancelled sending due to inappropriate content
         setState(() {
@@ -469,6 +624,16 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       _messageController.clear();
       _stopTyping();
 
+      // Scroll to bottom after sending message
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _scrollToBottom();
+      });
+
+      // Update scroll button state
+      setState(() {
+        _showScrollToBottomButton = false; // Hide button since we're at bottom
+      });
+
       // The message will be received via socket and added to the UI automatically
     } catch (e) {
       // print('🚨 DEBUG: Error sending message: $e');
@@ -488,6 +653,14 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   void _onMessageChanged(String text) {
     if (text.isNotEmpty && !_isTyping) {
       _startTyping();
+      // Scroll to bottom when user starts typing to ensure latest messages are visible
+      if (_messages.isNotEmpty) {
+        Future.delayed(const Duration(milliseconds: 10), () {
+          if (mounted) {
+            _scrollToBottom();
+          }
+        });
+      }
     } else if (text.isEmpty && _isTyping) {
       _stopTyping();
     }
@@ -499,6 +672,15 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     setState(() {
       _isTyping = true;
     });
+
+    // Scroll to bottom when user starts typing to ensure latest messages are visible
+    if (_messages.isNotEmpty) {
+      Future.delayed(const Duration(milliseconds: 10), () {
+        if (mounted) {
+          _scrollToBottom();
+        }
+      });
+    }
 
     // Send typing indicator via real-time service
     if (_friendId != null) {
@@ -523,30 +705,88 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   }
 
   void _scrollToBottom() {
+    if (!mounted || _messages.isEmpty) return;
+
+    // Immediate scroll attempt for instant response
+    if (_scrollController.hasClients &&
+        _scrollController.position.maxScrollExtent > 0) {
+      _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+    }
+
     // Use multiple attempts to ensure scrolling works
-    Future.delayed(const Duration(milliseconds: 100), () {
-      if (_scrollController.hasClients && _scrollController.position.maxScrollExtent > 0) {
-        _scrollController.animateTo(
+    Future.delayed(const Duration(milliseconds: 10), () {
+      if (mounted &&
+          _scrollController.hasClients &&
+          _scrollController.position.maxScrollExtent > 0) {
+        _scrollController
+            .animateTo(
           _scrollController.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 300),
+          duration: const Duration(milliseconds: 150), // Faster animation
           curve: Curves.easeOut,
-        );
+        )
+            .then((_) {
+          // Hide scroll button after scrolling to bottom
+          if (mounted) {
+            setState(() {
+              _showScrollToBottomButton = false;
+            });
+          }
+        });
       }
     });
-    
+
     // Second attempt with longer delay in case first one fails
-    Future.delayed(const Duration(milliseconds: 500), () {
-      if (_scrollController.hasClients && _scrollController.position.maxScrollExtent > 0) {
-        _scrollController.animateTo(
+    Future.delayed(const Duration(milliseconds: 50), () {
+      if (mounted &&
+          _scrollController.hasClients &&
+          _scrollController.position.maxScrollExtent > 0) {
+        _scrollController
+            .animateTo(
           _scrollController.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 300),
+          duration: const Duration(milliseconds: 150), // Faster animation
           curve: Curves.easeOut,
-        );
+        )
+            .then((_) {
+          // Hide scroll button after scrolling to bottom
+          if (mounted) {
+            setState(() {
+              _showScrollToBottomButton = false;
+            });
+          }
+        });
+      }
+    });
+
+    // Third attempt with even longer delay for edge cases
+    Future.delayed(const Duration(milliseconds: 100), () {
+      if (mounted &&
+          _scrollController.hasClients &&
+          _scrollController.position.maxScrollExtent > 0) {
+        _scrollController
+            .animateTo(
+          _scrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 150), // Faster animation
+          curve: Curves.easeOut,
+        )
+            .then((_) {
+          // Hide scroll button after scrolling to bottom
+          if (mounted) {
+            setState(() {
+              _showScrollToBottomButton = false;
+            });
+          }
+        });
       }
     });
   }
 
   void _showExitChatDialog() {
+    // For friend chats, don't show confirmation dialog
+    if (widget.chat.isFriendChat) {
+      Navigator.pop(context); // Exit chat directly
+      return;
+    }
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -587,147 +827,160 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   Widget build(BuildContext context) {
     return WillPopScope(
       onWillPop: () async {
+        // For friend chats, allow direct back navigation
+        if (widget.chat.isFriendChat) {
+          return true; // Allow default back button behavior
+        }
         _showExitChatDialog();
         return false; // Prevent default back button behavior
       },
       child: Scaffold(
         appBar: AppBar(
-        automaticallyImplyLeading: false, // Disable default back button
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => _showExitChatDialog(),
-        ),
-        title: Row(
-          children: [
-            CircleAvatar(
-              backgroundColor: AppColors.primary,
-              child: Text(
-                widget.chat.displayName[0].toUpperCase(),
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
+          automaticallyImplyLeading: false, // Disable default back button
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () => _showExitChatDialog(),
+          ),
+          title: Row(
+            children: [
+              CircleAvatar(
+                backgroundColor: AppColors.primary,
+                child: Text(
+                  widget.chat.displayName[0].toUpperCase(),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    widget.chat.displayName,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w600,
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      widget.chat.displayName,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
-                  ),
-                  Row(
-                    children: [
-                      // Removed the online status display completely
-                      if (_isTyping) ...[
-                        Text(
-                          'typing...',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: AppColors.primary,
-                            fontStyle: FontStyle.italic,
+                    Row(
+                      children: [
+                        // Removed the online status display completely
+                        if (_isTyping) ...[
+                          Text(
+                            'typing...',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: AppColors.primary,
+                              fontStyle: FontStyle.italic,
+                            ),
                           ),
-                        ),
+                        ],
                       ],
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.videocam),
-            onPressed: () {
-              // TODO: Implement video call
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.call),
-            onPressed: () {
-              // TODO: Implement voice call
-            },
-          ),
-          PopupMenuButton<String>(
-            onSelected: (value) async {
-              switch (value) {
-                case 'profile':
-                  if (_friendId != null) {
-                    Navigator.pushNamed(
-                      context,
-                      '/user-profile',
-                      arguments: _friendId,
-                    );
-                  }
-                  break;
-                case 'block':
-                  await _userActions.blockUser();
-                  break;
-                case 'report':
-                  // TODO: Report user
-                  break;
-              }
-            },
-            itemBuilder: (context) => [
-              const PopupMenuItem(
-                value: 'profile',
-                child: Row(
-                  children: [
-                    Icon(Icons.person),
-                    SizedBox(width: 8),
-                    Text('View Profile'),
-                  ],
-                ),
-              ),
-              const PopupMenuItem(
-                value: 'block',
-                child: Row(
-                  children: [
-                    Icon(Icons.block),
-                    SizedBox(width: 8),
-                    Text('Block User'),
-                  ],
-                ),
-              ),
-              const PopupMenuItem(
-                value: 'report',
-                child: Row(
-                  children: [
-                    Icon(Icons.report),
-                    SizedBox(width: 8),
-                    Text('Report User'),
+                    ),
                   ],
                 ),
               ),
             ],
           ),
-        ],
-      ),
-      body: Column(
-        children: [
-          Expanded(
-            child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : (_messages.isEmpty
-                    ? ChatUIComponents.buildEmptyState(context)
-                    : ChatUIComponents.buildMessageList(
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.videocam),
+              onPressed: () {
+                // TODO: Implement video call
+              },
+            ),
+            IconButton(
+              icon: const Icon(Icons.call),
+              onPressed: () {
+                // TODO: Implement voice call
+              },
+            ),
+            PopupMenuButton<String>(
+              onSelected: (value) async {
+                switch (value) {
+                  case 'profile':
+                    if (_friendId != null) {
+                      Navigator.pushNamed(
                         context,
-                        _messages,
-                        _currentUserId,
-                        _hasMoreMessages,
-                        _isLoadingEarlier,
-                        _loadEarlierMessages,
-                        _scrollController,
-                      )),
-          ),
-          _buildMessageInput(),
-        ],
-      ),
+                        '/user-profile',
+                        arguments: _friendId,
+                      );
+                    }
+                    break;
+                  case 'block':
+                    await _userActions.blockUser();
+                    break;
+                  case 'report':
+                    // TODO: Report user
+                    break;
+                }
+              },
+              itemBuilder: (context) => [
+                const PopupMenuItem(
+                  value: 'profile',
+                  child: Row(
+                    children: [
+                      Icon(Icons.person),
+                      SizedBox(width: 8),
+                      Text('View Profile'),
+                    ],
+                  ),
+                ),
+                const PopupMenuItem(
+                  value: 'block',
+                  child: Row(
+                    children: [
+                      Icon(Icons.block),
+                      SizedBox(width: 8),
+                      Text('Block User'),
+                    ],
+                  ),
+                ),
+                const PopupMenuItem(
+                  value: 'report',
+                  child: Row(
+                    children: [
+                      Icon(Icons.report),
+                      SizedBox(width: 8),
+                      Text('Report User'),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+        body: Column(
+          children: [
+            Expanded(
+              child: _isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : (_messages.isEmpty
+                      ? ChatUIComponents.buildEmptyState(context)
+                      : ChatUIComponents.buildMessageList(
+                          context,
+                          _messages,
+                          _currentUserId,
+                          _hasMoreMessages,
+                          _isLoadingEarlier,
+                          _loadEarlierMessages,
+                          _scrollController,
+                        )),
+            ),
+            _buildMessageInput(),
+          ],
+        ),
+        floatingActionButton: _showScrollToBottomButton
+            ? FloatingActionButton(
+                onPressed: _scrollToBottom,
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+                mini: true,
+                child: const Icon(Icons.keyboard_arrow_down),
+              )
+            : null,
       ),
     );
   }
@@ -743,6 +996,16 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       _onMessageChanged,
       _sendMessage,
       _showAttachmentOptions,
+      onTextFieldTap: () {
+        // Scroll to bottom when user taps on text field
+        if (_messages.isNotEmpty) {
+          Future.delayed(const Duration(milliseconds: 10), () {
+            if (mounted) {
+              _scrollToBottom();
+            }
+          });
+        }
+      },
     );
   }
 }

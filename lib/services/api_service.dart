@@ -495,6 +495,9 @@ class ApiService {
       if (beforeMessageId != null) {
         queryParams.add('beforeMessageId=$beforeMessageId');
       }
+      // Add a parameter to ensure we get the most recent messages
+      queryParams.add('sort=desc');
+      
       final response =
           await _get('/chat/history/$userId?${queryParams.join('&')}');
       // print('🔍 DEBUG: Chat history response status: ${response.statusCode}');
@@ -506,6 +509,25 @@ class ApiService {
     } catch (e) {
       // print('🚨 DEBUG: getChatHistoryWithUser error: $e');
       rethrow;
+    }
+  }
+
+  /// Get the latest message for a specific user
+  Future<Map<String, dynamic>?> getLatestMessageWithUser(String userId) async {
+    try {
+      // print('🔍 DEBUG: getLatestMessageWithUser() called with userId: $userId');
+      final response = await _get('/chat/latest/$userId');
+      // print('🔍 DEBUG: Latest message response status: ${response.statusCode}');
+      
+      if (response.statusCode == 200) {
+        final result = _handleResponse(response);
+        // print('🔍 DEBUG: Latest message result: $result');
+        return result;
+      }
+      return null;
+    } catch (e) {
+      // print('🚨 DEBUG: getLatestMessageWithUser error: $e');
+      return null;
     }
   }
 

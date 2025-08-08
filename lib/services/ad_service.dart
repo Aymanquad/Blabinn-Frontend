@@ -219,7 +219,7 @@ class AdService {
     }
 
     _interstitialTimer?.cancel();
-    _interstitialTimer = Timer.periodic(const Duration(seconds: 180), (timer) {
+    _interstitialTimer = Timer.periodic(const Duration(seconds: 120), (timer) {
       if (!_isInterstitialAdShowing) {
         showInterstitialAd();
       }

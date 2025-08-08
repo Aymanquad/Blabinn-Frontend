@@ -114,8 +114,9 @@ class ChatUIComponents {
     TextEditingController messageController,
     Function(String) onMessageChanged,
     VoidCallback onSendMessage,
-    VoidCallback onAttachmentOptions,
-  ) {
+    VoidCallback onAttachmentOptions, {
+    VoidCallback? onTextFieldTap,
+  }) {
     final theme = Theme.of(context);
 
     return Container(
@@ -140,37 +141,41 @@ class ChatUIComponents {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                TextField(
-                  controller: messageController,
-                  onChanged: (value) {
-                    onMessageChanged(value);
-                  },
-                  decoration: InputDecoration(
-                    hintText: AppStrings.typeMessage,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(24),
-                      borderSide: BorderSide.none,
+                GestureDetector(
+                  onTap: onTextFieldTap,
+                  child: TextField(
+                    controller: messageController,
+                    onChanged: (value) {
+                      onMessageChanged(value);
+                    },
+                    onTap: onTextFieldTap,
+                    decoration: InputDecoration(
+                      hintText: AppStrings.typeMessage,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(24),
+                        borderSide: BorderSide.none,
+                      ),
+                      filled: true,
+                      fillColor: theme.colorScheme.surface,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                      suffixIcon: messageController.text.length > 900
+                          ? Icon(
+                              Icons.warning,
+                              color: messageController.text.length >= 1000
+                                  ? Colors.red
+                                  : Colors.orange,
+                              size: 16,
+                            )
+                          : null,
                     ),
-                    filled: true,
-                    fillColor: theme.colorScheme.surface,
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 12,
-                    ),
-                    suffixIcon: messageController.text.length > 900
-                        ? Icon(
-                            Icons.warning,
-                            color: messageController.text.length >= 1000
-                                ? Colors.red
-                                : Colors.orange,
-                            size: 16,
-                          )
-                        : null,
+                    maxLines: 2, // Reduced from 4 to 2 for shorter height
+                    textCapitalization: TextCapitalization.sentences,
+                    maxLength: 1000,
+                    maxLengthEnforcement: MaxLengthEnforcement.enforced,
                   ),
-                  maxLines: 2, // Reduced from 4 to 2 for shorter height
-                  textCapitalization: TextCapitalization.sentences,
-                  maxLength: 1000,
-                  maxLengthEnforcement: MaxLengthEnforcement.enforced,
                 ),
                 if (messageController.text.length > 900)
                   Padding(
