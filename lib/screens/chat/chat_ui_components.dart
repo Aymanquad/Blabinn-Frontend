@@ -47,12 +47,17 @@ class ChatUIComponents {
     bool hasMoreMessages,
     bool isLoadingEarlier,
     VoidCallback onLoadEarlierMessages,
-    ScrollController scrollController,
-  ) {
-    return ListView.builder(
+    ScrollController scrollController, {
+    int? firstUnreadMessageIndex,
+    bool hasUnreadMessages = false,
+    int unreadCount = 0,
+    VoidCallback? onChatTap,
+    VoidCallback? onUnreadIndicatorTap,
+  }) {
+    Widget listView = ListView.builder(
       controller: scrollController,
       padding: const EdgeInsets.all(16),
-      itemCount: messages.length + (hasMoreMessages ? 1 : 0),
+      itemCount: messages.length + (hasMoreMessages ? 1 : 0) + (hasUnreadMessages ? 1 : 0),
       itemBuilder: (context, index) {
         // Show "Load Earlier Messages" button at the top
         if (index == 0 && hasMoreMessages) {
@@ -63,8 +68,26 @@ class ChatUIComponents {
           );
         }
 
-        // Adjust index for messages (subtract 1 if we have the load button)
-        final messageIndex = hasMoreMessages ? index - 1 : index;
+        // Calculate the position where unread indicator should appear
+        int unreadIndicatorPosition = (hasMoreMessages ? 1 : 0) + (firstUnreadMessageIndex ?? 0);
+        
+        // Show unread messages indicator just above the first unread message
+        if (hasUnreadMessages && 
+            firstUnreadMessageIndex != null && 
+            index == unreadIndicatorPosition) {
+          return _buildUnreadMessagesIndicator(context, unreadCount, onUnreadIndicatorTap);
+        }
+
+        // Adjust index for messages
+        int messageIndex = index;
+        if (hasMoreMessages) messageIndex -= 1;
+        if (hasUnreadMessages && index > unreadIndicatorPosition) messageIndex -= 1;
+        
+        // Ensure messageIndex is within bounds
+        if (messageIndex < 0 || messageIndex >= messages.length) {
+          return const SizedBox.shrink();
+        }
+        
         final message = messages[messageIndex];
 
         return ChatBubble(
@@ -73,6 +96,16 @@ class ChatUIComponents {
         );
       },
     );
+
+    // Wrap with GestureDetector if onChatTap is provided
+    if (onChatTap != null) {
+      return GestureDetector(
+        onTap: onChatTap,
+        child: listView,
+      );
+    }
+
+    return listView;
   }
 
   static Widget _buildLoadEarlierButton(
@@ -102,6 +135,47 @@ class ChatUIComponents {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(20),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  static Widget _buildUnreadMessagesIndicator(BuildContext context, int unreadCount, VoidCallback? onTap) {
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 8),
+      child: Center(
+        child: GestureDetector(
+          onTap: onTap,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.primaryContainer,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: Theme.of(context).colorScheme.primary.withOpacity(0.3),
+                width: 1,
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.mark_email_unread,
+                  size: 16,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  unreadCount == 1 ? '1 new message' : '$unreadCount new messages',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                ),
+              ],
             ),
           ),
         ),

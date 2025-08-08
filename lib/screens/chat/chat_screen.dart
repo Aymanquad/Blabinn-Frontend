@@ -45,6 +45,15 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   String? _friendId;
   bool _showScrollToBottomButton = false;
   bool _isKeyboardVisible = false;
+  bool _isOtherUserTyping = false;
+
+  // Unread message tracking
+  int _firstUnreadMessageIndex = -1;
+  bool _hasUnreadMessages = false;
+  bool _hasScrolledToUnread = false;
+  int _unreadCount = 0;
+  bool _isMarkingAsRead = false;
+  bool _mounted = true;
 
   // Stream subscriptions for real-time events
   StreamSubscription<Message>? _messageSubscription;
@@ -159,6 +168,9 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
         });
       }
     });
+
+    // Add scroll listener for marking messages as read
+    _scrollController.addListener(_onScroll);
   }
 
   void _initializeHandlers() {
@@ -273,6 +285,13 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                 false; // Hide button since we're at bottom
           });
 
+          // Re-identify unread messages after adding new message
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (_mounted) {
+              _identifyUnreadMessages();
+            }
+          });
+
           // Note: Image auto-saving is now handled globally by BackgroundImageService
           // through the SocketService, so no need to handle it here specifically
         }
@@ -284,6 +303,30 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       switch (event) {
         case SocketEvent.message:
           // print('📨 DEBUG: New message event received');
+          break;
+        case SocketEvent.typing:
+          // print('⌨️ DEBUG: Typing event received');
+          if (_friendId != null) {
+            setState(() {
+              _isOtherUserTyping = true;
+            });
+            // Auto-clear typing indicator after 3 seconds
+            Timer(const Duration(seconds: 3), () {
+              if (_mounted) {
+                setState(() {
+                  _isOtherUserTyping = false;
+                });
+              }
+            });
+          }
+          break;
+        case SocketEvent.stopTyping:
+          // print('⏹️ DEBUG: Stop typing event received');
+          if (_friendId != null) {
+            setState(() {
+              _isOtherUserTyping = false;
+            });
+          }
           break;
         case SocketEvent.error:
           // print('🚨 DEBUG: Socket error event');
@@ -316,6 +359,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
 
   @override
   void dispose() {
+    _mounted = false;
     WidgetsBinding.instance.removeObserver(this);
 
     // Leave the chat room when disposing
@@ -329,6 +373,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     }
 
     _messageController.dispose();
+    _scrollController.removeListener(_onScroll);
     _scrollController.dispose();
     _typingTimer?.cancel();
 
@@ -441,10 +486,13 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
 
       // print('🔍 DEBUG: Set ${_messages.length} messages in state');
 
-      // Ensure we scroll to the bottom after loading messages
-      // Use multiple post-frame callbacks to ensure scrolling works
+      // Scroll to appropriate position after loading messages
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        _scrollToBottom();
+        // Identify unread messages after current user ID is set
+        _identifyUnreadMessages();
+        _scrollToAppropriatePosition();
+        // Mark messages as read when user opens the chat
+        _markMessagesAsReadOnOpen();
       });
 
       // Additional scroll attempt with delay to ensure it works
@@ -495,6 +543,350 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     }
   }
 
+  void _identifyUnreadMessages() {
+    if (_currentUserId == null || _messages.isEmpty) return;
+
+    int unreadCount = 0;
+    int firstUnreadIndex = -1;
+
+    print('🔍 DEBUG: Identifying unread messages');
+    print('🔍 DEBUG: Current user ID: $_currentUserId');
+    print('🔍 DEBUG: Friend ID: $_friendId');
+    print('🔍 DEBUG: Total messages: ${_messages.length}');
+
+    // Find the first unread message from the friend and count all unread messages
+    for (int i = 0; i < _messages.length; i++) {
+      final message = _messages[i];
+      // Check if message is from friend and not read (status != "read")
+      if (message.senderId == _friendId &&
+          message.status != MessageStatus.read) {
+        print('🔍 DEBUG: Found unread message at index $i: ${message.content}');
+        print('🔍 DEBUG: Message status: ${message.status}');
+        if (firstUnreadIndex == -1) {
+          firstUnreadIndex = i;
+        }
+        unreadCount++;
+      }
+    }
+
+    print('🔍 DEBUG: Total unread count: $unreadCount');
+    print('🔍 DEBUG: First unread index: $firstUnreadIndex');
+
+    if (_mounted) {
+      setState(() {
+        _firstUnreadMessageIndex = firstUnreadIndex;
+        _hasUnreadMessages = unreadCount > 0;
+        _unreadCount = unreadCount;
+      });
+    }
+  }
+
+  void _scrollToAppropriatePosition() {
+    if (_scrollController.hasClients &&
+        _scrollController.position.maxScrollExtent > 0) {
+      if (_hasUnreadMessages &&
+          _firstUnreadMessageIndex >= 0 &&
+          !_hasScrolledToUnread) {
+        // Scroll to the unread messages indicator
+        _scrollToUnreadIndicator();
+        _hasScrolledToUnread = true;
+
+        // Don't automatically scroll to bottom - let user control this
+        // User can scroll down or tap to see newer messages
+      } else {
+        // Scroll to bottom if no unread messages
+        _scrollToBottom();
+      }
+    } else {
+      // If scroll controller isn't ready, try again after a short delay
+      Future.delayed(const Duration(milliseconds: 100), () {
+        _scrollToAppropriatePosition();
+      });
+    }
+  }
+
+  void _scrollToUnreadIndicator() {
+    if (_firstUnreadMessageIndex < 0 || !_scrollController.hasClients) {
+      return;
+    }
+
+    print('🔍 DEBUG: _scrollToUnreadIndicator called');
+    print('🔍 DEBUG: First unread index: $_firstUnreadMessageIndex');
+
+    // Aggressive approach to ensure it reaches the unread indicator position
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!_scrollController.hasClients) return;
+
+      // Calculate a more precise offset that shows the unread indicator at the top
+      // and the first unread message right below it
+      final itemHeight = 150.0; // Increased for very long messages
+      final indicatorHeight = 50.0; // Height of the unread indicator
+      final padding = 16.0; // Padding to show some context above
+
+      // Calculate position to show unread indicator at top with first unread message below
+      // For small numbers of unread messages, ensure we still scroll to show them
+      final baseOffset = (_firstUnreadMessageIndex * itemHeight);
+      final adjustedOffset = baseOffset - indicatorHeight - padding;
+
+      // Ensure we don't scroll beyond the content and set a minimum offset
+      final maxScroll = _scrollController.position.maxScrollExtent;
+      final minOffset = 0.0; // Ensure we don't go negative
+      var targetOffset = adjustedOffset.clamp(minOffset, maxScroll);
+
+      // If the target offset is too small (near the top), ensure we scroll to show the unread messages
+      if (targetOffset < 100 && _firstUnreadMessageIndex > 0) {
+        // Force scroll to show the unread messages more prominently
+        targetOffset =
+            (_firstUnreadMessageIndex * itemHeight).clamp(minOffset, maxScroll);
+        print(
+            '🔍 DEBUG: Using fallback offset for small unread count: $targetOffset');
+      }
+
+      print('🔍 DEBUG: Base offset: $baseOffset');
+      print('🔍 DEBUG: Adjusted offset: $adjustedOffset');
+      print('🔍 DEBUG: Target offset: $targetOffset');
+      print('🔍 DEBUG: Max scroll: $maxScroll');
+
+      // Force scroll to the unread indicator position immediately
+      _scrollController.animateTo(
+        targetOffset,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
+
+      // Multiple aggressive attempts to ensure it reaches the unread indicator
+      Future.delayed(const Duration(milliseconds: 25), () {
+        if (_scrollController.hasClients) {
+          _scrollController.animateTo(
+            targetOffset,
+            duration: const Duration(milliseconds: 150),
+            curve: Curves.easeOut,
+          );
+        }
+      });
+
+      Future.delayed(const Duration(milliseconds: 75), () {
+        if (_scrollController.hasClients) {
+          _scrollController.animateTo(
+            targetOffset,
+            duration: const Duration(milliseconds: 100),
+            curve: Curves.easeOut,
+          );
+        }
+      });
+
+      Future.delayed(const Duration(milliseconds: 150), () {
+        if (_scrollController.hasClients) {
+          _scrollController.animateTo(
+            targetOffset,
+            duration: const Duration(milliseconds: 100),
+            curve: Curves.easeOut,
+          );
+        }
+      });
+
+      Future.delayed(const Duration(milliseconds: 250), () {
+        if (_scrollController.hasClients) {
+          _scrollController.animateTo(
+            targetOffset,
+            duration: const Duration(milliseconds: 100),
+            curve: Curves.easeOut,
+          );
+        }
+      });
+
+      Future.delayed(const Duration(milliseconds: 400), () {
+        if (_scrollController.hasClients) {
+          _scrollController.animateTo(
+            targetOffset,
+            duration: const Duration(milliseconds: 100),
+            curve: Curves.easeOut,
+          );
+        }
+      });
+
+      Future.delayed(const Duration(milliseconds: 600), () {
+        if (_scrollController.hasClients) {
+          _scrollController.animateTo(
+            targetOffset,
+            duration: const Duration(milliseconds: 100),
+            curve: Curves.easeOut,
+          );
+        }
+      });
+    });
+  }
+
+  void _scrollToUnreadMessage() {
+    if (_firstUnreadMessageIndex < 0 || !_scrollController.hasClients) {
+      return;
+    }
+
+    // Aggressive approach to ensure it reaches the unread message position
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!_scrollController.hasClients) return;
+
+      // Use a larger height estimate for long messages
+      final itemHeight = 150.0; // Increased for very long messages
+      final offset = (_firstUnreadMessageIndex * itemHeight);
+
+      // Ensure we don't scroll beyond the content
+      final maxScroll = _scrollController.position.maxScrollExtent;
+      final targetOffset = offset.clamp(0.0, maxScroll);
+
+      // Force scroll to the unread message position immediately
+      _scrollController.animateTo(
+        targetOffset,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
+
+      // Multiple aggressive attempts to ensure it reaches the unread message
+      Future.delayed(const Duration(milliseconds: 25), () {
+        if (_scrollController.hasClients) {
+          _scrollController.animateTo(
+            targetOffset,
+            duration: const Duration(milliseconds: 150),
+            curve: Curves.easeOut,
+          );
+        }
+      });
+
+      Future.delayed(const Duration(milliseconds: 75), () {
+        if (_scrollController.hasClients) {
+          _scrollController.animateTo(
+            targetOffset,
+            duration: const Duration(milliseconds: 100),
+            curve: Curves.easeOut,
+          );
+        }
+      });
+
+      Future.delayed(const Duration(milliseconds: 150), () {
+        if (_scrollController.hasClients) {
+          _scrollController.animateTo(
+            targetOffset,
+            duration: const Duration(milliseconds: 100),
+            curve: Curves.easeOut,
+          );
+        }
+      });
+
+      Future.delayed(const Duration(milliseconds: 250), () {
+        if (_scrollController.hasClients) {
+          _scrollController.animateTo(
+            targetOffset,
+            duration: const Duration(milliseconds: 100),
+            curve: Curves.easeOut,
+          );
+        }
+      });
+
+      Future.delayed(const Duration(milliseconds: 400), () {
+        if (_scrollController.hasClients) {
+          _scrollController.animateTo(
+            targetOffset,
+            duration: const Duration(milliseconds: 100),
+            curve: Curves.easeOut,
+          );
+        }
+      });
+
+      Future.delayed(const Duration(milliseconds: 600), () {
+        if (_scrollController.hasClients) {
+          _scrollController.animateTo(
+            targetOffset,
+            duration: const Duration(milliseconds: 100),
+            curve: Curves.easeOut,
+          );
+        }
+      });
+    });
+  }
+
+  Future<void> _markMessagesAsRead() async {
+    if (_friendId == null || _currentUserId == null) return;
+
+    try {
+      // Mark all messages from this friend as read
+      await _apiService.markAllMessagesAsRead(_friendId!);
+
+      // Update local message read status
+      if (_mounted) {
+        setState(() {
+          for (int i = 0; i < _messages.length; i++) {
+            final message = _messages[i];
+            if (message.senderId == _friendId &&
+                message.status != MessageStatus.read) {
+              _messages[i] = message.copyWith(
+                status: MessageStatus.read,
+              );
+            }
+          }
+
+          // Re-identify unread messages
+          _identifyUnreadMessages();
+        });
+      }
+    } catch (e) {
+      // print('🚨 DEBUG: Error marking messages as read: $e');
+    }
+  }
+
+  void _onScroll() {
+    // Mark messages as read when user scrolls to them
+    if (_hasUnreadMessages && _scrollController.hasClients) {
+      final scrollPosition = _scrollController.position.pixels;
+      final maxScroll = _scrollController.position.maxScrollExtent;
+
+      // If user has scrolled to the bottom (or near bottom), mark messages as read
+      if (scrollPosition >= maxScroll - 100) {
+        // Add a small delay to avoid marking as read too quickly
+        Future.delayed(const Duration(milliseconds: 500), () {
+          if (_hasUnreadMessages && mounted) {
+            _markMessagesAsRead();
+          }
+        });
+      }
+
+      // Also mark as read if user scrolls past the unread messages
+      if (_firstUnreadMessageIndex >= 0) {
+        final itemHeight = 80.0; // Approximate height of a message bubble
+        final unreadMessagePosition = (_firstUnreadMessageIndex * itemHeight);
+
+        if (scrollPosition > unreadMessagePosition + 200) {
+          // 200px past the unread message
+          Future.delayed(const Duration(milliseconds: 300), () {
+            if (_hasUnreadMessages && mounted) {
+              _markMessagesAsRead();
+            }
+          });
+        }
+      }
+    }
+  }
+
+  void _onChatTap() {
+    // Mark messages as read when user taps on chat area
+    if (_hasUnreadMessages) {
+      _markMessagesAsRead();
+    }
+  }
+
+  // Method to handle when user wants to see newer messages (scroll to bottom)
+  void _scrollToNewerMessages() {
+    if (_hasUnreadMessages) {
+      _markMessagesAsRead();
+    }
+    _scrollToBottom();
+  }
+
+  // Mark messages as read when user opens the chat
+  void _markMessagesAsReadOnOpen() {
+    // Don't mark as read immediately - let the backend handle it
+    // The backend will automatically mark messages as read after 1 second
+    // when getChatHistory is called
+  }
   Future<void> _loadEarlierMessages() async {
     if (_isLoadingEarlier || !_hasMoreMessages || _earliestMessageId == null) {
       return;
@@ -544,6 +936,13 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
 
         // Ensure the list is still properly sorted after inserting earlier messages
         _messages.sort((a, b) => a.timestamp.compareTo(b.timestamp));
+      });
+
+      // Re-identify unread messages after loading earlier messages
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (_mounted) {
+          _identifyUnreadMessages();
+        }
       });
 
       // print('🔍 DEBUG: Total messages after loading earlier: ${_messages.length}');
@@ -633,6 +1032,9 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       setState(() {
         _showScrollToBottomButton = false; // Hide button since we're at bottom
       });
+
+      // Mark messages as read when user sends a message
+      _markMessagesAsRead();
 
       // The message will be received via socket and added to the UI automatically
     } catch (e) {
@@ -877,6 +1279,16 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                             ),
                           ),
                         ],
+                        if (_isOtherUserTyping) ...[
+                          Text(
+                            'typing...',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: AppColors.primary,
+                              fontStyle: FontStyle.italic,
+                            ),
+                          ),
+                        ],
                       ],
                     ),
                   ],
@@ -967,6 +1379,11 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                           _isLoadingEarlier,
                           _loadEarlierMessages,
                           _scrollController,
+                          firstUnreadMessageIndex: _firstUnreadMessageIndex,
+                          hasUnreadMessages: _hasUnreadMessages,
+                          unreadCount: _unreadCount,
+                          onChatTap: _onChatTap,
+                          onUnreadIndicatorTap: _scrollToNewerMessages,
                         )),
             ),
             _buildMessageInput(),

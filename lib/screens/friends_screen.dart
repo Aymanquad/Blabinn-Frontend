@@ -15,7 +15,10 @@ class FriendsScreen extends StatefulWidget {
 
 class _FriendsScreenState extends State<FriendsScreen> {
   final ApiService _apiService = ApiService();
+  final TextEditingController _searchController = TextEditingController();
+  
   List<Map<String, dynamic>> _friends = [];
+  List<Map<String, dynamic>> _filteredFriends = [];
   bool _isLoading = false;
   String? _errorMessage;
 
@@ -23,6 +26,28 @@ class _FriendsScreenState extends State<FriendsScreen> {
   void initState() {
     super.initState();
     _loadFriends();
+    _searchController.addListener(_filterFriends);
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _filterFriends() {
+    final query = _searchController.text.toLowerCase().trim();
+    setState(() {
+      if (query.isEmpty) {
+        _filteredFriends = List.from(_friends);
+      } else {
+        _filteredFriends = _friends.where((friend) {
+          final displayName = (friend['displayName'] ?? friend['username'] ?? 'Unknown').toLowerCase();
+          final username = (friend['username'] ?? '').toLowerCase();
+          return displayName.contains(query) || username.contains(query);
+        }).toList();
+      }
+    });
   }
 
   Future<void> _loadFriends() async {
@@ -35,6 +60,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
       final friends = await _apiService.getFriends();
       setState(() {
         _friends = friends;
+        _filteredFriends = List.from(_friends); // Initialize filtered list
         _isLoading = false;
       });
     } catch (e) {
@@ -318,13 +344,47 @@ class _FriendsScreenState extends State<FriendsScreen> {
           ),
         ],
       ),
-      body: _isLoading
-          ? const Center(
-              child: CircularProgressIndicator(
-                color: AppColors.primary,
+      body: Column(
+        children: [
+          // Search Bar
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: TextField(
+              controller: _searchController,
+              decoration: InputDecoration(
+                hintText: 'Search friends...',
+                prefixIcon: const Icon(Icons.search),
+                suffixIcon: _searchController.text.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear),
+                        onPressed: () {
+                          _searchController.clear();
+                        },
+                      )
+                    : null,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                filled: true,
+                fillColor: Theme.of(context).colorScheme.surface,
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
               ),
-            )
-          : _errorMessage != null
+              onChanged: (value) {
+                // The filtering is handled by the listener
+              },
+            ),
+          ),
+          Expanded(
+            child: _isLoading
+                ? const Center(
+                    child: CircularProgressIndicator(
+                      color: AppColors.primary,
+                    ),
+                  )
+                : _errorMessage != null
               ? Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -357,19 +417,23 @@ class _FriendsScreenState extends State<FriendsScreen> {
                     ],
                   ),
                 )
-              : _friends.isEmpty
+              : _filteredFriends.isEmpty
                   ? Center(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Icon(
-                            Icons.people_outline,
+                            _searchController.text.isNotEmpty
+                                ? Icons.search_off
+                                : Icons.people_outline,
                             size: 64,
                             color: Colors.grey[400],
                           ),
                           const SizedBox(height: 16),
                           Text(
-                            'No Friends Yet',
+                            _searchController.text.isNotEmpty
+                                ? 'No friends found'
+                                : 'No Friends Yet',
                             style: Theme.of(context)
                                 .textTheme
                                 .titleLarge
@@ -380,20 +444,24 @@ class _FriendsScreenState extends State<FriendsScreen> {
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            'Start connecting with people to see them here!',
+                            _searchController.text.isNotEmpty
+                                ? 'Try a different search term'
+                                : 'Start connecting with people to see them here!',
                             style: TextStyle(
                               color: Colors.grey[500],
                             ),
                             textAlign: TextAlign.center,
                           ),
-                          const SizedBox(height: 24),
-                          ElevatedButton.icon(
-                            onPressed: () {
-                              Navigator.pushNamed(context, '/search');
-                            },
-                            icon: const Icon(Icons.search),
-                            label: const Text('Find People'),
-                          ),
+                          if (_searchController.text.isEmpty) ...[
+                            const SizedBox(height: 24),
+                            ElevatedButton.icon(
+                              onPressed: () {
+                                Navigator.pushNamed(context, '/search');
+                              },
+                              icon: const Icon(Icons.search),
+                              label: const Text('Find People'),
+                            ),
+                          ],
                         ],
                       ),
                     )
@@ -401,12 +469,15 @@ class _FriendsScreenState extends State<FriendsScreen> {
                       onRefresh: _loadFriends,
                       child: ListView.builder(
                         padding: const EdgeInsets.all(16),
-                        itemCount: _friends.length,
+                        itemCount: _filteredFriends.length,
                         itemBuilder: (context, index) {
-                          return _buildFriendCard(_friends[index]);
+                          return _buildFriendCard(_filteredFriends[index]);
                         },
                       ),
                     ),
+          ),
+        ],
+      ),
     );
   }
 }

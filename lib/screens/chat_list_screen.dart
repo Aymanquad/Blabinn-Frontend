@@ -15,8 +15,10 @@ class ChatListScreen extends StatefulWidget {
 
 class _ChatListScreenState extends State<ChatListScreen> {
   final ApiService _apiService = ApiService();
+  final TextEditingController _searchController = TextEditingController();
 
   List<Map<String, dynamic>> _friends = [];
+  List<Map<String, dynamic>> _filteredFriends = [];
   List<Map<String, dynamic>> _chatRooms = [];
   Map<String, int> _unreadCounts = {};
   bool _isLoading = false;
@@ -26,6 +28,28 @@ class _ChatListScreenState extends State<ChatListScreen> {
   void initState() {
     super.initState();
     _loadChatsData();
+    _searchController.addListener(_filterFriends);
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _filterFriends() {
+    final query = _searchController.text.toLowerCase().trim();
+    setState(() {
+      if (query.isEmpty) {
+        _filteredFriends = List.from(_friends);
+      } else {
+        _filteredFriends = _friends.where((friend) {
+          final displayName = (friend['displayName'] ?? friend['username'] ?? 'Unknown').toLowerCase();
+          final username = (friend['username'] ?? '').toLowerCase();
+          return displayName.contains(query) || username.contains(query);
+        }).toList();
+      }
+    });
   }
 
   Future<void> _loadChatsData() async {
@@ -45,6 +69,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
       if (mounted) {
         setState(() {
           _friends = results[0] as List<Map<String, dynamic>>;
+          _filteredFriends = List.from(_friends);
           _chatRooms = results[1] as List<Map<String, dynamic>>;
           final unreadResponse = results[2] as Map<String, dynamic>;
           _unreadCounts =
@@ -233,6 +258,37 @@ class _ChatListScreenState extends State<ChatListScreen> {
       ),
       body: Column(
         children: [
+          // Search Bar
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: TextField(
+              controller: _searchController,
+              decoration: InputDecoration(
+                hintText: 'Search friends...',
+                prefixIcon: const Icon(Icons.search),
+                suffixIcon: _searchController.text.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear),
+                        onPressed: () {
+                          _searchController.clear();
+                        },
+                      )
+                    : null,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                filled: true,
+                fillColor: Theme.of(context).colorScheme.surface,
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
+              ),
+              onChanged: (value) {
+                // The filtering is handled by the listener
+              },
+            ),
+          ),
           Expanded(
             child: _isLoading
                 ? const Center(
@@ -271,7 +327,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
                           );
                         },
                       )
-                    : _friends.isEmpty
+                    : _filteredFriends.isEmpty
                         ? Builder(
                             builder: (context) {
                               final theme = Theme.of(context);
@@ -280,14 +336,18 @@ class _ChatListScreenState extends State<ChatListScreen> {
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
                                     Icon(
-                                      Icons.chat_bubble_outline,
+                                      _searchController.text.isNotEmpty
+                                          ? Icons.search_off
+                                          : Icons.chat_bubble_outline,
                                       size: 64,
                                       color: theme.colorScheme.onSurface
                                           .withOpacity(0.4),
                                     ),
                                     const SizedBox(height: 16),
                                     Text(
-                                      'No friends to chat with yet',
+                                      _searchController.text.isNotEmpty
+                                          ? 'No friends found'
+                                          : 'No friends to chat with yet',
                                       style: TextStyle(
                                         color: theme.colorScheme.onSurface
                                             .withOpacity(0.7),
@@ -296,7 +356,9 @@ class _ChatListScreenState extends State<ChatListScreen> {
                                     ),
                                     const SizedBox(height: 8),
                                     Text(
-                                      'Add friends to start chatting!',
+                                      _searchController.text.isNotEmpty
+                                          ? 'Try a different search term'
+                                          : 'Add friends to start chatting!',
                                       style: TextStyle(
                                         color: theme.colorScheme.onSurface
                                             .withOpacity(0.5),
@@ -311,9 +373,9 @@ class _ChatListScreenState extends State<ChatListScreen> {
                         : RefreshIndicator(
                             onRefresh: _loadChatsData,
                             child: ListView.builder(
-                              itemCount: _friends.length,
+                              itemCount: _filteredFriends.length,
                               itemBuilder: (context, index) {
-                                return _buildChatItem(_friends[index]);
+                                return _buildChatItem(_filteredFriends[index]);
                               },
                             ),
                           ),

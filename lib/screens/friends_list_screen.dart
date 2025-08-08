@@ -13,8 +13,10 @@ class FriendsListScreen extends StatefulWidget {
 
 class _FriendsListScreenState extends State<FriendsListScreen> {
   final ApiService _apiService = ApiService();
+  final TextEditingController _searchController = TextEditingController();
 
   List<Map<String, dynamic>> _friends = [];
+  List<Map<String, dynamic>> _filteredFriends = [];
   bool _isLoading = false;
   String? _errorMessage;
 
@@ -22,6 +24,28 @@ class _FriendsListScreenState extends State<FriendsListScreen> {
   void initState() {
     super.initState();
     _loadFriends();
+    _searchController.addListener(_filterFriends);
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _filterFriends() {
+    final query = _searchController.text.toLowerCase().trim();
+    setState(() {
+      if (query.isEmpty) {
+        _filteredFriends = List.from(_friends);
+      } else {
+        _filteredFriends = _friends.where((friend) {
+          final displayName = (friend['displayName'] ?? friend['username'] ?? 'Unknown').toLowerCase();
+          final username = (friend['username'] ?? '').toLowerCase();
+          return displayName.contains(query) || username.contains(query);
+        }).toList();
+      }
+    });
   }
 
   Future<void> _loadFriends() async {
@@ -34,6 +58,7 @@ class _FriendsListScreenState extends State<FriendsListScreen> {
       final friends = await _apiService.getFriends();
       setState(() {
         _friends = friends;
+        _filteredFriends = List.from(_friends); // Initialize filtered list
         _isLoading = false;
       });
     } catch (e) {
@@ -308,11 +333,45 @@ class _FriendsListScreenState extends State<FriendsListScreen> {
           ),
         ],
       ),
-      body: _isLoading
-          ? const Center(
-              child: CircularProgressIndicator(),
-            )
-          : _errorMessage != null
+      body: Column(
+        children: [
+          // Search Bar
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: TextField(
+              controller: _searchController,
+              decoration: InputDecoration(
+                hintText: 'Search friends...',
+                prefixIcon: const Icon(Icons.search),
+                suffixIcon: _searchController.text.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear),
+                        onPressed: () {
+                          _searchController.clear();
+                        },
+                      )
+                    : null,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                filled: true,
+                fillColor: Theme.of(context).colorScheme.surface,
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
+              ),
+              onChanged: (value) {
+                // The filtering is handled by the listener
+              },
+            ),
+          ),
+          Expanded(
+            child: _isLoading
+                ? const Center(
+                    child: CircularProgressIndicator(),
+                  )
+                : _errorMessage != null
               ? Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -339,19 +398,23 @@ class _FriendsListScreenState extends State<FriendsListScreen> {
                     ],
                   ),
                 )
-              : _friends.isEmpty
+              : _filteredFriends.isEmpty
                   ? Center(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Icon(
-                            Icons.people_outline,
+                            _searchController.text.isNotEmpty
+                                ? Icons.search_off
+                                : Icons.people_outline,
                             size: 64,
                             color: Colors.grey[400],
                           ),
                           const SizedBox(height: 16),
                           Text(
-                            'No friends yet',
+                            _searchController.text.isNotEmpty
+                                ? 'No friends found'
+                                : 'No friends yet',
                             style: TextStyle(
                               color: Colors.grey[600],
                               fontSize: 16,
@@ -359,7 +422,9 @@ class _FriendsListScreenState extends State<FriendsListScreen> {
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            'Start connecting with people to build your friends list!',
+                            _searchController.text.isNotEmpty
+                                ? 'Try a different search term'
+                                : 'Start connecting with people to build your friends list!',
                             style: TextStyle(
                               color: Colors.grey[500],
                               fontSize: 14,
@@ -372,12 +437,15 @@ class _FriendsListScreenState extends State<FriendsListScreen> {
                   : RefreshIndicator(
                       onRefresh: _loadFriends,
                       child: ListView.builder(
-                        itemCount: _friends.length,
+                        itemCount: _filteredFriends.length,
                         itemBuilder: (context, index) {
-                          return _buildFriendCard(_friends[index]);
+                          return _buildFriendCard(_filteredFriends[index]);
                         },
                       ),
                     ),
+          ),
+        ],
+      ),
     );
   }
 }

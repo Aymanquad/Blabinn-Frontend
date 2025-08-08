@@ -13,13 +13,17 @@ class AdConfig {
   // Test Banner Ad Unit IDs for development
   static const String androidBannerAdUnitId =
       'ca-app-pub-3940256099942544/6300978111'; // Test Banner Ad Unit ID
+      'ca-app-pub-3940256099942544/6300978111'; // Test Banner Ad Unit ID
   static const String iosBannerAdUnitId =
+      'ca-app-pub-3940256099942544/2934735716'; // Test Banner Ad Unit ID
       'ca-app-pub-3940256099942544/2934735716'; // Test Banner Ad Unit ID
 
   // Test Interstitial Ad Unit IDs for development
   static const String androidInterstitialAdUnitId =
       'ca-app-pub-3940256099942544/1033173712'; // Test Interstitial Ad Unit ID
+      'ca-app-pub-3940256099942544/1033173712'; // Test Interstitial Ad Unit ID
   static const String iosInterstitialAdUnitId =
+      'ca-app-pub-3940256099942544/4411468910'; // Test Interstitial Ad Unit ID
       'ca-app-pub-3940256099942544/4411468910'; // Test Interstitial Ad Unit ID
 
   // Test AdMob Application ID for Android Manifest
