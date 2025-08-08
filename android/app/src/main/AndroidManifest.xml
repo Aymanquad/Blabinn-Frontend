@@ -20,6 +20,9 @@
     <!-- For Android 13+ (API 33+) notification permissions -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     
+    <!-- Advertising ID permission for AdMob and analytics -->
+    <uses-permission android:name="com.google.android.gms.permission.AD_ID" />
+    
     <application
         android:label="Chatify"
         android:name="${applicationName}"
