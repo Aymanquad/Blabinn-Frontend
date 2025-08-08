@@ -188,12 +188,16 @@ class SocketConnection {
 
   // Send to socket
   void _sendToSocket(Map<String, dynamic> message) {
-    if (_socket != null && _isConnected) {
+    if (_socket != null && _isConnected && _socket!.connected) {
       try {
         _socket!.emit(message['event'], message['data']);
+        print('📤 [SOCKET DEBUG] Message sent: ${message['event']}');
       } catch (e) {
+        print('❌ [SOCKET DEBUG] Error sending message: $e');
         _handleConnectionError();
       }
+    } else {
+      print('⚠️ [SOCKET DEBUG] Cannot send message - socket not connected');
     }
   }
 
