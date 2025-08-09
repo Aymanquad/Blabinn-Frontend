@@ -745,4 +745,33 @@ class ApiService {
     final response = await _post('/connections/random/session/end', data);
     return _handleResponse(response);
   }
+
+  // Report methods
+  Future<Map<String, dynamic>> reportUser(String reportedUserId, String reason, {String? description}) async {
+    final data = {
+      'reportedUserId': reportedUserId,
+      'reason': reason,
+      if (description != null && description.isNotEmpty) 'description': description,
+    };
+    final response = await _post('/reports', data);
+    return _handleResponse(response);
+  }
+
+  Future<List<Map<String, dynamic>>> getUserReports(String userId, {String type = 'reported'}) async {
+    final response = await _get('/reports/user/$userId?type=$type');
+    final data = _handleResponse(response);
+    return List<Map<String, dynamic>>.from(data['reports'] ?? []);
+  }
+
+  Future<bool> hasUserReported(String reportedUserId) async {
+    try {
+      final currentUserId = await getCurrentUserId();
+      if (currentUserId == null) return false;
+      
+      final reports = await getUserReports(currentUserId, type: 'reporter');
+      return reports.any((report) => report['reportedUserId'] == reportedUserId);
+    } catch (e) {
+      return false;
+    }
+  }
 }

@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import '../core/constants.dart';
 import '../services/api_service.dart';
 import '../models/chat.dart';
+import '../models/report.dart';
 import 'chat_screen.dart';
+import 'report_user_screen.dart';
 
 class FriendsListScreen extends StatefulWidget {
   const FriendsListScreen({super.key});
@@ -181,6 +183,37 @@ class _FriendsListScreenState extends State<FriendsListScreen> {
     }
   }
 
+  Future<void> _reportUser(Map<String, dynamic> friend) async {
+    // Check if user has already reported this friend
+    try {
+      final hasReported = await _apiService.hasUserReported(friend['uid'] ?? friend['id']);
+      if (hasReported) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('You have already reported this user'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+        return;
+      }
+    } catch (e) {
+      // Continue anyway if we can't check
+    }
+
+    // Navigate to report screen
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ReportUserScreen(userToReport: friend),
+      ),
+    );
+
+    // Refresh the list if report was submitted
+    if (result == true) {
+      _loadFriends();
+    }
+  }
+
   Widget _buildFriendCard(Map<String, dynamic> friend) {
     final displayName =
         friend['displayName'] ?? friend['username'] ?? 'Unknown';
@@ -275,6 +308,9 @@ class _FriendsListScreenState extends State<FriendsListScreen> {
                           );
                         }
                         break;
+                      case 'report':
+                        _reportUser(friend);
+                        break;
                       case 'remove':
                         _removeFriend(friend);
                         break;
@@ -288,6 +324,17 @@ class _FriendsListScreenState extends State<FriendsListScreen> {
                           Icon(Icons.person, size: 16),
                           SizedBox(width: 8),
                           Text('View Profile'),
+                        ],
+                      ),
+                    ),
+                    const PopupMenuItem(
+                      value: 'report',
+                      child: Row(
+                        children: [
+                          Icon(Icons.report, color: Colors.orange, size: 16),
+                          SizedBox(width: 8),
+                          Text('Report User',
+                              style: TextStyle(color: Colors.orange)),
                         ],
                       ),
                     ),
