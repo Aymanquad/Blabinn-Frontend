@@ -11,6 +11,8 @@ import '../../services/firebase_auth_service.dart';
 import '../../services/background_image_service.dart';
 import '../../services/chat_moderation_service.dart';
 import '../../widgets/chat_bubble.dart';
+import '../../models/report.dart';
+import '../../screens/report_user_screen.dart';
 import 'chat_logic.dart';
 import 'chat_ui_components.dart';
 import 'chat_image_handler.dart';
@@ -1354,7 +1356,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                     await _userActions.blockUser();
                     break;
                   case 'report':
-                    // TODO: Report user
+                    await _reportUser();
                     break;
                 }
               },
@@ -1363,7 +1365,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                   value: 'profile',
                   child: Row(
                     children: [
-                      Icon(Icons.person),
+                      Icon(Icons.person, size: 16),
                       SizedBox(width: 8),
                       Text('View Profile'),
                     ],
@@ -1373,9 +1375,10 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                   value: 'block',
                   child: Row(
                     children: [
-                      Icon(Icons.block),
+                      Icon(Icons.block, color: Colors.red, size: 16),
                       SizedBox(width: 8),
-                      Text('Block User'),
+                      Text('Block User',
+                          style: TextStyle(color: Colors.red)),
                     ],
                   ),
                 ),
@@ -1383,9 +1386,10 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                   value: 'report',
                   child: Row(
                     children: [
-                      Icon(Icons.report),
+                      Icon(Icons.report, color: Colors.orange, size: 16),
                       SizedBox(width: 8),
-                      Text('Report User'),
+                      Text('Report User',
+                          style: TextStyle(color: Colors.orange)),
                     ],
                   ),
                 ),
@@ -1454,5 +1458,59 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
         }
       },
     );
+  }
+
+  Future<void> _reportUser() async {
+    if (_friendId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Unable to report user: User ID not found'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    // Check if user has already reported this friend
+    try {
+      final hasReported = await _apiService.hasUserReported(_friendId!);
+      if (hasReported) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('You have already reported this user'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+        return;
+      }
+    } catch (e) {
+      // Continue anyway if we're unable to check
+    }
+
+    // Create user data for the report screen
+    final userToReport = {
+      'uid': _friendId,
+      'id': _friendId,
+      'name': widget.chat.name,
+      'email': '', // We don't have email in chat context
+    };
+
+    // Navigate to report screen
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ReportUserScreen(userToReport: userToReport),
+      ),
+    );
+
+    // Show success message if report was submitted
+    if (result == true) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('User reported successfully'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    }
   }
 }
