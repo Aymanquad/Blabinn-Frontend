@@ -15,26 +15,34 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 16),
-            _AnimatedOpeningImageSection(),
-            const SizedBox(height: 16),
-            Expanded(
-              child: _AnimatedConnectNowSection(onConnect: () {
-                widget.onNavigateToTab?.call(2); // Navigate to Connect tab
-              }),
-            ),
-            const SizedBox(height: 8),
-            // Banner Ad at the bottom
-            const BannerAdWidget(
-              height: 50,
-              margin: EdgeInsets.only(bottom: 8),
-            ),
-          ],
+      body: Container(
+        decoration: const BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage('assets/images/violettoblack_bg.png'),
+            fit: BoxFit.cover,
+          ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 16),
+              _AnimatedOpeningImageSection(),
+              const SizedBox(height: 16),
+              Expanded(
+                child: _AnimatedConnectNowSection(onConnect: () {
+                  widget.onNavigateToTab?.call(2); // Navigate to Connect tab
+                }),
+              ),
+              const SizedBox(height: 8),
+              // Banner Ad at the bottom
+              const BannerAdWidget(
+                height: 50,
+                margin: EdgeInsets.only(bottom: 8),
+              ),
+            ],
+          ),
         ),
       ),
     );

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:ui';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -862,76 +863,75 @@ class _MediaFolderScreenState extends State<MediaFolderScreen>
     }
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Media Folder'),
-        centerTitle: true,
-        elevation: 0,
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        foregroundColor: Theme.of(context).textTheme.titleLarge?.color,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _loadImages,
-            tooltip: 'Refresh images',
+      appBar: null,
+      body: Container(
+        decoration: const BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage('assets/images/violettoblack_bg.png'),
+            fit: BoxFit.cover,
           ),
-          PopupMenuButton<String>(
-            icon: const Icon(Icons.add),
-            onSelected: (value) {
-              switch (value) {
-                case 'camera':
-                  _takePhoto();
-                  break;
-              }
-            },
-            itemBuilder: (context) => [
-              const PopupMenuItem(
-                value: 'camera',
-                child: Row(
-                  children: [
-                    Icon(Icons.camera_alt),
-                    SizedBox(width: 8),
-                    Text('Take Photo'),
+        ),
+        child: Column(
+          children: [
+            // TabBar
+            Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    const Color(0xFF2D1B69).withOpacity(0.05),
+                    const Color(0xFF1A103F).withOpacity(0.03),
                   ],
                 ),
-              ),
-            ],
-          ),
-        ],
-        bottom: TabBar(
-          controller: _tabController,
-          onTap: (index) {
-            setState(() {
-              _selectedTabIndex = index;
-            });
-          },
-          labelColor: AppColors.primary,
-          unselectedLabelColor: Theme.of(context).textTheme.bodySmall?.color,
-          indicatorColor: AppColors.primary,
-          tabs: _tabTitles.map((title) => Tab(text: title)).toList(),
-        ),
-      ),
-      body: Column(
-        children: [
-          Expanded(
-            child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : IndexedStack(
-                    index: _selectedTabIndex,
-                    children: [
-                      // Saved Images Tab
-                      _buildImageGrid(_savedImages),
-
-                      // Received Images Tab
-                      _buildReceivedImageGrid(_receivedImages),
-                    ],
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 10,
+                    offset: const Offset(0, 1),
                   ),
-          ),
-          // Banner Ad at the bottom
-          const BannerAdWidget(
-            height: 50,
-            margin: EdgeInsets.only(bottom: 8),
-          ),
-        ],
+                ],
+              ),
+              child: ClipRRect(
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+                  child: TabBar(
+                    controller: _tabController,
+                    onTap: (index) {
+                      setState(() {
+                        _selectedTabIndex = index;
+                      });
+                    },
+                    labelColor: Colors.white,
+                    unselectedLabelColor: Colors.white.withOpacity(0.6),
+                    indicatorColor: Colors.white,
+                    indicatorWeight: 3,
+                    tabs: _tabTitles.map((title) => Tab(text: title)).toList(),
+                  ),
+                ),
+              ),
+            ),
+            Expanded(
+              child: _isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : IndexedStack(
+                      index: _selectedTabIndex,
+                      children: [
+                        // Saved Images Tab
+                        _buildImageGrid(_savedImages),
+
+                        // Received Images Tab
+                        _buildReceivedImageGrid(_receivedImages),
+                      ],
+                    ),
+            ),
+            // Banner Ad at the bottom
+            const BannerAdWidget(
+              height: 50,
+              margin: EdgeInsets.only(bottom: 8),
+            ),
+          ],
+        ),
       ),
     );
   }

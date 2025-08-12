@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'dart:ui';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:provider/provider.dart';
 import 'package:screen_protector/screen_protector.dart';
@@ -868,44 +870,75 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
 
     return Scaffold(
       key: _scaffoldKey,
-      appBar: AppBar(
-        leading: IconButton(
-          icon: AnimatedBuilder(
-            animation: _drawerAnimation,
-            builder: (context, child) {
-              return Transform.rotate(
-                angle: _drawerAnimation.value * 0.5,
-                child: Icon(
-                  Icons.menu,
-                  color: theme.colorScheme.onSurface,
-                ),
-              );
-            },
-          ),
-          onPressed: () {
-            _drawerAnimationController.forward();
-            _scaffoldKey.currentState?.openDrawer();
-          },
-          tooltip: 'Menu',
-        ),
-        title: Text(
-          AppConstants.appName,
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: theme.colorScheme.onSurface,
-          ),
-        ),
-        actions: [
-          IconButton(
-            icon: Icon(
-              AppIcons.profile,
-              color: theme.colorScheme.primary,
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(kToolbarHeight),
+        child: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                const Color(0xFF2D1B69).withOpacity(0.05),
+                const Color(0xFF1A103F).withOpacity(0.03),
+              ],
             ),
-            onPressed: _navigateToProfile,
-            tooltip: 'Profile',
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 10,
+                offset: const Offset(0, 1),
+              ),
+            ],
           ),
-        ],
-        centerTitle: true,
+          child: ClipRRect(
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+              child: AppBar(
+                backgroundColor: Colors.transparent,
+                elevation: 0,
+                leading: IconButton(
+                  icon: AnimatedBuilder(
+                    animation: _drawerAnimation,
+                    builder: (context, child) {
+                      return Transform.rotate(
+                        angle: _drawerAnimation.value * 0.5,
+                        child: const Icon(
+                          Icons.menu,
+                          color: Colors.white,
+                        ),
+                      );
+                    },
+                  ),
+                  onPressed: () {
+                    _drawerAnimationController.forward();
+                    _scaffoldKey.currentState?.openDrawer();
+                  },
+                  tooltip: 'Menu',
+                ),
+                title: const Text(
+                  'Chatify',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                    fontSize: 24,
+                    letterSpacing: 1.2,
+                  ),
+                ),
+                actions: [
+                  IconButton(
+                    icon: const Icon(
+                      Icons.person,
+                      color: Colors.white,
+                    ),
+                    onPressed: _navigateToProfile,
+                    tooltip: 'Profile',
+                  ),
+                ],
+                centerTitle: true,
+              ),
+            ),
+          ),
+        ),
       ),
       drawer: _buildDrawer(context),
       onDrawerChanged: (isOpened) {
@@ -924,42 +957,61 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
       ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              const Color(0xFF2D1B69).withOpacity(0.05),
+              const Color(0xFF1A103F).withOpacity(0.03),
+            ],
+          ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.1),
+              color: Colors.black.withOpacity(0.05),
               blurRadius: 10,
-              offset: const Offset(0, -2),
+              offset: const Offset(0, -1),
             ),
           ],
         ),
-        child: BottomNavigationBar(
-          currentIndex: _currentIndex,
-          onTap: _onTabTapped,
-          type: BottomNavigationBarType.fixed,
-          backgroundColor: theme.colorScheme.surface,
-          selectedItemColor: theme.colorScheme.primary,
-          unselectedItemColor: theme.colorScheme.onSurface.withOpacity(0.6),
-          selectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600),
-          unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.normal),
-          elevation: 0,
-          items: [
-            BottomNavigationBarItem(
-              icon: Icon(AppIcons.home),
-              label: AppStrings.home,
+        child: ClipRRect(
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+            child: BottomNavigationBar(
+              currentIndex: _currentIndex,
+              onTap: _onTabTapped,
+              type: BottomNavigationBarType.fixed,
+              backgroundColor: Colors.transparent,
+              selectedItemColor: const Color(0xFFE0B0FF),
+              unselectedItemColor: Colors.white.withOpacity(0.7),
+              selectedLabelStyle: const TextStyle(
+                fontWeight: FontWeight.w600,
+                fontSize: 12,
+              ),
+              unselectedLabelStyle: const TextStyle(
+                fontWeight: FontWeight.normal,
+                fontSize: 12,
+              ),
+              elevation: 0,
+              items: [
+                BottomNavigationBarItem(
+                  icon: Icon(AppIcons.home),
+                  label: AppStrings.home,
+                ),
+                BottomNavigationBarItem(
+                  icon: Icon(AppIcons.chat),
+                  label: AppStrings.chats,
+                ),
+                BottomNavigationBarItem(
+                  icon: Icon(AppIcons.connect),
+                  label: AppStrings.connect,
+                ),
+                BottomNavigationBarItem(
+                  icon: Icon(AppIcons.media),
+                  label: AppStrings.media,
+                ),
+              ],
             ),
-            BottomNavigationBarItem(
-              icon: Icon(AppIcons.chat),
-              label: AppStrings.chats,
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(AppIcons.connect),
-              label: AppStrings.connect,
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(AppIcons.media),
-              label: AppStrings.media,
-            ),
-          ],
+          ),
         ),
       ),
     );

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:ui';
 import '../../core/constants.dart';
 import '../../widgets/banner_ad_widget.dart';
 import '../../services/premium_service.dart';
@@ -218,24 +219,30 @@ class ConnectUIComponents {
 
   static Widget buildMainScaffold(BuildContext context, ConnectStateManager stateManager) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text(AppStrings.connect),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            Expanded(
-              child: buildMainContent(context, stateManager),
-            ),
-            buildConnectButton(context, stateManager),
-            const SizedBox(height: 8),
-            // Banner Ad at the bottom
-            const BannerAdWidget(
-              height: 50,
-              margin: EdgeInsets.only(bottom: 8),
-            ),
-          ],
+      appBar: null,
+      body: Container(
+        decoration: const BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage('assets/images/violettoblack_bg.png'),
+            fit: BoxFit.cover,
+          ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            children: [
+              Expanded(
+                child: buildMainContent(context, stateManager),
+              ),
+              buildConnectButton(context, stateManager),
+              const SizedBox(height: 8),
+              // Banner Ad at the bottom
+              const BannerAdWidget(
+                height: 50,
+                margin: EdgeInsets.only(bottom: 8),
+              ),
+            ],
+          ),
         ),
       ),
     );

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:ui';
 import '../core/constants.dart';
 import '../services/api_service.dart';
 import '../models/chat.dart';
@@ -247,145 +248,172 @@ class _ChatListScreenState extends State<ChatListScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Chats'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _loadChatsData,
+      appBar: null,
+      body: Container(
+        decoration: const BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage('assets/images/violettoblack_bg.png'),
+            fit: BoxFit.cover,
           ),
-        ],
-      ),
-      body: Column(
-        children: [
-          // Search Bar
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                hintText: 'Search friends...',
-                prefixIcon: const Icon(Icons.search),
-                suffixIcon: _searchController.text.isNotEmpty
-                    ? IconButton(
-                        icon: const Icon(Icons.clear),
-                        onPressed: () {
-                          _searchController.clear();
-                        },
-                      )
-                    : null,
-                border: OutlineInputBorder(
+        ),
+        child: Column(
+          children: [
+            // Search Bar
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: Colors.white.withOpacity(0.2),
+                    width: 1,
+                  ),
                 ),
-                filled: true,
-                fillColor: Theme.of(context).colorScheme.surface,
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 12,
-                ),
-              ),
-              onChanged: (value) {
-                // The filtering is handled by the listener
-              },
-            ),
-          ),
-          Expanded(
-            child: _isLoading
-                ? const Center(
-                    child: CircularProgressIndicator(),
-                  )
-                : _errorMessage != null
-                    ? Builder(
-                        builder: (context) {
-                          final theme = Theme.of(context);
-                          return Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  Icons.error_outline,
-                                  size: 64,
-                                  color: theme.colorScheme.onSurface.withOpacity(0.4),
-                                ),
-                                const SizedBox(height: 16),
-                                Text(
-                                  _errorMessage!,
-                                  style: TextStyle(
-                                    color:
-                                        theme.colorScheme.onSurface.withOpacity(0.7),
-                                    fontSize: 16,
-                                  ),
-                                  textAlign: TextAlign.center,
-                                ),
-                                const SizedBox(height: 16),
-                                ElevatedButton(
-                                  onPressed: _loadChatsData,
-                                  child: const Text('Retry'),
-                                ),
-                              ],
+                child: TextField(
+                  controller: _searchController,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: InputDecoration(
+                    hintText: 'Search friends...',
+                    hintStyle: TextStyle(
+                      color: Colors.white.withOpacity(0.7),
+                    ),
+                    prefixIcon: Icon(
+                      Icons.search,
+                      color: Colors.white.withOpacity(0.7),
+                    ),
+                    suffixIcon: _searchController.text.isNotEmpty
+                        ? IconButton(
+                            icon: Icon(
+                              Icons.clear,
+                              color: Colors.white.withOpacity(0.7),
                             ),
-                          );
-                        },
-                      )
-                    : _filteredFriends.isEmpty
-                        ? Builder(
-                            builder: (context) {
-                              final theme = Theme.of(context);
-                              return Center(
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(
-                                      _searchController.text.isNotEmpty
-                                          ? Icons.search_off
-                                          : Icons.chat_bubble_outline,
-                                      size: 64,
-                                      color: theme.colorScheme.onSurface
-                                          .withOpacity(0.4),
-                                    ),
-                                    const SizedBox(height: 16),
-                                    Text(
-                                      _searchController.text.isNotEmpty
-                                          ? 'No friends found'
-                                          : 'No friends to chat with yet',
-                                      style: TextStyle(
-                                        color: theme.colorScheme.onSurface
-                                            .withOpacity(0.7),
-                                        fontSize: 16,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 8),
-                                    Text(
-                                      _searchController.text.isNotEmpty
-                                          ? 'Try a different search term'
-                                          : 'Add friends to start chatting!',
-                                      style: TextStyle(
-                                        color: theme.colorScheme.onSurface
-                                            .withOpacity(0.5),
-                                        fontSize: 14,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              );
+                            onPressed: () {
+                              _searchController.clear();
                             },
                           )
-                        : RefreshIndicator(
-                            onRefresh: _loadChatsData,
-                            child: ListView.builder(
-                              itemCount: _filteredFriends.length,
-                              itemBuilder: (context, index) {
-                                return _buildChatItem(_filteredFriends[index]);
+                        : null,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(
+                        color: Colors.white.withOpacity(0.3),
+                        width: 1,
+                      ),
+                    ),
+                    filled: false,
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                  ),
+                  onChanged: (value) {
+                    // The filtering is handled by the listener
+                  },
+                ),
+              ),
+            ),
+            Expanded(
+              child: _isLoading
+                  ? const Center(
+                      child: CircularProgressIndicator(),
+                    )
+                  : _errorMessage != null
+                      ? Builder(
+                          builder: (context) {
+                            final theme = Theme.of(context);
+                            return Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.error_outline,
+                                    size: 64,
+                                    color: theme.colorScheme.onSurface.withOpacity(0.4),
+                                  ),
+                                  const SizedBox(height: 16),
+                                  Text(
+                                    _errorMessage!,
+                                    style: TextStyle(
+                                      color:
+                                          theme.colorScheme.onSurface.withOpacity(0.7),
+                                      fontSize: 16,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                  const SizedBox(height: 16),
+                                  ElevatedButton(
+                                    onPressed: _loadChatsData,
+                                    child: const Text('Retry'),
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                        )
+                      : _filteredFriends.isEmpty
+                          ? Builder(
+                              builder: (context) {
+                                final theme = Theme.of(context);
+                                return Center(
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(
+                                        _searchController.text.isNotEmpty
+                                            ? Icons.search_off
+                                            : Icons.chat_bubble_outline,
+                                        size: 64,
+                                        color: theme.colorScheme.onSurface
+                                            .withOpacity(0.4),
+                                      ),
+                                      const SizedBox(height: 16),
+                                      Text(
+                                        _searchController.text.isNotEmpty
+                                            ? 'No friends found'
+                                            : 'No friends to chat with yet',
+                                        style: TextStyle(
+                                          color: theme.colorScheme.onSurface
+                                              .withOpacity(0.7),
+                                          fontSize: 16,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        _searchController.text.isNotEmpty
+                                            ? 'Try a different search term'
+                                            : 'Add friends to start chatting!',
+                                        style: TextStyle(
+                                          color: theme.colorScheme.onSurface
+                                              .withOpacity(0.5),
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                );
                               },
+                            )
+                          : RefreshIndicator(
+                              onRefresh: _loadChatsData,
+                              child: ListView.builder(
+                                itemCount: _filteredFriends.length,
+                                itemBuilder: (context, index) {
+                                  return _buildChatItem(_filteredFriends[index]);
+                                },
+                              ),
                             ),
-                          ),
-          ),
-          // Banner Ad at the bottom
-          const BannerAdWidget(
-            height: 50,
-            margin: EdgeInsets.only(bottom: 8),
-          ),
-        ],
+            ),
+            // Banner Ad at the bottom
+            const BannerAdWidget(
+              height: 50,
+              margin: EdgeInsets.only(bottom: 8),
+            ),
+          ],
+        ),
       ),
     );
   }

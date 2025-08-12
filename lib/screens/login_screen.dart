@@ -22,66 +22,24 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
+      body: Container(
+        decoration: const BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage('assets/images/violettoblack_bg.png'),
+            fit: BoxFit.cover,
+          ),
+        ),
+        child: SafeArea(
           child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // Logo and title
-              _buildHeader(),
-              const SizedBox(height: 48),
-
-              // Firebase status indicator - REMOVED FOR PRODUCTION
-              // _buildFirebaseStatus(),
-              // const SizedBox(height: 24),
-
-              // Test connection button - COMMENTED OUT FOR PRODUCTION
-              // ElevatedButton(
-              //   onPressed: _testConnection,
-              //   style: ElevatedButton.styleFrom(
-              //     backgroundColor: Colors.orange,
-              //   ),
-              //   child: Text('🔍 Test Backend Connection'),
-              // ),
-
-              // SizedBox(height: 8),
-
-              // Debug info button - COMMENTED OUT FOR PRODUCTION
-              // ElevatedButton(
-              //   onPressed: _showDebugInfo,
-              //   style: ElevatedButton.styleFrom(
-              //     backgroundColor: Colors.purple,
-              //   ),
-              //   child: Text('🔍 Show Debug Info'),
-              // ),
-
-              // SizedBox(height: 8),
-
-              // Test physical device IP button - Commented out since using deployed backend
-              // ElevatedButton(
-              //   onPressed: _testPhysicalDeviceConnection,
-              //   style: ElevatedButton.styleFrom(
-              //     backgroundColor: Colors.teal,
-              //   ),
-              //   child: Text('📱 Test Physical Device IP'),
-              // ),
-
-              // Sign in buttons
-              _buildSignInButtons(),
-              const SizedBox(height: 24),
-
-              // Or divider
-              _buildDivider(),
-              const SizedBox(height: 24),
-
-              // Guest button
-              _buildGuestButton(),
-              const SizedBox(height: 32),
-
-              // Terms and privacy
-              _buildTermsText(),
+              // Upper section with logo and welcome text
+              Expanded(
+                flex: 1,
+                child: _buildUpperSection(),
+              ),
+              
+              // Lower section with login panel
+              _buildLoginPanel(),
             ],
           ),
         ),
@@ -89,151 +47,168 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  Widget _buildHeader() {
-    return Column(
-      children: [
-        Container(
-          width: 100,
-          height: 100,
-          decoration: BoxDecoration(
-            color: AppColors.primary.withValues(alpha: 0.1),
-            shape: BoxShape.circle,
+  Widget _buildUpperSection() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          // Purple Chatify logo
+          Container(
+            width: 120,
+            height: 120,
+            child: Image.asset(
+              'assets/images/chatify_purple_logo.png',
+              fit: BoxFit.contain,
+            ),
           ),
-          child: Icon(
-            Icons.chat_bubble_outline,
-            size: 50,
-            color: AppColors.primary,
+          const SizedBox(height: 24),
+          
+          // Welcome text
+          Text(
+            'Welcome',
+            style: TextStyle(
+              fontSize: 32,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
           ),
-        ),
-        const SizedBox(height: 24),
-        Text(
-          'Welcome to ${AppConstants.appName}',
-          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: AppColors.text,
-              ),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          'Connect with people around the world',
-          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                color: Colors.grey[600],
-              ),
-          textAlign: TextAlign.center,
-        ),
-      ],
+        ],
+      ),
     );
   }
 
-  Widget _buildFirebaseStatus() {
-    final isFirebaseAvailable = _authService.isFirebaseAvailable;
-
+  Widget _buildLoginPanel() {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(12),
+      margin: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(32),
       decoration: BoxDecoration(
-        color: isFirebaseAvailable ? Colors.green[50] : Colors.orange[50],
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: isFirebaseAvailable ? Colors.green : Colors.orange,
-          width: 1,
-        ),
+        color: Colors.white.withOpacity(0.95),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
       ),
-      child: Row(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            isFirebaseAvailable ? Icons.check_circle : Icons.warning,
-            color: isFirebaseAvailable ? Colors.green : Colors.orange,
-            size: 20,
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              isFirebaseAvailable
-                  ? 'Firebase configured - All features available'
-                  : 'Firebase not configured - Limited features available',
-              style: TextStyle(
-                fontSize: 12,
-                color: isFirebaseAvailable
-                    ? Colors.green[700]
-                    : Colors.orange[700],
-                fontWeight: FontWeight.w500,
-              ),
+          // Subtitle
+          Text(
+            'Connect with people around the world',
+            style: TextStyle(
+              fontSize: 16,
+              color: Colors.grey[700],
+              fontWeight: FontWeight.w500,
             ),
+            textAlign: TextAlign.center,
           ),
+          const SizedBox(height: 32),
+
+          // Google Sign In Button
+          _buildGoogleButton(),
+          const SizedBox(height: 16),
+
+          // Apple Sign In Button (only show on iOS)
+          if (Platform.isIOS) ...[
+            _buildAppleButton(),
+            const SizedBox(height: 16),
+          ],
+
+          // Or divider
+          _buildDivider(),
+          const SizedBox(height: 16),
+
+          // Guest button
+          _buildGuestButton(),
+          const SizedBox(height: 24),
+
+          // Terms and privacy
+          _buildTermsText(),
         ],
       ),
     );
   }
 
-  Widget _buildSignInButtons() {
+  Widget _buildGoogleButton() {
     final isFirebaseAvailable = _authService.isFirebaseAvailable;
 
-    return Column(
-      children: [
-        // Google Sign In Button
-        SizedBox(
-          width: double.infinity,
-          height: 56,
-          child: ElevatedButton.icon(
-            onPressed:
-                isFirebaseAvailable && !_isLoading ? _signInWithGoogle : null,
-            icon: _isLoading
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.g_mobiledata, size: 24),
-            label: Text(isFirebaseAvailable
-                ? 'Continue with Google'
-                : 'Google (Requires Firebase)'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor:
-                  isFirebaseAvailable ? Colors.white : Colors.grey[200],
-              foregroundColor:
-                  isFirebaseAvailable ? Colors.black87 : Colors.grey[600],
-              side: BorderSide(
-                  color: isFirebaseAvailable ? Colors.grey : Colors.grey[400]!),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
+    return SizedBox(
+      width: double.infinity,
+      height: 56,
+      child: ElevatedButton.icon(
+        onPressed: isFirebaseAvailable && !_isLoading ? _signInWithGoogle : null,
+        icon: _isLoading
+            ? const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+                         : const Icon(
+                 Icons.g_mobiledata,
+                 size: 24,
+                 color: Colors.black87,
+               ),
+        label: Text(
+          isFirebaseAvailable ? 'Connect with Google' : 'Google (Requires Firebase)',
+          style: const TextStyle(
+            color: Colors.black87,
+            fontSize: 16,
+            fontWeight: FontWeight.w500,
           ),
         ),
-
-        const SizedBox(height: 16),
-
-        // Apple Sign In Button (only show on iOS)
-        if (Platform.isIOS) ...[
-          SizedBox(
-            width: double.infinity,
-            height: 56,
-            child: ElevatedButton.icon(
-              onPressed:
-                  isFirebaseAvailable && !_isLoading ? _signInWithApple : null,
-              icon: _isLoading
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.apple, size: 24),
-              label: Text(isFirebaseAvailable
-                  ? 'Continue with Apple'
-                  : 'Apple (Requires Firebase)'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor:
-                    isFirebaseAvailable ? Colors.black : Colors.grey[600],
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-            ),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.white,
+          foregroundColor: Colors.black87,
+          side: BorderSide(color: Colors.grey[300]!),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
           ),
-        ],
-      ],
+          elevation: 0,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAppleButton() {
+    final isFirebaseAvailable = _authService.isFirebaseAvailable;
+
+    return SizedBox(
+      width: double.infinity,
+      height: 56,
+      child: ElevatedButton.icon(
+        onPressed: isFirebaseAvailable && !_isLoading ? _signInWithApple : null,
+        icon: _isLoading
+            ? const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : const Icon(
+                Icons.apple,
+                size: 24,
+                color: Colors.white,
+              ),
+        label: Text(
+          isFirebaseAvailable ? 'Connect with Apple' : 'Apple (Requires Firebase)',
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 16,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.black,
+          foregroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          elevation: 0,
+        ),
+      ),
     );
   }
 
@@ -245,7 +220,10 @@ class _LoginScreenState extends State<LoginScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Text(
             'or',
-            style: TextStyle(color: Colors.grey[600]),
+            style: TextStyle(
+              color: Colors.grey[600],
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ),
         Expanded(child: Divider(color: Colors.grey[300])),
@@ -257,7 +235,7 @@ class _LoginScreenState extends State<LoginScreen> {
     return SizedBox(
       width: double.infinity,
       height: 56,
-      child: OutlinedButton.icon(
+      child: ElevatedButton.icon(
         onPressed: _isLoading ? null : _signInAsGuest,
         icon: _isLoading
             ? const SizedBox(
@@ -265,14 +243,25 @@ class _LoginScreenState extends State<LoginScreen> {
                 height: 20,
                 child: CircularProgressIndicator(strokeWidth: 2),
               )
-            : const Icon(Icons.person_outline),
-        label: const Text('Continue as Guest'),
-        style: OutlinedButton.styleFrom(
-          foregroundColor: AppColors.primary,
-          side: BorderSide(color: AppColors.primary),
+            : const Icon(
+                Icons.person_outline,
+                color: Colors.white,
+              ),
+        label: const Text(
+          'Continue as Guest',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 16,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: const Color(0xFF6B46C1), // Purple color
+          foregroundColor: Colors.white,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
+          elevation: 0,
         ),
       ),
     );
@@ -281,9 +270,11 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget _buildTermsText() {
     return Text(
       'By continuing, you agree to our Terms of Service and Privacy Policy',
-      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-            color: Colors.grey[600],
-          ),
+      style: TextStyle(
+        fontSize: 12,
+        color: Colors.grey[600],
+        height: 1.4,
+      ),
       textAlign: TextAlign.center,
     );
   }
