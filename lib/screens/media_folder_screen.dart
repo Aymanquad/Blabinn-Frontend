@@ -871,30 +871,16 @@ class _MediaFolderScreenState extends State<MediaFolderScreen>
             fit: BoxFit.cover,
           ),
         ),
-        child: Column(
-          children: [
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(0, 100, 0, 100), // Increased padding for transparent bars
+          child: Column(
+            children: [
             // TabBar
-            Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    const Color(0xFF2D1B69).withOpacity(0.05),
-                    const Color(0xFF1A103F).withOpacity(0.03),
-                  ],
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
-                    blurRadius: 10,
-                    offset: const Offset(0, 1),
-                  ),
-                ],
-              ),
-              child: ClipRRect(
-                child: BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+            ClipRRect(
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+                child: Container(
+                  color: Colors.transparent,
                   child: TabBar(
                     controller: _tabController,
                     onTap: (index) {
@@ -902,9 +888,9 @@ class _MediaFolderScreenState extends State<MediaFolderScreen>
                         _selectedTabIndex = index;
                       });
                     },
-                    labelColor: Colors.white,
-                    unselectedLabelColor: Colors.white.withOpacity(0.6),
-                    indicatorColor: Colors.white,
+                    labelColor: Colors.white.withOpacity(0.85),
+                    unselectedLabelColor: Colors.white.withOpacity(0.55),
+                    indicatorColor: Colors.white.withOpacity(0.85),
                     indicatorWeight: 3,
                     tabs: _tabTitles.map((title) => Tab(text: title)).toList(),
                   ),
@@ -931,6 +917,7 @@ class _MediaFolderScreenState extends State<MediaFolderScreen>
               margin: EdgeInsets.only(bottom: 8),
             ),
           ],
+        ),
         ),
       ),
     );

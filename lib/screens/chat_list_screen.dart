@@ -256,8 +256,10 @@ class _ChatListScreenState extends State<ChatListScreen> {
             fit: BoxFit.cover,
           ),
         ),
-        child: Column(
-          children: [
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(0, 120, 0, 100), // Extra top padding for search bar visibility
+          child: Column(
+            children: [
             // Search Bar
             Padding(
               padding: const EdgeInsets.all(16.0),
@@ -413,6 +415,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
               margin: EdgeInsets.only(bottom: 8),
             ),
           ],
+        ),
         ),
       ),
     );

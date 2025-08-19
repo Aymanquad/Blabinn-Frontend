@@ -870,29 +870,15 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
 
     return Scaffold(
       key: _scaffoldKey,
+      extendBody: true,
+      extendBodyBehindAppBar: true,
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(kToolbarHeight),
-        child: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [
-                const Color(0xFF2D1B69).withOpacity(0.05),
-                const Color(0xFF1A103F).withOpacity(0.03),
-              ],
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 10,
-                offset: const Offset(0, 1),
-              ),
-            ],
-          ),
-          child: ClipRRect(
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+        child: ClipRRect(
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+            child: Container(
+              color: Colors.transparent,
               child: AppBar(
                 backgroundColor: Colors.transparent,
                 elevation: 0,
@@ -902,9 +888,9 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
                     builder: (context, child) {
                       return Transform.rotate(
                         angle: _drawerAnimation.value * 0.5,
-                        child: const Icon(
+                        child: Icon(
                           Icons.menu,
-                          color: Colors.white,
+                          color: Colors.white.withOpacity(0.85),
                         ),
                       );
                     },
@@ -915,20 +901,20 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
                   },
                   tooltip: 'Menu',
                 ),
-                title: const Text(
+                title: Text(
                   'Chatify',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
-                    color: Colors.white,
+                    color: Colors.white.withOpacity(0.9),
                     fontSize: 24,
                     letterSpacing: 1.2,
                   ),
                 ),
                 actions: [
                   IconButton(
-                    icon: const Icon(
+                    icon: Icon(
                       Icons.person,
-                      color: Colors.white,
+                      color: Colors.white.withOpacity(0.85),
                     ),
                     onPressed: _navigateToProfile,
                     tooltip: 'Profile',
@@ -955,34 +941,24 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
         },
         children: _screens,
       ),
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              const Color(0xFF2D1B69).withOpacity(0.05),
-              const Color(0xFF1A103F).withOpacity(0.03),
-            ],
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 10,
-              offset: const Offset(0, -1),
-            ),
-          ],
-        ),
-        child: ClipRRect(
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+      bottomNavigationBar: ClipRRect(
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+          child: Container(
+            color: Colors.transparent,
             child: BottomNavigationBar(
               currentIndex: _currentIndex,
               onTap: _onTabTapped,
               type: BottomNavigationBarType.fixed,
               backgroundColor: Colors.transparent,
-              selectedItemColor: const Color(0xFFE0B0FF),
-              unselectedItemColor: Colors.white.withOpacity(0.7),
+              selectedIconTheme: IconThemeData(
+                color: const Color(0xFFE0B0FF).withOpacity(0.85),
+              ),
+              unselectedIconTheme: IconThemeData(
+                color: Colors.white.withOpacity(0.55),
+              ),
+              selectedItemColor: const Color(0xFFE0B0FF).withOpacity(0.85),
+              unselectedItemColor: Colors.white.withOpacity(0.55),
               selectedLabelStyle: const TextStyle(
                 fontWeight: FontWeight.w600,
                 fontSize: 12,

@@ -228,7 +228,7 @@ class ConnectUIComponents {
           ),
         ),
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.fromLTRB(16, 100, 16, 100), // Increased padding for transparent bars
           child: Column(
             children: [
               Expanded(
