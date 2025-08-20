@@ -202,17 +202,38 @@ class _PrivacySettingsScreenState extends State<PrivacySettingsScreen> {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Colors.white.withOpacity(0.08),
+            Colors.white.withOpacity(0.03),
+          ],
+        ),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: Theme.of(context).dividerColor.withOpacity(0.3),
+          color: Colors.white.withOpacity(0.1),
         ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: ListTile(
         leading: Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: (iconColor ?? AppColors.primary).withOpacity(0.1),
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                (iconColor ?? AppColors.primary).withOpacity(0.2),
+                (iconColor ?? AppColors.primary).withOpacity(0.1),
+              ],
+            ),
             borderRadius: BorderRadius.circular(8),
           ),
           child: Icon(
@@ -226,13 +247,14 @@ class _PrivacySettingsScreenState extends State<PrivacySettingsScreen> {
           style: const TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w600,
+            color: Colors.white,
           ),
         ),
         subtitle: Text(
           subtitle,
           style: TextStyle(
             fontSize: 14,
-            color: Theme.of(context).textTheme.bodySmall?.color,
+            color: Colors.white.withOpacity(0.7),
           ),
         ),
         trailing: trailing,
@@ -245,11 +267,25 @@ class _PrivacySettingsScreenState extends State<PrivacySettingsScreen> {
   Widget _buildBlockedUsersList() {
     return Container(
       decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Colors.white.withOpacity(0.08),
+            Colors.white.withOpacity(0.03),
+          ],
+        ),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: Theme.of(context).dividerColor.withOpacity(0.3),
+          color: Colors.white.withOpacity(0.1),
         ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
         children: [
@@ -259,7 +295,7 @@ class _PrivacySettingsScreenState extends State<PrivacySettingsScreen> {
             decoration: BoxDecoration(
               border: Border(
                 bottom: BorderSide(
-                  color: Theme.of(context).dividerColor.withOpacity(0.3),
+                  color: Colors.white.withOpacity(0.1),
                 ),
               ),
             ),
@@ -268,7 +304,14 @@ class _PrivacySettingsScreenState extends State<PrivacySettingsScreen> {
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: AppColors.error.withOpacity(0.1),
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        AppColors.error.withOpacity(0.2),
+                        AppColors.error.withOpacity(0.1),
+                      ],
+                    ),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Icon(
@@ -287,13 +330,14 @@ class _PrivacySettingsScreenState extends State<PrivacySettingsScreen> {
                         style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
+                          color: Colors.white,
                         ),
                       ),
                       Text(
                         '${_blockedUsers.length} users blocked',
                         style: TextStyle(
                           fontSize: 14,
-                          color: Theme.of(context).textTheme.bodySmall?.color,
+                          color: Colors.white.withOpacity(0.7),
                         ),
                       ),
                     ],
@@ -407,13 +451,41 @@ class _PrivacySettingsScreenState extends State<PrivacySettingsScreen> {
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         foregroundColor: Theme.of(context).textTheme.titleLarge?.color,
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
+      body: Stack(
+        children: [
+          Positioned.fill(
+            child: Container(
+              decoration: const BoxDecoration(
+                image: DecorationImage(
+                  image: AssetImage('assets/images/violettoblack_bg.png'),
+                  fit: BoxFit.cover,
+                ),
+              ),
+            ),
+          ),
+          Positioned.fill(
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.black.withOpacity(0.10),
+                    Colors.transparent,
+                    Colors.black.withOpacity(0.18),
+                  ],
+                  stops: const [0, 0.5, 1],
+                ),
+              ),
+            ),
+          ),
+          _isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : SingleChildScrollView(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
                   // Header Section
                   Container(
                     width: double.infinity,
@@ -505,7 +577,9 @@ class _PrivacySettingsScreenState extends State<PrivacySettingsScreen> {
                   _buildBlockedUsersList(),
                 ],
               ),
-            ),
+                ),
+        ],
+      ),
     );
   }
 } 

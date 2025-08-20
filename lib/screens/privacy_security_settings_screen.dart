@@ -20,7 +20,35 @@ class PrivacySecuritySettingsScreen extends StatelessWidget {
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         foregroundColor: Theme.of(context).textTheme.titleLarge?.color,
       ),
-      body: SingleChildScrollView(
+      body: Stack(
+        children: [
+          Positioned.fill(
+            child: Container(
+              decoration: const BoxDecoration(
+                image: DecorationImage(
+                  image: AssetImage('assets/images/violettoblack_bg.png'),
+                  fit: BoxFit.cover,
+                ),
+              ),
+            ),
+          ),
+          Positioned.fill(
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.black.withOpacity(0.10),
+                    Colors.transparent,
+                    Colors.black.withOpacity(0.18),
+                  ],
+                  stops: const [0, 0.5, 1],
+                ),
+              ),
+            ),
+          ),
+          SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -76,11 +104,27 @@ class PrivacySecuritySettingsScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 12),
-            Card(
-              color: cardColor,
-              elevation: 0,
-              shape: RoundedRectangleBorder(
+            Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Colors.white.withOpacity(0.08),
+                    Colors.white.withOpacity(0.03),
+                  ],
+                ),
                 borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: Colors.white.withOpacity(0.1),
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
               ),
               child: Padding(
                 padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
@@ -89,31 +133,31 @@ class PrivacySecuritySettingsScreen extends StatelessWidget {
                     ListTile(
                       leading: Icon(Icons.block, color: iconColor),
                       title: Text('No screenshots or screen recordings are allowed in chat for your safety.',
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: textColor)),
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.white)),
                     ),
-                    Divider(),
+                    Divider(color: Colors.white.withOpacity(0.1)),
                     ListTile(
                       leading: Icon(Icons.lock, color: iconColor),
                       title: Text('Your data is encrypted and stored securely.',
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: textColor)),
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.white)),
                     ),
-                    Divider(),
+                    Divider(color: Colors.white.withOpacity(0.1)),
                     ListTile(
                       leading: Icon(Icons.verified_user, color: iconColor),
                       title: Text('We do not share your personal information with third parties.',
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: textColor)),
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.white)),
                     ),
-                    Divider(),
+                    Divider(color: Colors.white.withOpacity(0.1)),
                     ListTile(
                       leading: Icon(Icons.settings, color: iconColor),
                       title: Text('You are always in control of your privacy settings.',
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: textColor)),
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.white)),
                     ),
-                    Divider(),
+                    Divider(color: Colors.white.withOpacity(0.1)),
                     ListTile(
                       leading: Icon(Icons.info_outline, color: iconColor),
                       title: Text('For more details, see our Privacy Policy.',
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: textColor)),
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.white)),
                     ),
                   ],
                 ),
@@ -121,6 +165,8 @@ class PrivacySecuritySettingsScreen extends StatelessWidget {
             ),
           ],
         ),
+      ),
+        ],
       ),
     );
   }

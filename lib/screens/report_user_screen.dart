@@ -117,10 +117,51 @@ class _ReportUserScreenState extends State<ReportUserScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Report User'),
-        backgroundColor: AppColors.primary,
+        backgroundColor: Colors.transparent,
+        elevation: 0,
         foregroundColor: Colors.white,
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                Colors.black.withOpacity(0.35),
+                Colors.transparent,
+              ],
+            ),
+          ),
+        ),
       ),
-      body: SingleChildScrollView(
+      body: Stack(
+        children: [
+          Positioned.fill(
+            child: Container(
+              decoration: const BoxDecoration(
+                image: DecorationImage(
+                  image: AssetImage('assets/images/general_overlay.png'),
+                  fit: BoxFit.cover,
+                ),
+              ),
+            ),
+          ),
+          Positioned.fill(
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.black.withOpacity(0.10),
+                    Colors.transparent,
+                    Colors.black.withOpacity(0.18),
+                  ],
+                  stops: const [0, 0.5, 1],
+                ),
+              ),
+            ),
+          ),
+          SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -361,6 +402,8 @@ class _ReportUserScreenState extends State<ReportUserScreen> {
             ),
           ],
         ),
+      ),
+        ],
       ),
     );
   }

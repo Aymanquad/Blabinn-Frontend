@@ -20,7 +20,35 @@ class HelpSupportSettingsScreen extends StatelessWidget {
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         foregroundColor: Theme.of(context).textTheme.titleLarge?.color,
       ),
-      body: SingleChildScrollView(
+      body: Stack(
+        children: [
+          Positioned.fill(
+            child: Container(
+              decoration: const BoxDecoration(
+                image: DecorationImage(
+                  image: AssetImage('assets/images/violettoblack_bg.png'),
+                  fit: BoxFit.cover,
+                ),
+              ),
+            ),
+          ),
+          Positioned.fill(
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.black.withOpacity(0.10),
+                    Colors.transparent,
+                    Colors.black.withOpacity(0.18),
+                  ],
+                  stops: const [0, 0.5, 1],
+                ),
+              ),
+            ),
+          ),
+          SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -76,11 +104,27 @@ class HelpSupportSettingsScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 12),
-            Card(
-              color: cardColor,
-              elevation: 0,
-              shape: RoundedRectangleBorder(
+            Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Colors.white.withOpacity(0.08),
+                    Colors.white.withOpacity(0.03),
+                  ],
+                ),
                 borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: Colors.white.withOpacity(0.1),
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
               ),
               child: Padding(
                 padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
@@ -89,25 +133,25 @@ class HelpSupportSettingsScreen extends StatelessWidget {
                     ListTile(
                       leading: Icon(Icons.email, color: iconColor),
                       title: Text('For any questions or issues, please contact our support team at support@chatify.com.',
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: textColor)),
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.white)),
                     ),
-                    Divider(),
+                    Divider(color: Colors.white.withOpacity(0.1)),
                     ListTile(
                       leading: Icon(Icons.question_answer, color: iconColor),
                       title: Text('Check our FAQ section in the app or on our website for quick answers.',
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: textColor)),
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.white)),
                     ),
-                    Divider(),
+                    Divider(color: Colors.white.withOpacity(0.1)),
                     ListTile(
                       leading: Icon(Icons.feedback, color: iconColor),
                       title: Text('We value your feedback and are always working to improve your experience.',
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: textColor)),
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.white)),
                     ),
-                    Divider(),
+                    Divider(color: Colors.white.withOpacity(0.1)),
                     ListTile(
                       leading: Icon(Icons.favorite, color: iconColor),
                       title: Text('Thank you for being a part of the Chatify community!',
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: textColor)),
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.white)),
                     ),
                   ],
                 ),
@@ -115,6 +159,8 @@ class HelpSupportSettingsScreen extends StatelessWidget {
             ),
           ],
         ),
+      ),
+        ],
       ),
     );
   }

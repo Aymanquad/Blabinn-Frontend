@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
 import '../core/constants.dart';
-import '../services/api_service.dart';
 
 class DataStorageScreen extends StatefulWidget {
   const DataStorageScreen({super.key});
@@ -11,7 +10,6 @@ class DataStorageScreen extends StatefulWidget {
 }
 
 class _DataStorageScreenState extends State<DataStorageScreen> {
-  final ApiService _apiService = ApiService();
   bool _isLoading = false;
   
   // Storage data
@@ -260,17 +258,38 @@ class _DataStorageScreenState extends State<DataStorageScreen> {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: backgroundColor ?? Theme.of(context).cardColor,
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Colors.white.withOpacity(0.08),
+            Colors.white.withOpacity(0.03),
+          ],
+        ),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: Theme.of(context).dividerColor.withOpacity(0.3),
+          color: Colors.white.withOpacity(0.1),
         ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: ListTile(
         leading: Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: (iconColor ?? AppColors.primary).withOpacity(0.1),
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                (iconColor ?? AppColors.primary).withOpacity(0.2),
+                (iconColor ?? AppColors.primary).withOpacity(0.1),
+              ],
+            ),
             borderRadius: BorderRadius.circular(8),
           ),
           child: Icon(
@@ -284,19 +303,20 @@ class _DataStorageScreenState extends State<DataStorageScreen> {
           style: const TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w600,
+            color: Colors.white,
           ),
         ),
         subtitle: Text(
           subtitle,
           style: TextStyle(
             fontSize: 14,
-            color: Theme.of(context).textTheme.bodySmall?.color,
+            color: Colors.white.withOpacity(0.7),
           ),
         ),
         trailing: Icon(
           Icons.arrow_forward_ios,
           size: 16,
-          color: Theme.of(context).textTheme.bodySmall?.color,
+          color: Colors.white.withOpacity(0.7),
         ),
         onTap: onPressed,
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -390,13 +410,41 @@ class _DataStorageScreenState extends State<DataStorageScreen> {
           ),
         ],
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
+      body: Stack(
+        children: [
+          Positioned.fill(
+            child: Container(
+              decoration: const BoxDecoration(
+                image: DecorationImage(
+                  image: AssetImage('assets/images/violettoblack_bg.png'),
+                  fit: BoxFit.cover,
+                ),
+              ),
+            ),
+          ),
+          Positioned.fill(
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.black.withOpacity(0.10),
+                    Colors.transparent,
+                    Colors.black.withOpacity(0.18),
+                  ],
+                  stops: const [0, 0.5, 1],
+                ),
+              ),
+            ),
+          ),
+          _isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : SingleChildScrollView(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
                   // Storage Overview
                   _buildStorageOverview(),
                   const SizedBox(height: 24),
@@ -520,7 +568,9 @@ class _DataStorageScreenState extends State<DataStorageScreen> {
                   ),
                 ],
               ),
-            ),
+                ),
+        ],
+      ),
     );
   }
 } 

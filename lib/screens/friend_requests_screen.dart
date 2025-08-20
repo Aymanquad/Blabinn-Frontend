@@ -205,14 +205,24 @@ class _FriendRequestsScreenState extends State<FriendRequestsScreen>
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.grey[50],
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      Colors.white.withOpacity(0.08),
+                      Colors.white.withOpacity(0.03),
+                    ],
+                  ),
                   borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: Colors.white.withOpacity(0.1),
+                  ),
                 ),
                 child: Text(
                   request['message'],
                   style: TextStyle(
                     fontSize: 14,
-                    color: Colors.grey[700],
+                    color: Colors.white.withOpacity(0.8),
                   ),
                 ),
               ),
@@ -373,22 +383,29 @@ class _FriendRequestsScreenState extends State<FriendRequestsScreen>
             fontWeight: FontWeight.bold,
           ),
         ),
-        backgroundColor: AppColors.darkPrimary, // Use violet background
-        foregroundColor: AppColors.darkText, // Use soft cream for text/icons
+        backgroundColor: Colors.transparent,
         elevation: 0,
-        iconTheme: const IconThemeData(
-          color: AppColors.darkText, // Ensure back button is visible
+        foregroundColor: Colors.white,
+        iconTheme: const IconThemeData(color: Colors.white),
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                Colors.black.withOpacity(0.35),
+                Colors.transparent,
+              ],
+            ),
+          ),
         ),
-        titleTextStyle: const TextStyle(
-          color: AppColors.darkText,
-          fontSize: 20,
-          fontWeight: FontWeight.bold,
-        ),
+        titleTextStyle:
+            const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
         bottom: TabBar(
           controller: _tabController,
-          labelColor: Colors.white, // Use white for selected tabs on violet background
-          unselectedLabelColor: Colors.white70, // Use slightly transparent white for unselected
-          indicatorColor: Colors.white, // Use white indicator
+          labelColor: Colors.white,
+          unselectedLabelColor: Colors.white70,
+          indicatorColor: Colors.white,
           tabs: [
             Tab(
               child: Row(
@@ -413,11 +430,41 @@ class _FriendRequestsScreenState extends State<FriendRequestsScreen>
           ],
         ),
       ),
-      body: TabBarView(
-        controller: _tabController,
+      body: Stack(
         children: [
-          _buildTabContent(_incomingRequests, true),
-          _buildTabContent(_outgoingRequests, false),
+          Positioned.fill(
+            child: Container(
+              decoration: const BoxDecoration(
+                image: DecorationImage(
+                  image: AssetImage('assets/images/violettoblack_bg.png'),
+                  fit: BoxFit.cover,
+                ),
+              ),
+            ),
+          ),
+          Positioned.fill(
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.black.withOpacity(0.10),
+                    Colors.transparent,
+                    Colors.black.withOpacity(0.18),
+                  ],
+                  stops: const [0, 0.5, 1],
+                ),
+              ),
+            ),
+          ),
+          TabBarView(
+            controller: _tabController,
+            children: [
+              _buildTabContent(_incomingRequests, true),
+              _buildTabContent(_outgoingRequests, false),
+            ],
+          ),
         ],
       ),
     );

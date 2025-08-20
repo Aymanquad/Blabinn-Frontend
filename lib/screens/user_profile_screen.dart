@@ -539,12 +539,26 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Colors.white.withOpacity(0.08),
+            Colors.white.withOpacity(0.03),
+          ],
+        ),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: theme.colorScheme.onSurface.withOpacity(0.1),
+          color: Colors.white.withOpacity(0.1),
           width: 1,
         ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -596,12 +610,26 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Colors.white.withOpacity(0.08),
+            Colors.white.withOpacity(0.03),
+          ],
+        ),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: theme.colorScheme.onSurface.withOpacity(0.1),
+          color: Colors.white.withOpacity(0.1),
           width: 1,
         ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -680,12 +708,26 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Colors.white.withOpacity(0.08),
+            Colors.white.withOpacity(0.03),
+          ],
+        ),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: theme.colorScheme.onSurface.withOpacity(0.1),
+          color: Colors.white.withOpacity(0.1),
           width: 1,
         ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -804,12 +846,26 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Colors.white.withOpacity(0.08),
+            Colors.white.withOpacity(0.03),
+          ],
+        ),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: theme.colorScheme.onSurface.withOpacity(0.1),
+          color: Colors.white.withOpacity(0.1),
           width: 1,
         ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -957,71 +1013,102 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                 ),
             ],
           ),
-          body: _isLoading
-              ? Center(
+          body: Stack(
+            children: [
+              Positioned.fill(
+                child: Container(
+                  decoration: const BoxDecoration(
+                    image: DecorationImage(
+                      image: AssetImage('assets/images/violettoblack_bg.png'),
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                ),
+              ),
+              Positioned.fill(
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.black.withOpacity(0.12),
+                        Colors.transparent,
+                        Colors.black.withOpacity(0.20),
+                      ],
+                      stops: const [0, 0.5, 1],
+                    ),
+                  ),
+                ),
+              ),
+              if (_isLoading)
+                Center(
                   child: CircularProgressIndicator(
-                    color:
-                        isDarkMode ? AppColors.darkPrimary : AppColors.primary,
+                    color: isDarkMode
+                        ? AppColors.darkPrimary
+                        : AppColors.primary,
                   ),
                 )
-              : _errorMessage != null
-                  ? Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.error_outline,
-                            size: 64,
-                            color: Colors.red.withOpacity(0.6),
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            'Error',
-                            style: theme.textTheme.headlineSmall?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            _errorMessage!,
-                            style: TextStyle(
-                              color:
-                                  theme.colorScheme.onSurface.withOpacity(0.7),
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                          const SizedBox(height: 16),
-                          ElevatedButton(
-                            onPressed: _loadUserProfile,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: isDarkMode
-                                  ? AppColors.darkPrimary
-                                  : AppColors.primary,
-                              foregroundColor: Colors.white,
-                            ),
-                            child: const Text('Try Again'),
-                          ),
-                        ],
+              else if (_errorMessage != null)
+                Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.error_outline,
+                        size: 64,
+                        color: Colors.red.withOpacity(0.6),
                       ),
-                    )
-                  : SingleChildScrollView(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _buildProfileHeader(isDarkMode),
-                          const SizedBox(height: 20),
-                          _buildBioSection(isDarkMode),
-                          const SizedBox(height: 20),
-                          _buildInterestsSection(isDarkMode),
-                          const SizedBox(height: 20),
-                          _buildGallerySection(isDarkMode),
-                          const SizedBox(height: 20),
-                          _buildProfileDetails(isDarkMode),
-                          const SizedBox(height: 20), // Bottom padding
-                        ],
+                      const SizedBox(height: 16),
+                      Text(
+                        'Error',
+                        style: theme.textTheme.headlineSmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
-                    ),
+                      const SizedBox(height: 8),
+                      Text(
+                        _errorMessage!,
+                        style: TextStyle(
+                          color: theme.colorScheme.onSurface.withOpacity(0.7),
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 16),
+                      ElevatedButton(
+                        onPressed: _loadUserProfile,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: isDarkMode
+                              ? AppColors.darkPrimary
+                              : AppColors.primary,
+                          foregroundColor: Colors.white,
+                        ),
+                        child: const Text('Try Again'),
+                      ),
+                    ],
+                  ),
+                )
+              else
+                SingleChildScrollView(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildProfileHeader(isDarkMode),
+                      const SizedBox(height: 20),
+                      _buildBioSection(isDarkMode),
+                      const SizedBox(height: 20),
+                      _buildInterestsSection(isDarkMode),
+                      const SizedBox(height: 20),
+                      _buildGallerySection(isDarkMode),
+                      const SizedBox(height: 20),
+                      _buildProfileDetails(isDarkMode),
+                      const SizedBox(height: 20),
+                    ],
+                  ),
+                ),
+            ],
+          ),
         );
       },
     );

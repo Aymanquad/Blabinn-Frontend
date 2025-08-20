@@ -1397,30 +1397,63 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
             ),
           ],
         ),
-        body: Column(
+        body: Stack(
           children: [
-            Expanded(
-              child: _isLoading
-                  ? const Center(child: CircularProgressIndicator())
-                  : (_messages.isEmpty
-                      ? ChatUIComponents.buildEmptyState(context)
-                      : ChatUIComponents.buildMessageList(
-                          context,
-                          _messages,
-                          _currentUserId,
-                          _hasMoreMessages,
-                          _isLoadingEarlier,
-                          _loadEarlierMessages,
-                          _scrollController,
-                          firstUnreadMessageIndex: _firstUnreadMessageIndex,
-                          hasUnreadMessages: _hasUnreadMessages,
-                          unreadCount: _unreadCount,
-                          onChatTap: _onChatTap,
-                          onUnreadIndicatorTap: _scrollToNewerMessages,
-                          unreadIndicatorKey: _unreadIndicatorKey,
-                        )),
+            if (widget.chat.isFriendChat) ...[
+              Positioned.fill(
+                child: Container(
+                  decoration: const BoxDecoration(
+                    image: DecorationImage(
+                      image: AssetImage('assets/images/general_overlay.png'),
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                ),
+              ),
+              // Subtle gradient to enhance readability over the background
+              Positioned.fill(
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.black.withOpacity(0.20),
+                        Colors.transparent,
+                        Colors.black.withOpacity(0.28),
+                      ],
+                      stops: const [0.0, 0.5, 1.0],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+            Column(
+              children: [
+                Expanded(
+                  child: _isLoading
+                      ? const Center(child: CircularProgressIndicator())
+                      : (_messages.isEmpty
+                          ? ChatUIComponents.buildEmptyState(context)
+                          : ChatUIComponents.buildMessageList(
+                              context,
+                              _messages,
+                              _currentUserId,
+                              _hasMoreMessages,
+                              _isLoadingEarlier,
+                              _loadEarlierMessages,
+                              _scrollController,
+                              firstUnreadMessageIndex: _firstUnreadMessageIndex,
+                              hasUnreadMessages: _hasUnreadMessages,
+                              unreadCount: _unreadCount,
+                              onChatTap: _onChatTap,
+                              onUnreadIndicatorTap: _scrollToNewerMessages,
+                              unreadIndicatorKey: _unreadIndicatorKey,
+                            )),
+                ),
+                _buildMessageInput(),
+              ],
             ),
-            _buildMessageInput(),
           ],
         ),
         floatingActionButton: _showScrollToBottomButton

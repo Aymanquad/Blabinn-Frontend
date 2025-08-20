@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import '../core/constants.dart';
 import '../services/api_service.dart';
-import '../models/user.dart';
-import '../widgets/profile_card.dart';
 
 class SearchScreen extends StatefulWidget {
   const SearchScreen({super.key});
@@ -337,7 +335,7 @@ class _SearchScreenState extends State<SearchScreen> {
                     '@${user['username'] ?? 'unknown'}',
                     style: TextStyle(
                       fontSize: 14,
-                      color: Colors.grey[600],
+                      color: Colors.white.withOpacity(0.7),
                     ),
                   ),
                   if (user['bio'] != null && user['bio'].isNotEmpty) ...[
@@ -346,7 +344,7 @@ class _SearchScreenState extends State<SearchScreen> {
                       user['bio'],
                       style: TextStyle(
                         fontSize: 12,
-                        color: Colors.grey[500],
+                        color: Colors.white.withOpacity(0.6),
                       ),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
@@ -458,23 +456,59 @@ class _SearchScreenState extends State<SearchScreen> {
             fontWeight: FontWeight.bold,
           ),
         ),
-        backgroundColor: AppColors.darkPrimary, // Use violet background
-        foregroundColor: AppColors.darkText, // Use soft cream for text/icons
+        backgroundColor: Colors.transparent,
         elevation: 0,
-        iconTheme: const IconThemeData(
-          color: AppColors.darkText, // Ensure back button is visible
+        foregroundColor: Colors.white,
+        iconTheme: const IconThemeData(color: Colors.white),
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                Colors.black.withOpacity(0.35),
+                Colors.transparent,
+              ],
+            ),
+          ),
         ),
-        titleTextStyle: const TextStyle(
-          color: AppColors.darkText,
-          fontSize: 20,
-          fontWeight: FontWeight.bold,
-        ),
+        titleTextStyle: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
       ),
-      body: Column(
+      body: Stack(
         children: [
-          _buildSearchBar(),
-          Expanded(
-            child: _buildSearchResults(),
+          Positioned.fill(
+            child: Container(
+              decoration: const BoxDecoration(
+                image: DecorationImage(
+                  image: AssetImage('assets/images/violettoblack_bg.png'),
+                  fit: BoxFit.cover,
+                ),
+              ),
+            ),
+          ),
+          Positioned.fill(
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.black.withOpacity(0.10),
+                    Colors.transparent,
+                    Colors.black.withOpacity(0.18),
+                  ],
+                  stops: const [0, 0.5, 1],
+                ),
+              ),
+            ),
+          ),
+          Column(
+            children: [
+              _buildSearchBar(),
+              Expanded(
+                child: _buildSearchResults(),
+              ),
+            ],
           ),
         ],
       ),

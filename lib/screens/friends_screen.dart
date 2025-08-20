@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import '../core/constants.dart';
 import '../services/api_service.dart';
-import '../providers/theme_provider.dart';
 import '../models/chat.dart';
 import '../screens/chat_screen.dart';
 
@@ -336,6 +334,22 @@ class _FriendsScreenState extends State<FriendsScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('My Friends'),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        foregroundColor: Colors.white,
+        iconTheme: const IconThemeData(color: Colors.white),
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                Colors.black.withOpacity(0.35),
+                Colors.transparent,
+              ],
+            ),
+          ),
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
@@ -344,7 +358,35 @@ class _FriendsScreenState extends State<FriendsScreen> {
           ),
         ],
       ),
-      body: Column(
+      body: Stack(
+        children: [
+          Positioned.fill(
+            child: Container(
+              decoration: const BoxDecoration(
+                image: DecorationImage(
+                  image: AssetImage('assets/images/violettoblack_bg.png'),
+                  fit: BoxFit.cover,
+                ),
+              ),
+            ),
+          ),
+          Positioned.fill(
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.black.withOpacity(0.10),
+                    Colors.transparent,
+                    Colors.black.withOpacity(0.18),
+                  ],
+                  stops: const [0, 0.5, 1],
+                ),
+              ),
+            ),
+          ),
+          Column(
         children: [
           // Search Bar
           Padding(
@@ -366,7 +408,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 filled: true,
-                fillColor: Theme.of(context).colorScheme.surface,
+                fillColor: Colors.white.withOpacity(0.1),
                 contentPadding: const EdgeInsets.symmetric(
                   horizontal: 16,
                   vertical: 12,
@@ -475,6 +517,8 @@ class _FriendsScreenState extends State<FriendsScreen> {
                         },
                       ),
                     ),
+          ),
+        ],
           ),
         ],
       ),

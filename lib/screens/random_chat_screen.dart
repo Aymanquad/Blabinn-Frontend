@@ -4,7 +4,6 @@ import '../core/constants.dart';
 import '../services/socket_service.dart';
 import '../services/api_service.dart';
 import '../services/chat_moderation_service.dart';
-import '../widgets/banner_ad_widget.dart';
 import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart' as FirebaseAuth;
 import '../utils/html_decoder.dart';
@@ -639,21 +638,7 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
     }
   }
 
-  void _forceCleanup() {
-    print('🧹 [RANDOM CHAT DEBUG] Performing force cleanup');
-
-    // Stop all timers
-    _stopHeartbeat();
-
-    // Try to leave chat room with timeout
-    _leaveChatRoom();
-
-    // Try to stop random connection as fallback with timeout
-    _stopRandomConnection();
-
-    // Try API cleanup as final fallback with timeout
-    _clearActiveSession();
-  }
+  // Note: _forceCleanup method removed (unused)
 
   void _startSessionTimeout() {
     // Remove the aggressive timeout that was causing false errors
@@ -677,8 +662,21 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
         appBar: AppBar(
           title: const Text('Random Chat'),
           centerTitle: true,
-          backgroundColor: isDark ? AppColors.darkPrimary : AppColors.primary,
+          backgroundColor: Colors.transparent,
+          elevation: 0,
           foregroundColor: Colors.white,
+          flexibleSpace: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Colors.black.withOpacity(0.35),
+                  Colors.transparent,
+                ],
+              ),
+            ),
+          ),
           automaticallyImplyLeading: false, // Disable default back button
           leading: IconButton(
             icon: const Icon(Icons.exit_to_app),
@@ -707,7 +705,35 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
             ),
           ],
         ),
-        body: Column(
+        body: Stack(
+          children: [
+            Positioned.fill(
+              child: Container(
+                decoration: const BoxDecoration(
+                  image: DecorationImage(
+                    image: AssetImage('assets/images/violettoblack_bg.png'),
+                    fit: BoxFit.cover,
+                  ),
+                ),
+              ),
+            ),
+            Positioned.fill(
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.black.withOpacity(0.10),
+                      Colors.transparent,
+                      Colors.black.withOpacity(0.18),
+                    ],
+                    stops: const [0, 0.5, 1],
+                  ),
+                ),
+              ),
+            ),
+            Column(
           children: [
             // Session info banner
             Container(
@@ -894,6 +920,8 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
                   ],
                 ),
               ),
+          ],
+        ),
           ],
         ),
       ),

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import '../core/constants.dart';
 import '../services/api_service.dart';
 import '../models/chat.dart';
-import '../models/report.dart';
 import 'chat_screen.dart';
 import 'report_user_screen.dart';
 
@@ -220,8 +219,29 @@ class _FriendsListScreenState extends State<FriendsListScreen> {
     final profilePicture = friend['profilePicture'] as String?;
     final bio = friend['bio'] as String?;
 
-    return Card(
+    return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Colors.white.withOpacity(0.08),
+            Colors.white.withOpacity(0.03),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: Colors.white.withOpacity(0.1),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Row(
@@ -252,6 +272,7 @@ class _FriendsListScreenState extends State<FriendsListScreen> {
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
+                      color: Colors.white,
                     ),
                   ),
                   if (bio != null && bio.isNotEmpty) ...[
@@ -260,7 +281,7 @@ class _FriendsListScreenState extends State<FriendsListScreen> {
                       bio,
                       style: TextStyle(
                         fontSize: 14,
-                        color: Colors.grey[600],
+                        color: Colors.white.withOpacity(0.7),
                       ),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
@@ -373,6 +394,22 @@ class _FriendsListScreenState extends State<FriendsListScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Friends'),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        foregroundColor: Colors.white,
+        iconTheme: const IconThemeData(color: Colors.white),
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                Colors.black.withOpacity(0.35),
+                Colors.transparent,
+              ],
+            ),
+          ),
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
@@ -380,8 +417,36 @@ class _FriendsListScreenState extends State<FriendsListScreen> {
           ),
         ],
       ),
-      body: Column(
+      body: Stack(
         children: [
+          Positioned.fill(
+            child: Container(
+              decoration: const BoxDecoration(
+                image: DecorationImage(
+                  image: AssetImage('assets/images/violettoblack_bg.png'),
+                  fit: BoxFit.cover,
+                ),
+              ),
+            ),
+          ),
+          Positioned.fill(
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.black.withOpacity(0.10),
+                    Colors.transparent,
+                    Colors.black.withOpacity(0.18),
+                  ],
+                  stops: const [0, 0.5, 1],
+                ),
+              ),
+            ),
+          ),
+          Column(
+            children: [
           // Search Bar
           Padding(
             padding: const EdgeInsets.all(16.0),
@@ -402,7 +467,7 @@ class _FriendsListScreenState extends State<FriendsListScreen> {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 filled: true,
-                fillColor: Theme.of(context).colorScheme.surface,
+                fillColor: Colors.white.withOpacity(0.1),
                 contentPadding: const EdgeInsets.symmetric(
                   horizontal: 16,
                   vertical: 12,
@@ -426,13 +491,13 @@ class _FriendsListScreenState extends State<FriendsListScreen> {
                       Icon(
                         Icons.error_outline,
                         size: 64,
-                        color: Colors.grey[400],
+                        color: Colors.white.withOpacity(0.6),
                       ),
                       const SizedBox(height: 16),
                       Text(
                         _errorMessage!,
                         style: TextStyle(
-                          color: Colors.grey[600],
+                          color: Colors.white.withOpacity(0.8),
                           fontSize: 16,
                         ),
                         textAlign: TextAlign.center,
@@ -455,7 +520,7 @@ class _FriendsListScreenState extends State<FriendsListScreen> {
                                 ? Icons.search_off
                                 : Icons.people_outline,
                             size: 64,
-                            color: Colors.grey[400],
+                            color: Colors.white.withOpacity(0.6),
                           ),
                           const SizedBox(height: 16),
                           Text(
@@ -463,7 +528,7 @@ class _FriendsListScreenState extends State<FriendsListScreen> {
                                 ? 'No friends found'
                                 : 'No friends yet',
                             style: TextStyle(
-                              color: Colors.grey[600],
+                              color: Colors.white.withOpacity(0.8),
                               fontSize: 16,
                             ),
                           ),
@@ -473,7 +538,7 @@ class _FriendsListScreenState extends State<FriendsListScreen> {
                                 ? 'Try a different search term'
                                 : 'Start connecting with people to build your friends list!',
                             style: TextStyle(
-                              color: Colors.grey[500],
+                              color: Colors.white.withOpacity(0.6),
                               fontSize: 14,
                             ),
                             textAlign: TextAlign.center,
@@ -490,6 +555,8 @@ class _FriendsListScreenState extends State<FriendsListScreen> {
                         },
                       ),
                     ),
+          ),
+        ],
           ),
         ],
       ),

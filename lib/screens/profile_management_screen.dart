@@ -1,15 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:provider/provider.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'dart:io';
-import 'dart:io' show Platform;
 import '../core/constants.dart';
 import '../models/user.dart';
 import '../services/auth_service.dart';
 import '../services/api_service.dart';
-import '../services/premium_service.dart';
-import '../providers/user_provider.dart';
 import '../widgets/simple_image_cropper.dart';
 import '../utils/permission_helper.dart';
 
@@ -25,7 +20,7 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
   final _formKey = GlobalKey<FormState>();
   final _authService = AuthService();
   final _apiService = ApiService();
-  final _imagePicker = ImagePicker();
+  // Remove unused instance; we create pickers inline where needed
 
   // Form controllers
   final _displayNameController = TextEditingController();
@@ -128,7 +123,7 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
   Future<void> _loadExistingProfile() async {
     try {
       final responseData = await _apiService.getMyProfile();
-      if (responseData != null && responseData['profile'] != null) {
+      if (responseData['profile'] != null) {
         setState(() {
           _hasExistingProfile = true;
           _populateFormFromProfile(responseData['profile']);
@@ -250,8 +245,21 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Complete Your Profile'),
-        backgroundColor: Theme.of(context).colorScheme.primary,
+        backgroundColor: Colors.transparent,
+        elevation: 0,
         foregroundColor: Colors.white,
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                Colors.black.withOpacity(0.35),
+                Colors.transparent,
+              ],
+            ),
+          ),
+        ),
         automaticallyImplyLeading:
             _hasExistingProfile, // Show back button for existing users
         leading: _hasExistingProfile
@@ -261,9 +269,37 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
               )
             : null,
       ),
-      body: _currentUser == null
-          ? const Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
+      body: Stack(
+        children: [
+          Positioned.fill(
+            child: Container(
+              decoration: const BoxDecoration(
+                image: DecorationImage(
+                  image: AssetImage('assets/images/general_overlay.png'),
+                  fit: BoxFit.cover,
+                ),
+              ),
+            ),
+          ),
+          Positioned.fill(
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.black.withOpacity(0.10),
+                    Colors.transparent,
+                    Colors.black.withOpacity(0.18),
+                  ],
+                  stops: const [0, 0.5, 1],
+                ),
+              ),
+            ),
+          ),
+          _currentUser == null
+              ? const Center(child: CircularProgressIndicator())
+              : SingleChildScrollView(
               padding: const EdgeInsets.all(16),
               child: Form(
                 key: _formKey,
@@ -371,6 +407,8 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
                 ),
               ),
             ),
+        ],
+      ),
     );
   }
 
@@ -656,7 +694,7 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
 
       //print('🔄 [PROFILE DEBUG] Creating profile with data: $profileData');
 
-      final result = await _apiService.createProfile(profileData);
+      await _apiService.createProfile(profileData);
 
       // Upload profile picture if selected
       if (_profilePicture != null) {
@@ -755,7 +793,7 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
       print(
           '🔄 [PROFILE DEBUG] Existing gallery images count: ${_existingGalleryImages.length}');
 
-      final result = await _apiService.updateProfile(profileData);
+      await _apiService.updateProfile(profileData);
 
       // print('✅ [PROFILE DEBUG] Profile update result: $result');
 
@@ -799,19 +837,7 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
     }
   }
 
-  void _clearForm() {
-    _displayNameController.clear();
-    _usernameController.clear();
-    _bioController.clear();
-    _ageController.clear(); // Clear age field
-    setState(() {
-      _selectedGender = 'male'; // Reset to male instead of prefer-not-to-say
-      _interests.clear();
-      _profilePicture = null;
-      _existingProfilePictureUrl = null;
-      _galleryImages.clear();
-    });
-  }
+  // _clearForm removed (unused)
 
   Widget _buildProfilePictureSection() {
     return Column(
