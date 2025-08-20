@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../screens/premium_purchase_screen.dart';
 
 /// Premium Popup Widget
 /// Shows a gold-themed popup when non-premium users try to access premium features
@@ -152,23 +153,25 @@ class PremiumPopup extends StatelessWidget {
 
                   const SizedBox(height: 20),
 
-                  // Price
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: const Text(
-                      'Only ₹1,500',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
+                                     // Price or Credits Info
+                   Container(
+                     padding:
+                         const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                     decoration: BoxDecoration(
+                       color: Colors.white.withOpacity(0.2),
+                       borderRadius: BorderRadius.circular(20),
+                     ),
+                     child: Text(
+                       description.contains('credits') 
+                         ? 'Buy Credits to Continue' 
+                         : 'Only ₹1,500',
+                       style: const TextStyle(
+                         fontSize: 18,
+                         fontWeight: FontWeight.bold,
+                         color: Colors.white,
+                       ),
+                     ),
+                   ),
                 ],
               ),
             ),
@@ -209,7 +212,12 @@ class PremiumPopup extends StatelessWidget {
                       onPressed: onBuyPremium ??
                           () {
                             Navigator.of(context).pop();
-                            // TODO: Navigate to payment screen
+                            // Navigate to premium purchase screen
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (context) => const PremiumPurchaseScreen(),
+                              ),
+                            );
                           },
                       style: ElevatedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 12),
@@ -219,14 +227,14 @@ class PremiumPopup extends StatelessWidget {
                           borderRadius: BorderRadius.circular(25),
                         ),
                       ),
-                      child: const Text(
-                        'Buy Premium',
-                        style: TextStyle(
-                          color: Color(0xFFFFB347),
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+                                             child: Text(
+                         description.contains('credits') ? 'Buy Credits' : 'Buy Premium',
+                         style: const TextStyle(
+                           color: Color(0xFFFFB347),
+                           fontSize: 16,
+                           fontWeight: FontWeight.bold,
+                         ),
+                       ),
                     ),
                   ),
                 ],
@@ -265,7 +273,6 @@ class PremiumPopup extends StatelessWidget {
   }
 
   /// Show premium popup dialog
-  /// PREMIUM POPUP DISABLED FOR TESTING - DOES NOTHING
   static Future<void> show({
     required BuildContext context,
     required String feature,
@@ -273,11 +280,6 @@ class PremiumPopup extends StatelessWidget {
     VoidCallback? onBuyPremium,
     VoidCallback? onCancel,
   }) {
-    // PREMIUM POPUP DISABLED FOR TESTING - JUST RETURN
-    // print('🔧 DEBUG: Premium popup disabled for testing - feature: $feature');
-    return Future.value();
-
-    /* ORIGINAL PREMIUM POPUP CODE - COMMENTED OUT FOR TESTING
     return showDialog(
       context: context,
       barrierDismissible: false,
@@ -288,6 +290,5 @@ class PremiumPopup extends StatelessWidget {
         onCancel: onCancel,
       ),
     );
-    */
   }
 }

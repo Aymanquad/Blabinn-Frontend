@@ -12,6 +12,7 @@ class User {
   final bool isOnline;
   final DateTime? lastSeen;
   final bool isPremium;
+  final int credits; // Credits for in-app purchases
   final DateTime createdAt;
   final DateTime updatedAt;
   final bool isBlocked;
@@ -34,6 +35,7 @@ class User {
     this.isOnline = false,
     this.lastSeen,
     this.isPremium = false,
+    this.credits = 50, // Default credits for new users
     required this.createdAt,
     required this.updatedAt,
     this.isBlocked = false,
@@ -57,6 +59,7 @@ class User {
     bool? isOnline,
     DateTime? lastSeen,
     bool? isPremium,
+    int? credits,
     DateTime? createdAt,
     DateTime? updatedAt,
     bool? isBlocked,
@@ -79,6 +82,7 @@ class User {
       isOnline: isOnline ?? this.isOnline,
       lastSeen: lastSeen ?? this.lastSeen,
       isPremium: isPremium ?? this.isPremium,
+      credits: credits ?? this.credits,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       isBlocked: isBlocked ?? this.isBlocked,
@@ -101,10 +105,11 @@ class User {
       'location': location,
       'latitude': latitude,
       'longitude': longitude,
-      'isOnline': isOnline,
-      'lastSeen': lastSeen?.toIso8601String(),
-      'isPremium': isPremium,
-      'createdAt': createdAt.toIso8601String(),
+             'isOnline': isOnline,
+       'lastSeen': lastSeen?.toIso8601String(),
+       'isPremium': isPremium,
+       'credits': credits,
+       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt.toIso8601String(),
       'isBlocked': isBlocked,
       'isFriend': isFriend,
@@ -230,10 +235,11 @@ class User {
         location: json['location'] as String?,
         latitude: json['latitude'] as double?,
         longitude: json['longitude'] as double?,
-        isOnline: json['isOnline'] as bool? ?? false,
-        lastSeen: lastSeenDate,
-        isPremium: json['isPremium'] as bool? ?? false,
-        createdAt: createdAtDate,
+                 isOnline: json['isOnline'] as bool? ?? false,
+         lastSeen: lastSeenDate,
+         isPremium: json['isPremium'] as bool? ?? false,
+         credits: json['credits'] as int? ?? 50, // Default 50 credits for all users
+         createdAt: createdAtDate,
         updatedAt: updatedAtDate,
         isBlocked: json['isBlocked'] as bool? ?? false,
         isFriend: json['isFriend'] as bool? ?? false,

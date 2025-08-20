@@ -281,6 +281,23 @@ class ApiService {
     return List<String>.from(data['interests'] ?? []);
   }
 
+  // Billing / Credits endpoints
+  Future<Map<String, dynamic>> getCreditBalance() async {
+    final response = await _get('/billing/credits/balance');
+    return _handleResponse(response);
+  }
+
+  Future<Map<String, dynamic>> spendCredits({
+    required int amount,
+    required String feature,
+  }) async {
+    final response = await _post('/billing/credits/spend', {
+      'amount': amount,
+      'feature': feature,
+    });
+    return _handleResponse(response);
+  }
+
   // Clear invalid interests for existing users
   Future<Map<String, dynamic>> clearInvalidInterests() async {
     final response = await _put('/profiles/me', {'interests': []});

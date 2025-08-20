@@ -31,6 +31,7 @@ import 'screens/random_chat_screen.dart'; // Added import for RandomChatScreen
 import 'screens/test_interstitial_screen.dart';
 import 'widgets/interstitial_ad_manager.dart';
 import 'services/global_matching_service.dart';
+import 'widgets/credits_display.dart';
 
 // Global navigator key for navigation from anywhere
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
@@ -911,6 +912,13 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
                   ),
                 ),
                 actions: [
+                  // Credits Display
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    child: Center(
+                      child: CreditsDisplaySmall(),
+                    ),
+                  ),
                   IconButton(
                     icon: Icon(
                       Icons.person,

@@ -24,8 +24,24 @@ class UserProvider with ChangeNotifier {
   Future<void> initialize() async {
     await _authService.initialize();
     await _loadCurrentUser();
+    await _syncCreditsFromServer();
     await _loadFriends();
     await _loadBlockedUsers();
+  }
+
+  // Sync credits from backend so credits persist across restarts
+  Future<void> _syncCreditsFromServer() async {
+    if (_currentUser == null) return;
+    try {
+      final data = await _apiService.getCreditBalance();
+      final serverCredits = (data['credits'] as int?) ?? _currentUser!.credits;
+      if (_currentUser!.credits != serverCredits) {
+        _currentUser = _currentUser!.copyWith(credits: serverCredits);
+        notifyListeners();
+      }
+    } catch (e) {
+      // Ignore silently; do not block app init
+    }
   }
 
   // Load current user
@@ -73,6 +89,7 @@ class UserProvider with ChangeNotifier {
     try {
       final result = await _authService.login(email, password);
       _currentUser = result.user;
+      await _syncCreditsFromServer();
       await _loadFriends();
       await _loadBlockedUsers();
       clearError();
@@ -92,6 +109,7 @@ class UserProvider with ChangeNotifier {
     try {
       final result = await _authService.register(username, email, password);
       _currentUser = result.user;
+      await _syncCreditsFromServer();
       clearError();
       notifyListeners();
       return true;
@@ -109,6 +127,7 @@ class UserProvider with ChangeNotifier {
     try {
       final result = await _authService.loginAsGuest();
       _currentUser = result.user;
+      await _syncCreditsFromServer();
       clearError();
       notifyListeners();
       return true;
@@ -197,6 +216,12 @@ class UserProvider with ChangeNotifier {
       setError('Failed to unblock user: $e');
       return false;
     }
+  }
+
+  // Update current user (for local updates like credits)
+  void updateCurrentUser(User updatedUser) {
+    _currentUser = updatedUser;
+    notifyListeners();
   }
 
   // Check if user is blocked

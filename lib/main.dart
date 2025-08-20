@@ -6,6 +6,7 @@ import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'app.dart';
 import 'services/background_image_service.dart';
 import 'services/ad_service.dart';
+import 'services/billing_service.dart';
 import 'utils/ad_debug_helper.dart';
 
 // Background message handler
@@ -62,6 +63,16 @@ void main() async {
     // print('❌ DEBUG: AdMob initialization failed: $e');
     // print('⚠️ DEBUG: Running without AdMob - ads will not be displayed');
     // print('💡 DEBUG: Make sure you have internet connection and valid AdMob IDs');
+  }
+
+  // Initialize Billing Service
+  try {
+    // print('🔍 DEBUG: Initializing Billing Service...');
+    await billingService.initialize();
+    // print('✅ DEBUG: Billing Service initialized successfully');
+  } catch (e) {
+    // print('❌ DEBUG: Billing Service initialization failed: $e');
+    // print('⚠️ DEBUG: Running without billing - purchases will not work');
   }
 
   runApp(const ChatApp());
