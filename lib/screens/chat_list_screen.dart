@@ -3,7 +3,6 @@ import 'dart:ui';
 import '../core/constants.dart';
 import '../services/api_service.dart';
 import '../models/chat.dart';
-import '../models/user.dart';
 import '../widgets/banner_ad_widget.dart';
 import 'chat_screen.dart';
 
@@ -20,7 +19,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
 
   List<Map<String, dynamic>> _friends = [];
   List<Map<String, dynamic>> _filteredFriends = [];
-  List<Map<String, dynamic>> _chatRooms = [];
+  // List<Map<String, dynamic>> _chatRooms = [];
   Map<String, int> _unreadCounts = {};
   bool _isLoading = false;
   String? _errorMessage;
@@ -71,7 +70,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
         setState(() {
           _friends = results[0] as List<Map<String, dynamic>>;
           _filteredFriends = List.from(_friends);
-          _chatRooms = results[1] as List<Map<String, dynamic>>;
+          // _chatRooms = results[1] as List<Map<String, dynamic>>;
           final unreadResponse = results[2] as Map<String, dynamic>;
           _unreadCounts =
               Map<String, int>.from(unreadResponse['unreadBySender'] ?? {});
@@ -145,7 +144,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
     final lastMessageTime = friend['lastMessageTime'] as String?;
 
     return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 1),
       child: ListTile(
         leading: Stack(
           children: [
@@ -257,12 +256,12 @@ class _ChatListScreenState extends State<ChatListScreen> {
           ),
         ),
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(0, 120, 0, 100), // Extra top padding for search bar visibility
+          padding: const EdgeInsets.fromLTRB(0, 120, 0, 72), // Restore top spacing; we'll tighten space below the search bar
           child: Column(
             children: [
             // Search Bar
             Padding(
-              padding: const EdgeInsets.all(16.0),
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
               child: Container(
                 decoration: BoxDecoration(
                   color: Colors.white.withOpacity(0.1),
@@ -402,6 +401,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
                           : RefreshIndicator(
                               onRefresh: _loadChatsData,
                               child: ListView.builder(
+                                padding: EdgeInsets.zero,
                                 itemCount: _filteredFriends.length,
                                 itemBuilder: (context, index) {
                                   return _buildChatItem(_filteredFriends[index]);
