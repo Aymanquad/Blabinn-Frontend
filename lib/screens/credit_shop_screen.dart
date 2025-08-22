@@ -1,11 +1,80 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:in_app_purchase/in_app_purchase.dart';
 import '../services/api_service.dart';
+import '../services/billing_service.dart';
 import '../providers/user_provider.dart';
 import '../models/user.dart';
 
-class CreditShopScreen extends StatelessWidget {
+class CreditShopScreen extends StatefulWidget {
   const CreditShopScreen({super.key});
+
+  @override
+  State<CreditShopScreen> createState() => _CreditShopScreenState();
+}
+
+class _CreditShopScreenState extends State<CreditShopScreen> {
+  final BillingService _billingService = BillingService();
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeBilling();
+    _listenToPurchases();
+  }
+
+  void _listenToPurchases() {
+    _billingService.purchaseStream.listen((purchaseDetails) {
+      if (purchaseDetails.status == PurchaseStatus.purchased ||
+          purchaseDetails.status == PurchaseStatus.restored) {
+        _handleSuccessfulPurchase(purchaseDetails);
+      }
+    });
+  }
+
+  Future<void> _handleSuccessfulPurchase(PurchaseDetails purchaseDetails) async {
+    try {
+      final userProvider = Provider.of<UserProvider>(context, listen: false);
+      
+      // Refresh user data from server
+      final api = ApiService();
+      final profile = await api.getMyProfile();
+      if (profile['profile'] != null) {
+        userProvider.updateCurrentUser(User.fromJson(profile['profile']));
+      }
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Successfully purchased ${purchaseDetails.productID}!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Purchase successful but failed to update profile: $e'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _initializeBilling() async {
+    await _billingService.initialize();
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
+  @override
+  void dispose() {
+    _billingService.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -15,54 +84,104 @@ class CreditShopScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text('Credit Shop'),
         centerTitle: true,
+        actions: [
+          if (_billingService.isAvailable)
+            IconButton(
+              icon: const Icon(Icons.restore),
+              onPressed: () async {
+                await _billingService.restorePurchases();
+              },
+              tooltip: 'Restore Purchases',
+            ),
+        ],
       ),
       body: SafeArea(
         bottom: true,
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 120),
-          children: [
-            _HeaderBalance(),
-            const SizedBox(height: 16),
-            _SectionHeader(title: 'Buy Credits'),
-            const SizedBox(height: 8),
-            // Credit bundles in increasing order
-            _CreditBundleCard(title: '70 credits', price: '₹49', productId: 'credits_70'),
-            _CreditBundleCard(
-              title: '150 credits',
-              price: '₹99',
-              productId: 'credits_150',
-              isMostPopular: true,
-            ),
-            _CreditBundleCard(title: '400 credits', price: '₹249', productId: 'credits_400'),
-            _CreditBundleCard(title: '900 credits', price: '₹499', productId: 'credits_900'),
-            _CreditBundleCard(title: '2000 credits', price: '₹999', productId: 'credits_2000'),
-            const SizedBox(height: 24),
-            _SectionHeader(title: 'Premium Plans'),
-            const SizedBox(height: 8),
-                         _PremiumPlanCard(
-               title: 'Monthly Premium',
-               subtitle: '120 daily credits + media folder + unlimited image sending to friends + ads-free experience',
-               price: '₹299/month',
-               productId: 'premium_monthly',
-               gradient: LinearGradient(colors: [
-                 theme.colorScheme.primary.withOpacity(0.15),
-                 theme.colorScheme.tertiary.withOpacity(0.08),
-               ]),
-             ),
-             _PremiumPlanCard(
-               title: 'Yearly Premium',
-               subtitle: '300 daily credits + media folder + unlimited image sending to friends + ads-free experience',
-               price: '₹2499/year',
-               productId: 'premium_yearly',
-               gradient: LinearGradient(colors: [
-                 theme.colorScheme.secondary.withOpacity(0.15),
-                 theme.colorScheme.primary.withOpacity(0.08),
-               ]),
-             ),
-          ],
-        ),
+        child: _billingService.loading
+            ? const Center(child: CircularProgressIndicator())
+            : _billingService.queryProductError != null
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.error_outline, size: 64, color: Colors.red),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Error loading products',
+                          style: theme.textTheme.headlineSmall,
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          _billingService.queryProductError!,
+                          textAlign: TextAlign.center,
+                          style: theme.textTheme.bodyMedium?.copyWith(color: Colors.grey),
+                        ),
+                      ],
+                    ),
+                  )
+                : ListView(
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 120),
+                    children: [
+                      _HeaderBalance(),
+                      const SizedBox(height: 16),
+                      _SectionHeader(title: 'Buy Credits'),
+                      const SizedBox(height: 8),
+                      // Credit bundles from billing service
+                      ..._buildCreditBundles(),
+                      const SizedBox(height: 24),
+                      _SectionHeader(title: 'Premium Plans'),
+                      const SizedBox(height: 8),
+                      ..._buildPremiumPlans(theme),
+                    ],
+                  ),
       ),
     );
+  }
+
+  List<Widget> _buildCreditBundles() {
+    final creditProducts = _billingService.products
+        .where((product) => product.id.startsWith('credits_'))
+        .toList()
+      ..sort((a, b) {
+        // Extract credit amount and sort
+        final aCredits = int.tryParse(a.id.replaceAll('credits_', '')) ?? 0;
+        final bCredits = int.tryParse(b.id.replaceAll('credits_', '')) ?? 0;
+        return aCredits.compareTo(bCredits);
+      });
+
+    return creditProducts.map((product) {
+      final isMostPopular = product.id == 'credits_150';
+      return _CreditBundleCard(
+        title: '${product.id.replaceAll('credits_', '')} credits',
+        price: product.price,
+        productId: product.id,
+        isMostPopular: isMostPopular,
+        billingService: _billingService,
+      );
+    }).toList();
+  }
+
+  List<Widget> _buildPremiumPlans(ThemeData theme) {
+    final premiumProducts = _billingService.products
+        .where((product) => product.id.startsWith('premium_'))
+        .toList();
+
+    return premiumProducts.map((product) {
+      final isMonthly = product.id == 'premium_monthly';
+      return _PremiumPlanCard(
+        title: isMonthly ? 'Monthly Premium' : 'Yearly Premium',
+        subtitle: isMonthly 
+            ? '120 daily credits + media folder + unlimited image sending to friends + ads-free experience'
+            : '300 daily credits + media folder + unlimited image sending to friends + ads-free experience',
+        price: product.price,
+        productId: product.id,
+        gradient: LinearGradient(colors: [
+          theme.colorScheme.primary.withOpacity(0.15),
+          theme.colorScheme.tertiary.withOpacity(0.08),
+        ]),
+        billingService: _billingService,
+      );
+    }).toList();
   }
 }
 
@@ -156,7 +275,14 @@ class _CreditBundleCard extends StatefulWidget {
   final String price;
   final String productId;
   final bool isMostPopular;
-  const _CreditBundleCard({required this.title, required this.price, required this.productId, this.isMostPopular = false});
+  final BillingService billingService;
+  const _CreditBundleCard({
+    required this.title, 
+    required this.price, 
+    required this.productId, 
+    this.isMostPopular = false,
+    required this.billingService,
+  });
 
   @override
   State<_CreditBundleCard> createState() => _CreditBundleCardState();
@@ -169,22 +295,16 @@ class _CreditBundleCardState extends State<_CreditBundleCard> {
     if (_loading) return;
     setState(() => _loading = true);
     try {
-      final api = ApiService();
-      await api.verifyPurchase(
-        platform: Theme.of(context).platform == TargetPlatform.iOS ? 'ios' : 'android',
-        productId: widget.productId,
-        purchaseType: 'consumable',
-      );
-      // Refresh credits from server
-      final balance = await api.getCreditBalance();
-      final userProvider = Provider.of<UserProvider>(context, listen: false);
-      if (userProvider.currentUser != null) {
-        final newCredits = (balance['credits'] as int?) ?? userProvider.currentUser!.credits;
-        userProvider.updateCurrentUser(userProvider.currentUser!.copyWith(credits: newCredits));
-      }
+      // Find the product in billing service
+      final product = widget.billingService.products
+          .firstWhere((p) => p.id == widget.productId);
+      
+      // Initiate purchase through billing service
+      await widget.billingService.buyProduct(product);
+      
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Purchased ${widget.title}')), 
+          SnackBar(content: Text('Purchase initiated for ${widget.title}')), 
         );
       }
     } catch (e) {
@@ -278,7 +398,15 @@ class _PremiumPlanCard extends StatefulWidget {
   final String price;
   final String productId;
   final Gradient? gradient;
-  const _PremiumPlanCard({required this.title, required this.subtitle, required this.price, required this.productId, this.gradient});
+  final BillingService billingService;
+  const _PremiumPlanCard({
+    required this.title, 
+    required this.subtitle, 
+    required this.price, 
+    required this.productId, 
+    this.gradient,
+    required this.billingService,
+  });
 
   @override
   State<_PremiumPlanCard> createState() => _PremiumPlanCardState();
@@ -287,38 +415,26 @@ class _PremiumPlanCard extends StatefulWidget {
 class _PremiumPlanCardState extends State<_PremiumPlanCard> {
   bool _loading = false;
 
-  Future<void> _buy() async {
+    Future<void> _buy() async {
     if (_loading) return;
     setState(() => _loading = true);
     try {
-      final api = ApiService();
-      await api.verifyPurchase(
-        platform: Theme.of(context).platform == TargetPlatform.iOS ? 'ios' : 'android',
-        productId: widget.productId,
-        purchaseType: 'subscription',
-      );
-             // Refresh profile
-       final userProvider = Provider.of<UserProvider>(context, listen: false);
-       try {
-         final profile = await api.getMyProfile();
-         if (profile['profile'] != null) {
-           userProvider.updateCurrentUser(User.fromJson(profile['profile']));
-         } else if (userProvider.currentUser != null) {
-           userProvider.updateCurrentUser(userProvider.currentUser!.copyWith(
-             isPremium: true,
-             adsFree: true, // Enable ads-free for premium users
-           ));
-         }
-       } catch (_) {}
+      // Find the product in billing service
+      final product = widget.billingService.products
+          .firstWhere((p) => p.id == widget.productId);
+      
+      // Initiate purchase through billing service
+      await widget.billingService.buyProduct(product);
+      
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Activated ${widget.title}')), 
+          SnackBar(content: Text('Purchase initiated for ${widget.title}')), 
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Activation failed: $e')),
+          SnackBar(content: Text('Purchase failed: $e')),
         );
       }
     } finally {

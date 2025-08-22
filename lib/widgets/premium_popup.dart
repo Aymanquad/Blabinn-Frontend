@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../screens/premium_purchase_screen.dart';
+import '../screens/credit_shop_screen.dart';
 
 /// Premium Popup Widget
 /// Shows a gold-themed popup when non-premium users try to access premium features
@@ -215,7 +215,7 @@ class PremiumPopup extends StatelessWidget {
                             // Navigate to premium purchase screen
                             Navigator.of(context).push(
                               MaterialPageRoute(
-                                builder: (context) => const PremiumPurchaseScreen(),
+                                builder: (context) => const CreditShopScreen(),
                               ),
                             );
                           },

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/user.dart';
 import '../widgets/premium_popup.dart';
 import '../providers/user_provider.dart';
-import '../screens/premium_purchase_screen.dart';
+import '../screens/credit_shop_screen.dart';
 import '../services/api_service.dart';
 import 'package:provider/provider.dart';
 
@@ -256,11 +256,11 @@ class PremiumService {
     }
   }
 
-  /// Navigate to premium purchase screen
+  /// Navigate to credit shop screen
   static void navigateToPremiumPurchase(BuildContext context) {
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (context) => const PremiumPurchaseScreen(),
+        builder: (context) => const CreditShopScreen(),
       ),
     );
   }

@@ -6,7 +6,7 @@ import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'app.dart';
 import 'services/background_image_service.dart';
 import 'services/ad_service.dart';
-import 'services/billing_service.dart';
+
 import 'utils/ad_debug_helper.dart';
 
 // Background message handler
@@ -68,8 +68,8 @@ void main() async {
   // Initialize Billing Service
   try {
     // print('🔍 DEBUG: Initializing Billing Service...');
-    await billingService.initialize();
-    // print('✅ DEBUG: Billing Service initialized successfully');
+    // Billing service is now initialized per screen, not globally
+    // print('✅ DEBUG: Billing Service will be initialized when needed');
   } catch (e) {
     // print('❌ DEBUG: Billing Service initialization failed: $e');
     // print('⚠️ DEBUG: Running without billing - purchases will not work');
