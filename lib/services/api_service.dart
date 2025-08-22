@@ -2,12 +2,10 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import '../core/constants.dart';
+// Removed unused imports
 import '../core/config.dart';
 import '../models/user.dart';
-import '../models/chat.dart';
-import '../models/message.dart';
+// Removed unused imports
 import 'firebase_auth_service.dart';
 
 class ApiService {
@@ -287,6 +285,11 @@ class ApiService {
     return _handleResponse(response);
   }
 
+  Future<Map<String, dynamic>> claimDailyCredits() async {
+    final response = await _post('/billing/credits/claim-daily', {});
+    return _handleResponse(response);
+  }
+
   Future<Map<String, dynamic>> spendCredits({
     required int amount,
     required String feature,
@@ -294,6 +297,24 @@ class ApiService {
     final response = await _post('/billing/credits/spend', {
       'amount': amount,
       'feature': feature,
+    });
+    return _handleResponse(response);
+  }
+
+  // Billing verification (simulated backend verification)
+  Future<Map<String, dynamic>> verifyPurchase({
+    required String platform, // 'android' | 'ios'
+    required String productId, // e.g. credits_70, premium_monthly
+    required String purchaseType, // 'consumable' | 'subscription'
+    String? purchaseToken,
+    String? orderId,
+  }) async {
+    final response = await _post('/billing/verify', {
+      'platform': platform,
+      'productId': productId,
+      'purchaseToken': purchaseToken ?? 'mock_token_${DateTime.now().millisecondsSinceEpoch}',
+      'purchaseType': purchaseType,
+      'orderId': orderId ?? 'mock_order_${DateTime.now().millisecondsSinceEpoch}',
     });
     return _handleResponse(response);
   }

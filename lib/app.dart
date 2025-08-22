@@ -32,6 +32,8 @@ import 'screens/test_interstitial_screen.dart';
 import 'widgets/interstitial_ad_manager.dart';
 import 'services/global_matching_service.dart';
 import 'widgets/credits_display.dart';
+import 'screens/credit_shop_screen.dart';
+import 'services/api_service.dart';
 
 // Global navigator key for navigation from anywhere
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
@@ -321,10 +323,12 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
     _setupInAppNotificationListener();
     _initializeAnimations();
     _initializeGlobalMatchingService();
+    _claimDailyCreditsIfNeeded();
     _screens = [
       HomeScreen(onNavigateToTab: _onTabTapped),
       const ChatListScreen(),
       const ConnectScreen(),
+      const CreditShopScreen(),
       const MediaFolderScreen(),
     ];
   }
@@ -496,61 +500,41 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
     );
   }
 
+  Future<void> _claimDailyCreditsIfNeeded() async {
+    try {
+      // Wait until first frame to ensure context/providers are ready
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        final userProvider = Provider.of<UserProvider>(context, listen: false);
+        if (userProvider.currentUser == null) return;
+        try {
+          final api = ApiService();
+          final result = await api.claimDailyCredits();
+          final awarded = (result['awarded'] as int?) ?? 0;
+          final credits = (result['credits'] as int?) ?? userProvider.currentUser!.credits;
+          if (awarded > 0) {
+            userProvider.updateCurrentUser(userProvider.currentUser!.copyWith(credits: credits));
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Daily bonus: +$awarded credits'),
+                  duration: const Duration(seconds: 2),
+                ),
+              );
+            }
+          }
+        } catch (_) {}
+      });
+    } catch (_) {}
+  }
+
   void _navigateToProfile() {
     Navigator.pushNamed(context, '/profile');
   }
 
-  void _navigateToChatFromNotification(Map<String, dynamic> notificationData) {
-    try {
-      final senderId = notificationData['senderId'] ?? '';
-      final senderName = notificationData['senderName'] ?? 'Unknown';
-      final chatId = notificationData['chatId'] ?? '';
-
-      // print('🔔 [APP DEBUG] Navigating to chat from notification');
-      // print('   👤 Sender ID: $senderId');
-      // print('   👤 Sender Name: $senderName');
-      // print('   💬 Chat ID: $chatId');
-
-      if (senderId.isEmpty) {
-        // print('❌ [APP DEBUG] Sender ID is empty, cannot navigate to chat');
-        return;
-      }
-
-      // Create a Chat object for friend chat
-      final chat = Chat(
-        id: chatId.isNotEmpty
-            ? chatId
-            : senderId, // Use senderId as chatId if chatId is empty
-        name: senderName,
-        participantIds: [senderId], // Add current user ID later
-        type: ChatType.friend,
-        status: ChatStatus.active,
-        createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
-      );
-
-      // Navigate to chat screen
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => ChatScreen(chat: chat),
-        ),
-      );
-
-      // print('✅ [APP DEBUG] Successfully navigated to chat screen');
-    } catch (e) {
-      // print('❌ [APP DEBUG] Error navigating to chat: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Failed to open chat: ${e.toString()}'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
-  }
+  // Removed unused duplicate navigation method
 
   Widget _buildDrawer(BuildContext context) {
-    final theme = Theme.of(context);
+    // Using Theme.of(context) inline below
     return Drawer(
       child: Container(
         decoration: BoxDecoration(
@@ -558,8 +542,8 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              theme.colorScheme.surface,
-              theme.colorScheme.surface.withOpacity(0.95),
+              Theme.of(context).colorScheme.surface,
+              Theme.of(context).colorScheme.surface.withOpacity(0.95),
             ],
           ),
         ),
@@ -623,7 +607,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
                         icon: Icons.search,
                         title: 'Find People',
                         subtitle: 'Search and connect with new people',
-                        iconColor: theme.colorScheme.tertiary,
+                        iconColor: Theme.of(context).colorScheme.tertiary,
                         onTap: () {
                           Navigator.pop(context);
                           Navigator.pushNamed(context, '/search');
@@ -634,7 +618,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
                         icon: Icons.people,
                         title: 'Friend Requests',
                         subtitle: 'Manage your friend requests',
-                        iconColor: theme.colorScheme.secondary,
+                        iconColor: Theme.of(context).colorScheme.secondary,
                         onTap: () {
                           Navigator.pop(context);
                           Navigator.pushNamed(context, '/friend-requests');
@@ -645,7 +629,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
                         icon: Icons.favorite,
                         title: 'Friends Section',
                         subtitle: 'View and manage your friends',
-                        iconColor: theme.colorScheme.tertiary,
+                        iconColor: Theme.of(context).colorScheme.tertiary,
                         onTap: () {
                           Navigator.pop(context);
                           Navigator.pushNamed(context, '/friends-list');
@@ -656,7 +640,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
                         icon: Icons.history,
                         title: 'Your Activity',
                         subtitle: 'View your recent activity',
-                        iconColor: theme.colorScheme.primary,
+                        iconColor: Theme.of(context).colorScheme.primary,
                         onTap: () {
                           Navigator.pop(context);
                           _showActivityDialog(context);
@@ -716,7 +700,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
 
   Widget _buildDrawerSection(
       BuildContext context, String title, List<Widget> children) {
-    final theme = Theme.of(context);
+    // final theme = Theme.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -727,7 +711,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w600,
-              color: theme.colorScheme.onSurface.withOpacity(0.6),
+              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
               letterSpacing: 0.5,
             ),
           ),
@@ -866,8 +850,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
+    
 
     return Scaffold(
       key: _scaffoldKey,
@@ -988,6 +971,10 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
                 BottomNavigationBarItem(
                   icon: Icon(AppIcons.connect),
                   label: AppStrings.connect,
+                ),
+                const BottomNavigationBarItem(
+                  icon: Icon(Icons.store_mall_directory_outlined),
+                  label: 'Credit Shop',
                 ),
                 BottomNavigationBarItem(
                   icon: Icon(AppIcons.media),

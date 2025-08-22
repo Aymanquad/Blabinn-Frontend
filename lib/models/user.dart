@@ -12,6 +12,7 @@ class User {
   final bool isOnline;
   final DateTime? lastSeen;
   final bool isPremium;
+  final bool adsFree; // Ads-free status for premium users
   final int credits; // Credits for in-app purchases
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -35,7 +36,8 @@ class User {
     this.isOnline = false,
     this.lastSeen,
     this.isPremium = false,
-    this.credits = 50, // Default credits for new users
+    this.adsFree = false, // Default to showing ads
+    this.credits = 100, // Default credits for new users
     required this.createdAt,
     required this.updatedAt,
     this.isBlocked = false,
@@ -59,6 +61,7 @@ class User {
     bool? isOnline,
     DateTime? lastSeen,
     bool? isPremium,
+    bool? adsFree,
     int? credits,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -82,6 +85,7 @@ class User {
       isOnline: isOnline ?? this.isOnline,
       lastSeen: lastSeen ?? this.lastSeen,
       isPremium: isPremium ?? this.isPremium,
+      adsFree: adsFree ?? this.adsFree,
       credits: credits ?? this.credits,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
@@ -108,6 +112,7 @@ class User {
              'isOnline': isOnline,
        'lastSeen': lastSeen?.toIso8601String(),
        'isPremium': isPremium,
+       'adsFree': adsFree,
        'credits': credits,
        'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt.toIso8601String(),
@@ -159,7 +164,8 @@ class User {
 
       // print('🔍 DEBUG: Profile image URL extracted: $userProfileImage');
 
-      final bool isAnonymousUser = json['isAnonymous'] as bool? ?? false;
+      // Keep for future use if needed
+      // final bool isAnonymousUser = json['isAnonymous'] as bool? ?? false;
 
       // print(
       //     '🔍 DEBUG: Extracted user data - ID: $userId, Name: $userName, Email: $userEmail');
@@ -238,7 +244,8 @@ class User {
                  isOnline: json['isOnline'] as bool? ?? false,
          lastSeen: lastSeenDate,
          isPremium: json['isPremium'] as bool? ?? false,
-         credits: json['credits'] as int? ?? 50, // Default 50 credits for all users
+         adsFree: json['adsFree'] as bool? ?? false, // Default to showing ads
+         credits: json['credits'] as int? ?? 100, // Default 100 credits for all users
          createdAt: createdAtDate,
         updatedAt: updatedAtDate,
         isBlocked: json['isBlocked'] as bool? ?? false,

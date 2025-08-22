@@ -1,7 +1,30 @@
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../providers/user_provider.dart';
+
 class AdConfig {
   // TEMPORARY AD DISABLE FLAG
   // Set this to false to disable all ads temporarily
   static const bool adsEnabled = false; // Set to false to disable ads
+
+  /// Check if ads should be shown for the current user
+  /// Returns false if user has premium (ads-free) or if ads are globally disabled
+  static bool shouldShowAds(BuildContext context) {
+    if (!adsEnabled) return false; // Global ads disabled
+    
+    try {
+      final userProvider = Provider.of<UserProvider>(context, listen: false);
+      final user = userProvider.currentUser;
+      
+      // Don't show ads if user has premium (ads-free)
+      if (user?.adsFree == true) return false;
+      
+      return true; // Show ads for non-premium users
+    } catch (e) {
+      // If we can't access user provider, show ads by default
+      return true;
+    }
+  }
 
   // DEVELOPMENT MODE - Using Test IDs
   // Test App IDs for development
