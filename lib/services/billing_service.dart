@@ -50,23 +50,30 @@ class BillingService {
   Stream<PurchaseDetails> get purchaseStream => _purchaseController.stream;
 
   Future<void> initialize() async {
+    print('🔧 BillingService: Initializing...');
+    
     final bool available = await _inAppPurchase.isAvailable();
+    print('🔧 BillingService: In-app purchase available: $available');
+    
     if (!available) {
       _isAvailable = false;
       _loading = false;
+      print('❌ BillingService: In-app purchase not available');
       return;
     }
 
     // iOS delegate setup can be added later if needed
     // For now, we'll focus on Android implementation
 
+    print('🔧 BillingService: Querying product details for IDs: $_kIds');
     final ProductDetailsResponse productResponse = 
         await _inAppPurchase.queryProductDetails(_kIds);
 
     if (productResponse.notFoundIDs.isNotEmpty) {
-      print('Product IDs not found: ${productResponse.notFoundIDs}');
+      print('❌ BillingService: Product IDs not found: ${productResponse.notFoundIDs}');
     }
 
+    print('✅ BillingService: Found ${productResponse.productDetails.length} products');
     _products = productResponse.productDetails;
     _queryProductError = productResponse.error?.message;
     _isAvailable = available;
@@ -111,6 +118,29 @@ class BillingService {
 
   void _handleError(IAPError error) {
     print('Purchase error: ${error.message}');
+    print('Error code: ${error.code}');
+    print('Error details: ${error.details}');
+    
+    // Provide more specific error information
+    switch (error.code) {
+      case 'BILLING_RESPONSE_RESULT_DEVELOPER_ERROR':
+        print('Developer Error: Check Google Play Console configuration');
+        print('- Verify app is published to internal testing');
+        print('- Verify product IDs are active');
+        print('- Verify test account is added');
+        break;
+      case 'BILLING_RESPONSE_RESULT_ITEM_NOT_OWNED':
+        print('Item not owned: User tried to consume an item they don\'t own');
+        break;
+      case 'BILLING_RESPONSE_RESULT_ITEM_UNAVAILABLE':
+        print('Item unavailable: Product not available for purchase');
+        break;
+      case 'BILLING_RESPONSE_RESULT_USER_CANCELED':
+        print('User canceled: Purchase was canceled by user');
+        break;
+      default:
+        print('Unknown billing error: ${error.code}');
+    }
   }
 
   Future<void> _verifyPurchase(PurchaseDetails purchaseDetails) async {

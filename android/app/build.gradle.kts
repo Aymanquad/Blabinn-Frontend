@@ -58,6 +58,14 @@ android {
             signingConfig = signingConfigs.getByName("release")
             isMinifyEnabled = false
             isShrinkResources = false
+            // Disable debug symbol stripping to fix AAB build issue
+            ndk {
+                debugSymbolLevel = "NONE"
+            }
+        }
+        debug {
+            // Enable billing for debug builds (for testing only)
+            signingConfig = signingConfigs.getByName("debug")
         }
     }
 }
