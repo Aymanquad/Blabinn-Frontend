@@ -143,8 +143,28 @@ class _ChatListScreenState extends State<ChatListScreen> {
     final lastMessage = friend['lastMessage'] as String?;
     final lastMessageTime = friend['lastMessageTime'] as String?;
 
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 1),
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Colors.white.withOpacity(0.1),
+            Colors.white.withOpacity(0.05),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: Colors.white.withOpacity(0.2),
+          width: 1,
+        ),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+          child: Container(
       child: ListTile(
         leading: Stack(
           children: [
@@ -240,6 +260,9 @@ class _ChatListScreenState extends State<ChatListScreen> {
             : Icon(Icons.chevron_right,
                 color: theme.colorScheme.onSurface.withOpacity(0.5)),
         onTap: () => _openChatWithFriend(friend),
+      ),
+          ),
+        ),
       ),
     );
   }
@@ -401,7 +424,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
                           : RefreshIndicator(
                               onRefresh: _loadChatsData,
                               child: ListView.builder(
-                                padding: EdgeInsets.zero,
+                                padding: const EdgeInsets.only(top: 16),
                                 itemCount: _filteredFriends.length,
                                 itemBuilder: (context, index) {
                                   return _buildChatItem(_filteredFriends[index]);

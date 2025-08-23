@@ -147,7 +147,7 @@ class AppStrings {
 
   // Navigation
   static const String home = 'Home';
-  static const String connect = 'Connect';
+  static const String connect = 'Discover';
   static const String chats = 'Chats';
   static const String media = 'Media';
   static const String friends = 'Friends';

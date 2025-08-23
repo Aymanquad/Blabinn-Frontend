@@ -304,8 +304,8 @@ class MainNavigationScreen extends StatefulWidget {
 class _MainNavigationScreenState extends State<MainNavigationScreen>
     with WidgetsBindingObserver, TickerProviderStateMixin {
   final NotificationService _notificationService = NotificationService();
-  int _currentIndex = 0;
-  final PageController _pageController = PageController();
+  int _currentIndex = 2;
+  final PageController _pageController = PageController(initialPage: 2);
   final SocketService _socketService = SocketService();
   late AnimationController _drawerAnimationController;
   late Animation<double> _drawerAnimation;
@@ -325,9 +325,9 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
     _initializeGlobalMatchingService();
     _claimDailyCreditsIfNeeded();
     _screens = [
-      HomeScreen(onNavigateToTab: _onTabTapped),
-      const ChatListScreen(),
       const ConnectScreen(),
+      const ChatListScreen(),
+      HomeScreen(onNavigateToTab: _onTabTapped),
       const CreditShopScreen(),
       const MediaFolderScreen(),
     ];
@@ -534,7 +534,6 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
   // Removed unused duplicate navigation method
 
   Widget _buildDrawer(BuildContext context) {
-    // Using Theme.of(context) inline below
     return Drawer(
       child: Container(
         decoration: BoxDecoration(
@@ -542,61 +541,19 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              Theme.of(context).colorScheme.surface,
-              Theme.of(context).colorScheme.surface.withOpacity(0.95),
+              const Color(0xFF1E1B2E),
+              const Color(0xFF2A2A3E),
+              const Color(0xFF1E1B2E).withOpacity(0.8),
             ],
+            stops: const [0.0, 0.5, 1.0],
           ),
         ),
         child: Column(
           children: [
             Expanded(
               child: ListView(
-                padding: const EdgeInsets.only(top: 40),
+                padding: const EdgeInsets.only(top: 60),
                 children: [
-                  // Main Navigation
-                  _buildDrawerSection(
-                    context,
-                    'Main Navigation',
-                    [
-                      _buildDrawerItem(
-                        context,
-                        icon: AppIcons.home,
-                        title: AppStrings.home,
-                        onTap: () {
-                          Navigator.pop(context);
-                          _onTabTapped(0);
-                        },
-                      ),
-                      _buildDrawerItem(
-                        context,
-                        icon: AppIcons.chat,
-                        title: AppStrings.chats,
-                        onTap: () {
-                          Navigator.pop(context);
-                          _onTabTapped(1);
-                        },
-                      ),
-                      _buildDrawerItem(
-                        context,
-                        icon: AppIcons.connect,
-                        title: AppStrings.connect,
-                        onTap: () {
-                          Navigator.pop(context);
-                          _onTabTapped(2);
-                        },
-                      ),
-                      _buildDrawerItem(
-                        context,
-                        icon: AppIcons.media,
-                        title: AppStrings.media,
-                        onTap: () {
-                          Navigator.pop(context);
-                          _onTabTapped(3);
-                        },
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
                   // Quick Actions
                   _buildDrawerSection(
                     context,
@@ -700,19 +657,18 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
 
   Widget _buildDrawerSection(
       BuildContext context, String title, List<Widget> children) {
-    // final theme = Theme.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
           child: Text(
             title,
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-              letterSpacing: 0.5,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+              color: Colors.white70,
+              letterSpacing: 1.0,
             ),
           ),
         ),
@@ -729,7 +685,6 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
     Color? iconColor,
     required VoidCallback onTap,
   }) {
-    final theme = Theme.of(context);
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -737,27 +692,48 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
           onTap();
           _drawerAnimationController.reverse();
         },
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
         child: Container(
-          margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+          margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
-            color: Colors.transparent,
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Colors.white.withOpacity(0.1),
+                Colors.white.withOpacity(0.05),
+              ],
+            ),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: Colors.white.withOpacity(0.2),
+              width: 1,
+            ),
           ),
           child: Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(8),
+                padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color:
-                      (iconColor ?? theme.colorScheme.primary).withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      (iconColor ?? const Color(0xFFA259FF)).withOpacity(0.3),
+                      (iconColor ?? const Color(0xFFA259FF)).withOpacity(0.1),
+                    ],
+                  ),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: (iconColor ?? const Color(0xFFA259FF)).withOpacity(0.3),
+                    width: 1,
+                  ),
                 ),
                 child: Icon(
                   icon,
-                  color: iconColor ?? theme.colorScheme.primary,
-                  size: 20,
+                  color: iconColor ?? const Color(0xFFA259FF),
+                  size: 22,
                 ),
               ),
               const SizedBox(width: 16),
@@ -767,19 +743,19 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
                   children: [
                     Text(
                       title,
-                      style: TextStyle(
-                        color: theme.colorScheme.onSurface,
+                      style: const TextStyle(
+                        color: Colors.white,
                         fontWeight: FontWeight.w600,
                         fontSize: 16,
                       ),
                     ),
                     if (subtitle != null) ...[
-                      const SizedBox(height: 2),
+                      const SizedBox(height: 4),
                       Text(
                         subtitle,
-                        style: TextStyle(
-                          color: theme.colorScheme.onSurface.withOpacity(0.7),
-                          fontSize: 12,
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 13,
                         ),
                       ),
                     ],
@@ -789,7 +765,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
               Icon(
                 Icons.arrow_forward_ios,
                 size: 16,
-                color: theme.colorScheme.onSurface.withOpacity(0.5),
+                color: Colors.white.withOpacity(0.6),
               ),
             ],
           ),
@@ -961,16 +937,16 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
               elevation: 0,
               items: [
                 BottomNavigationBarItem(
-                  icon: Icon(AppIcons.home),
-                  label: AppStrings.home,
+                  icon: Icon(AppIcons.connect),
+                  label: AppStrings.connect,
                 ),
                 BottomNavigationBarItem(
                   icon: Icon(AppIcons.chat),
                   label: AppStrings.chats,
                 ),
                 BottomNavigationBarItem(
-                  icon: Icon(AppIcons.connect),
-                  label: AppStrings.connect,
+                  icon: Icon(AppIcons.home),
+                  label: AppStrings.home,
                 ),
                 const BottomNavigationBarItem(
                   icon: Icon(Icons.store_mall_directory_outlined),
