@@ -33,14 +33,30 @@ class UserProvider with ChangeNotifier {
   Future<void> _syncCreditsFromServer() async {
     if (_currentUser == null) return;
     try {
-      final data = await _apiService.getCreditBalance();
-      final serverCredits = (data['credits'] as int?) ?? _currentUser!.credits;
+      final data = await _apiService.getMyProfile();
+      final profileData = data['profile'] ?? data;
+      final serverCredits = (profileData['credits'] as int?) ?? _currentUser!.credits;
+      print('🔍 DEBUG: UserProvider - Syncing credits from server: $serverCredits (current: ${_currentUser!.credits})');
       if (_currentUser!.credits != serverCredits) {
         _currentUser = _currentUser!.copyWith(credits: serverCredits);
         notifyListeners();
       }
     } catch (e) {
       // Ignore silently; do not block app init
+    }
+  }
+
+  // Public method to refresh credits from server
+  Future<void> refreshCredits() async {
+    await _syncCreditsFromServer();
+  }
+
+  // Public method to update credits directly (for immediate updates)
+  void updateCredits(int newCredits) {
+    if (_currentUser != null) {
+      print('🔍 DEBUG: UserProvider - Updating credits from ${_currentUser!.credits} to $newCredits');
+      _currentUser = _currentUser!.copyWith(credits: newCredits);
+      notifyListeners();
     }
   }
 

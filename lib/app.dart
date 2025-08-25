@@ -324,8 +324,9 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
     _initializeAnimations();
     _initializeGlobalMatchingService();
     _claimDailyCreditsIfNeeded();
+    _syncCreditsOnStartup();
     _screens = [
-      const ConnectScreen(),
+      ConnectScreen(onNavigateToTab: _onTabTapped),
       const ChatListScreen(),
       HomeScreen(onNavigateToTab: _onTabTapped),
       const CreditShopScreen(),
@@ -523,6 +524,18 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
             }
           }
         } catch (_) {}
+      });
+    } catch (_) {}
+  }
+
+  Future<void> _syncCreditsOnStartup() async {
+    try {
+      // Wait until first frame to ensure context/providers are ready
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        final userProvider = Provider.of<UserProvider>(context, listen: false);
+        if (userProvider.currentUser != null) {
+          await userProvider.refreshCredits();
+        }
       });
     } catch (_) {}
   }

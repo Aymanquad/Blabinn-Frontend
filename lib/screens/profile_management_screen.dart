@@ -5,6 +5,7 @@ import '../core/constants.dart';
 import '../models/user.dart';
 import '../services/auth_service.dart';
 import '../services/api_service.dart';
+import '../services/boost_profile_service.dart';
 import '../widgets/simple_image_cropper.dart';
 import '../utils/permission_helper.dart';
 
@@ -636,6 +637,32 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
             ],
           ],
         ),
+        // Boost Profile Button
+        if (_hasExistingProfile) ...[
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: _isLoading ? null : _showBoostProfileDialog,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.amber.shade600,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              icon: const Icon(Icons.star, size: 20),
+              label: const Text(
+                'Boost Profile',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
+        ],
       ],
     );
   }
@@ -1629,6 +1656,202 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
         backgroundColor: Colors.green,
       ),
     );
+  }
+
+  void _showBoostProfileDialog() {
+    final boostService = BoostProfileService();
+    
+    showDialog(
+      context: context,
+      builder: (context) => FutureBuilder<bool>(
+        future: boostService.isProfileBoosted(),
+        builder: (context, snapshot) {
+          final isBoosted = snapshot.data ?? false;
+          
+          return AlertDialog(
+            title: Row(
+              children: [
+                Icon(
+                  Icons.star,
+                  color: Colors.amber,
+                  size: 24,
+                ),
+                const SizedBox(width: 8),
+                const Text('Boost Profile'),
+              ],
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                                 if (isBoosted) ...[
+                   FutureBuilder<double>(
+                     future: boostService.getRemainingBoostTime(),
+                     builder: (context, timeSnapshot) {
+                       final remainingHours = timeSnapshot.data ?? 0.0;
+                       return Column(
+                         crossAxisAlignment: CrossAxisAlignment.start,
+                         children: [
+                           Container(
+                             padding: const EdgeInsets.all(12),
+                             decoration: BoxDecoration(
+                               color: Colors.amber.withOpacity(0.1),
+                               borderRadius: BorderRadius.circular(8),
+                               border: Border.all(
+                                 color: Colors.amber.withOpacity(0.3),
+                               ),
+                             ),
+                             child: Row(
+                               children: [
+                                 Icon(
+                                   Icons.timer,
+                                   color: Colors.amber,
+                                   size: 20,
+                                 ),
+                                 const SizedBox(width: 8),
+                                 Text(
+                                   'Your profile is currently boosted!',
+                                   style: TextStyle(
+                                     color: Colors.amber.shade700,
+                                     fontWeight: FontWeight.bold,
+                                   ),
+                                 ),
+                               ],
+                             ),
+                           ),
+                           const SizedBox(height: 12),
+                           Text(
+                             'Your profile will appear in the "Popular Profiles" section for ${remainingHours.toStringAsFixed(1)} more hours.',
+                             style: const TextStyle(fontSize: 14),
+                           ),
+                         ],
+                       );
+                     },
+                   ),
+                ] else ...[
+                  Text(
+                    'Boost your profile to get more visibility!',
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.amber.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: Colors.amber.withOpacity(0.3),
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.star,
+                              color: Colors.amber,
+                              size: 20,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Boost Benefits:',
+                              style: TextStyle(
+                                color: Colors.amber.shade700,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        const Text('• Appear in "Popular Profiles" section'),
+                        const Text('• Get 10x more profile views'),
+                        const Text('• Higher priority in search results'),
+                        const Text('• Gold star badge on your profile'),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: Colors.blue.withOpacity(0.3),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.info,
+                          color: Colors.blue,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Cost: ${BoostProfileService.boostCost} credits\nDuration: ${BoostProfileService.boostDurationHours} hours',
+                            style: TextStyle(
+                              color: Colors.blue.shade700,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cancel'),
+              ),
+              if (!isBoosted)
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    _purchaseBoost();
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.amber.shade600,
+                    foregroundColor: Colors.white,
+                  ),
+                  child: const Text('Boost Now'),
+                ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Future<void> _purchaseBoost() async {
+    try {
+      setState(() => _isLoading = true);
+      
+      final boostService = BoostProfileService();
+      final result = await boostService.purchaseBoost();
+      
+      if (result['success'] == true) {
+        _showSuccess(result['message']);
+        // Update user credits if available
+        if (result['credits'] != null) {
+          // You might want to update the user provider here
+        }
+      } else {
+        _showError(result['message']);
+      }
+    } catch (e) {
+      _showError('Failed to purchase boost: $e');
+    } finally {
+      setState(() => _isLoading = false);
+    }
   }
 
   @override

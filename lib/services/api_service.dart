@@ -812,4 +812,32 @@ class ApiService {
       return false;
     }
   }
+
+  // Boost profile methods
+  Future<Map<String, dynamic>> purchaseProfileBoost() async {
+    final data = {
+      'cost': 30,
+      'duration': 1.5,
+    };
+    final response = await _post('/profiles/boost', data);
+    return _handleResponse(response);
+  }
+
+  Future<Map<String, dynamic>> cancelProfileBoost() async {
+    final response = await _post('/profiles/boost/cancel', {});
+    return _handleResponse(response);
+  }
+
+  Future<List<Map<String, dynamic>>> getBoostedProfiles() async {
+    try {
+      final response = await _get('/profiles/boosted-profiles');
+      final data = _handleResponse(response);
+      final profiles = List<Map<String, dynamic>>.from(data['profiles'] ?? []);
+      return profiles;
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+
 }
