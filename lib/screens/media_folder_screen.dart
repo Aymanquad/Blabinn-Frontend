@@ -422,26 +422,31 @@ class _MediaFolderScreenState extends State<MediaFolderScreen>
     required VoidCallback onPressed,
     Color? color,
   }) {
-    return Column(
-      children: [
-        IconButton(
-          onPressed: onPressed,
-          icon: Icon(icon, color: color ?? AppColors.primary),
-          style: IconButton.styleFrom(
-            backgroundColor: (color ?? AppColors.primary).withOpacity(0.1),
-            padding: const EdgeInsets.all(12),
+    return Semantics(
+      label: label,
+      button: true,
+      child: Column(
+        children: [
+          IconButton(
+            onPressed: onPressed,
+            icon: Icon(icon, color: color ?? AppColors.primary),
+            style: IconButton.styleFrom(
+              backgroundColor: (color ?? AppColors.primary).withOpacity(0.1),
+              padding: const EdgeInsets.all(12),
+            ),
+            tooltip: label,
           ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 12,
-            color: color ?? AppColors.primary,
-            fontWeight: FontWeight.w500,
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              color: color ?? AppColors.primary,
+              fontWeight: FontWeight.w500,
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 

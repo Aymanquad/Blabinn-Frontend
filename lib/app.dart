@@ -5,7 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:provider/provider.dart';
 import 'package:screen_protector/screen_protector.dart';
 import 'core/constants.dart';
-import 'providers/theme_provider.dart';
+import 'core/theme_extensions.dart';
 import 'providers/user_provider.dart';
 import 'services/notification_service.dart';
 import 'widgets/in_app_notification.dart';
@@ -34,6 +34,7 @@ import 'services/global_matching_service.dart';
 import 'widgets/credits_display.dart';
 import 'screens/credit_shop_screen.dart';
 import 'services/api_service.dart';
+import 'widgets/custom_bottom_nav.dart';
 
 // Global navigator key for navigation from anywhere
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
@@ -88,20 +89,17 @@ class ChatApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => ThemeProvider()),
         ChangeNotifierProvider(create: (_) => UserProvider()),
       ],
-      child: Consumer<ThemeProvider>(
-        builder: (context, themeProvider, child) {
+      child: Consumer<UserProvider>(
+        builder: (context, userProvider, child) {
           return InterstitialAdManager(
             child: MaterialApp(
               title: AppConstants.appName,
               debugShowCheckedModeBanner: false,
               navigatorKey: navigatorKey, // Add global navigator key
-              theme: _buildLightTheme(),
-              darkTheme: _buildDarkTheme(),
-              themeMode:
-                  themeProvider.isDarkMode ? ThemeMode.dark : ThemeMode.light,
+              theme: _buildDarkTheme(),
+              themeMode: ThemeMode.dark,
               home: const SplashScreen(),
               routes: {
                 '/home': (context) => const MainNavigationScreen(),
@@ -159,13 +157,14 @@ class ChatApp extends StatelessWidget {
 }
 
 
-// Theme building methods
-ThemeData _buildLightTheme() {
+// Theme building method - Dark mode only
+
+ThemeData _buildDarkTheme() {
   return ThemeData(
     useMaterial3: true,
     colorScheme: ColorScheme.fromSeed(
       seedColor: AppColors.primary,
-      brightness: Brightness.light,
+      brightness: Brightness.dark,
     ).copyWith(
       primary: AppColors.primary,
       secondary: AppColors.secondary,
@@ -176,25 +175,180 @@ ThemeData _buildLightTheme() {
       onBackground: AppColors.text,
     ),
     scaffoldBackgroundColor: AppColors.background,
+    
+    // Enhanced TextTheme with consistent hierarchy
+    textTheme: const TextTheme(
+      // Display styles for hero text
+      displayLarge: TextStyle(
+        fontSize: 32,
+        fontWeight: FontWeight.bold,
+        color: AppColors.text,
+        letterSpacing: -0.5,
+      ),
+      displayMedium: TextStyle(
+        fontSize: 28,
+        fontWeight: FontWeight.bold,
+        color: AppColors.text,
+        letterSpacing: -0.25,
+      ),
+      displaySmall: TextStyle(
+        fontSize: 24,
+        fontWeight: FontWeight.bold,
+        color: AppColors.text,
+        letterSpacing: 0,
+      ),
+      
+      // Title styles for section headers
+      titleLarge: TextStyle(
+        fontSize: 22,
+        fontWeight: FontWeight.w600,
+        color: AppColors.text,
+        letterSpacing: 0,
+      ),
+      titleMedium: TextStyle(
+        fontSize: 18,
+        fontWeight: FontWeight.w600,
+        color: AppColors.text,
+        letterSpacing: 0.15,
+      ),
+      titleSmall: TextStyle(
+        fontSize: 16,
+        fontWeight: FontWeight.w600,
+        color: AppColors.text,
+        letterSpacing: 0.1,
+      ),
+      
+      // Body styles for content
+      bodyLarge: TextStyle(
+        fontSize: 16,
+        fontWeight: FontWeight.normal,
+        color: AppColors.text,
+        letterSpacing: 0.5,
+      ),
+      bodyMedium: TextStyle(
+        fontSize: 14,
+        fontWeight: FontWeight.normal,
+        color: AppColors.text,
+        letterSpacing: 0.25,
+      ),
+      bodySmall: TextStyle(
+        fontSize: 12,
+        fontWeight: FontWeight.normal,
+        color: AppColors.textSecondary,
+        letterSpacing: 0.4,
+      ),
+      
+      // Label styles for buttons and inputs
+      labelLarge: TextStyle(
+        fontSize: 14,
+        fontWeight: FontWeight.w500,
+        color: AppColors.text,
+        letterSpacing: 0.1,
+      ),
+      labelMedium: TextStyle(
+        fontSize: 12,
+        fontWeight: FontWeight.w500,
+        color: AppColors.textSecondary,
+        letterSpacing: 0.5,
+      ),
+      labelSmall: TextStyle(
+        fontSize: 10,
+        fontWeight: FontWeight.w500,
+        color: AppColors.textMuted,
+        letterSpacing: 0.5,
+      ),
+    ),
+    
+    // Enhanced AppBar theme
     appBarTheme: const AppBarTheme(
       backgroundColor: AppColors.background,
       foregroundColor: AppColors.text,
       elevation: 0,
+      titleTextStyle: TextStyle(
+        fontSize: 20,
+        fontWeight: FontWeight.w600,
+        color: AppColors.text,
+        letterSpacing: 0.15,
+      ),
+      centerTitle: true,
     ),
+    
+    // Enhanced Button themes
     elevatedButtonTheme: ElevatedButtonThemeData(
       style: ElevatedButton.styleFrom(
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
         ),
+        elevation: 2,
+        shadowColor: AppColors.primary.withOpacity(0.3),
+        textStyle: const TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 0.1,
+        ),
       ),
     ),
-    cardTheme: const CardThemeData(
+    
+    filledButtonTheme: FilledButtonThemeData(
+      style: FilledButton.styleFrom(
+        backgroundColor: AppColors.secondary,
+        foregroundColor: Colors.white,
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+        ),
+        elevation: 1,
+        textStyle: const TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 0.1,
+        ),
+      ),
+    ),
+    
+    outlinedButtonTheme: OutlinedButtonThemeData(
+      style: OutlinedButton.styleFrom(
+        foregroundColor: AppColors.primary,
+        side: const BorderSide(color: AppColors.primary, width: 1.5),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+        ),
+        textStyle: const TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 0.1,
+        ),
+      ),
+    ),
+    
+    textButtonTheme: TextButtonThemeData(
+      style: TextButton.styleFrom(
+        foregroundColor: AppColors.primary,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        textStyle: const TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 0.1,
+        ),
+      ),
+    ),
+    
+    // Enhanced Card theme
+    cardTheme: CardThemeData(
       color: AppColors.cardBackground,
       elevation: 2,
+      shadowColor: Colors.black.withOpacity(0.1),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
+      margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
     ),
+    
+    // Enhanced Input theme
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
       fillColor: AppColors.inputBackground,
@@ -206,57 +360,50 @@ ThemeData _buildLightTheme() {
         borderRadius: BorderRadius.circular(12),
         borderSide: const BorderSide(color: AppColors.primary, width: 2),
       ),
-    ),
-  );
-}
-
-ThemeData _buildDarkTheme() {
-  return ThemeData(
-    useMaterial3: true,
-    colorScheme: ColorScheme.fromSeed(
-      seedColor: AppColors.darkPrimary,
-      brightness: Brightness.dark,
-    ).copyWith(
-      primary: AppColors.darkPrimary,
-      secondary: AppColors.darkSecondary,
-      tertiary: AppColors.darkAccent,
-      surface: AppColors.darkCardBackground,
-      background: AppColors.darkBackground,
-      onSurface: AppColors.darkText,
-      onBackground: AppColors.darkText,
-    ),
-    scaffoldBackgroundColor: AppColors.darkBackground,
-    appBarTheme: const AppBarTheme(
-      backgroundColor: AppColors.darkBackground,
-      foregroundColor: AppColors.darkText,
-      elevation: 0,
-    ),
-    elevatedButtonTheme: ElevatedButtonThemeData(
-      style: ElevatedButton.styleFrom(
-        backgroundColor: AppColors.darkPrimary,
-        foregroundColor: Colors.white,
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
-      ),
-    ),
-    cardTheme: const CardThemeData(
-      color: AppColors.darkCardBackground,
-      elevation: 2,
-    ),
-    inputDecorationTheme: InputDecorationTheme(
-      filled: true,
-      fillColor: AppColors.darkInputBackground,
-      border: OutlineInputBorder(
+      errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide.none,
+        borderSide: const BorderSide(color: Colors.red, width: 1.5),
       ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: AppColors.darkPrimary, width: 2),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      labelStyle: const TextStyle(
+        color: AppColors.textSecondary,
+        fontSize: 14,
+        fontWeight: FontWeight.w500,
+      ),
+      hintStyle: const TextStyle(
+        color: AppColors.textMuted,
+        fontSize: 14,
+        fontWeight: FontWeight.normal,
       ),
     ),
+    
+    // Enhanced Chip theme
+    chipTheme: ChipThemeData(
+      backgroundColor: AppColors.inputBackground,
+      selectedColor: AppColors.primary.withOpacity(0.2),
+      labelStyle: const TextStyle(
+        color: AppColors.text,
+        fontSize: 14,
+        fontWeight: FontWeight.w500,
+      ),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+    ),
+    
+    // Enhanced Bottom Navigation theme
+    bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+      backgroundColor: AppColors.cardBackground,
+      selectedItemColor: AppColors.primary,
+      unselectedItemColor: AppColors.textSecondary,
+      type: BottomNavigationBarType.fixed,
+      elevation: 8,
+    ),
+    
+    extensions: <ThemeExtension<dynamic>>[
+      AppThemeTokens.instance,
+    ],
   );
 }
 
@@ -272,14 +419,14 @@ AppBarTheme getAppBarThemeForScreen(String screenName) {
     case 'connect':
       // Use violet background for these screens
       return const AppBarTheme(
-        backgroundColor: AppColors.darkPrimary,
-        foregroundColor: AppColors.darkText,
+        backgroundColor: AppColors.primary,
+        foregroundColor: AppColors.text,
         elevation: 0,
         iconTheme: IconThemeData(
-          color: AppColors.darkText,
+          color: AppColors.text,
         ),
         titleTextStyle: TextStyle(
-          color: AppColors.darkText,
+          color: AppColors.text,
           fontSize: 20,
           fontWeight: FontWeight.bold,
         ),
@@ -287,8 +434,8 @@ AppBarTheme getAppBarThemeForScreen(String screenName) {
     default:
       // Use default theme for main landing page and other screens
       return const AppBarTheme(
-        backgroundColor: AppColors.darkBackground,
-        foregroundColor: AppColors.darkText,
+        backgroundColor: AppColors.background,
+        foregroundColor: AppColors.text,
         elevation: 0,
       );
   }
@@ -921,58 +1068,32 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
         },
         children: _screens,
       ),
-      bottomNavigationBar: ClipRRect(
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-          child: Container(
-            color: Colors.transparent,
-            child: BottomNavigationBar(
-              currentIndex: _currentIndex,
-              onTap: _onTabTapped,
-              type: BottomNavigationBarType.fixed,
-              backgroundColor: Colors.transparent,
-              selectedIconTheme: IconThemeData(
-                color: const Color(0xFFE0B0FF).withOpacity(0.85),
-              ),
-              unselectedIconTheme: IconThemeData(
-                color: Colors.white.withOpacity(0.55),
-              ),
-              selectedItemColor: const Color(0xFFE0B0FF).withOpacity(0.85),
-              unselectedItemColor: Colors.white.withOpacity(0.55),
-              selectedLabelStyle: const TextStyle(
-                fontWeight: FontWeight.w600,
-                fontSize: 12,
-              ),
-              unselectedLabelStyle: const TextStyle(
-                fontWeight: FontWeight.normal,
-                fontSize: 12,
-              ),
-              elevation: 0,
-              items: [
-                BottomNavigationBarItem(
-                  icon: Icon(AppIcons.connect),
-                  label: AppStrings.connect,
-                ),
-                BottomNavigationBarItem(
-                  icon: Icon(AppIcons.chat),
-                  label: AppStrings.chats,
-                ),
-                BottomNavigationBarItem(
-                  icon: Icon(AppIcons.home),
-                  label: AppStrings.home,
-                ),
-                const BottomNavigationBarItem(
-                  icon: Icon(Icons.store_mall_directory_outlined),
-                  label: 'Credit Shop',
-                ),
-                BottomNavigationBarItem(
-                  icon: Icon(AppIcons.media),
-                  label: AppStrings.media,
-                ),
-              ],
-            ),
+      bottomNavigationBar: ModernBottomNavigationBar(
+        currentIndex: _currentIndex,
+        onTap: _onTabTapped,
+        backgroundColor: Colors.transparent,
+        items: [
+          BottomNavigationBarItem(
+            icon: Icon(AppIcons.connect),
+            label: AppStrings.connect,
           ),
-        ),
+          BottomNavigationBarItem(
+            icon: Icon(AppIcons.chat),
+            label: AppStrings.chats,
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(AppIcons.home),
+            label: AppStrings.home,
+          ),
+          const BottomNavigationBarItem(
+            icon: Icon(Icons.store_mall_directory_outlined),
+            label: 'Credit Shop',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(AppIcons.media),
+            label: AppStrings.media,
+          ),
+        ],
       ),
     );
   }

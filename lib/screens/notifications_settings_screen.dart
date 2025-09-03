@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../core/constants.dart';
 import '../services/api_service.dart';
-import '../providers/theme_provider.dart'; // Added import for ThemeProvider
-import 'package:provider/provider.dart';
+import '../widgets/consistent_app_bar.dart';
+
 
 class NotificationsSettingsScreen extends StatefulWidget {
   const NotificationsSettingsScreen({super.key});
@@ -244,12 +244,9 @@ class _NotificationsSettingsScreenState extends State<NotificationsSettingsScree
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Notification Settings'),
+      appBar: const ConsistentAppBar(
+        title: 'Notification Settings',
         centerTitle: true,
-        elevation: 0,
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        foregroundColor: Theme.of(context).textTheme.titleLarge?.color,
       ),
       body: Stack(
         children: [
@@ -293,12 +290,8 @@ class _NotificationsSettingsScreenState extends State<NotificationsSettingsScree
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         colors: [
-                          Provider.of<ThemeProvider>(context).isDarkMode
-                              ? AppColors.darkPrimary
-                              : AppColors.primary,
-                          Provider.of<ThemeProvider>(context).isDarkMode
-                              ? AppColors.darkPrimary.withOpacity(0.8)
-                              : AppColors.primary.withOpacity(0.8),
+                          AppColors.primary,
+                          AppColors.primary.withOpacity(0.8),
                         ],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,

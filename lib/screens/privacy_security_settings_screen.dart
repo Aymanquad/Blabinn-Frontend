@@ -1,24 +1,20 @@
 import 'package:flutter/material.dart';
 import '../core/constants.dart';
-import '../providers/theme_provider.dart';
-import 'package:provider/provider.dart';
+import '../widgets/consistent_app_bar.dart';
+
 
 class PrivacySecuritySettingsScreen extends StatelessWidget {
   const PrivacySecuritySettingsScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final isDarkMode = Provider.of<ThemeProvider>(context).isDarkMode;
-    final cardColor = isDarkMode ? AppColors.darkCardBackground : AppColors.cardBackground;
-    final textColor = isDarkMode ? AppColors.darkText : AppColors.text;
-    final iconColor = isDarkMode ? AppColors.darkPrimary : AppColors.primary;
+    final cardColor = AppColors.cardBackground;
+    final textColor = AppColors.text;
+    final iconColor = AppColors.primary;
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Privacy & Security'),
+      appBar: const ConsistentAppBar(
+        title: 'Privacy & Security',
         centerTitle: true,
-        elevation: 0,
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        foregroundColor: Theme.of(context).textTheme.titleLarge?.color,
       ),
       body: Stack(
         children: [
@@ -59,8 +55,8 @@ class PrivacySecuritySettingsScreen extends StatelessWidget {
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: [
-                    isDarkMode ? AppColors.darkPrimary : AppColors.primary,
-                    isDarkMode ? AppColors.darkPrimary.withOpacity(0.8) : AppColors.primary.withOpacity(0.8),
+                    AppColors.primary,
+                    AppColors.primary.withOpacity(0.8),
                   ],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,

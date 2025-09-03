@@ -17,6 +17,7 @@ import 'chat_logic.dart';
 import 'chat_ui_components.dart';
 import 'chat_image_handler.dart';
 import 'chat_user_actions.dart';
+import '../../widgets/consistent_app_bar.dart';
 
 class ChatScreen extends StatefulWidget {
   final Chat chat;
@@ -1328,17 +1329,27 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
             ],
           ),
           actions: [
-            IconButton(
-              icon: const Icon(Icons.videocam),
-              onPressed: () {
-                // TODO: Implement video call
-              },
+            Semantics(
+              label: 'Start video call',
+              button: true,
+              child: IconButton(
+                icon: const Icon(Icons.videocam),
+                onPressed: () {
+                  // TODO: Implement video call
+                },
+                tooltip: 'Start video call',
+              ),
             ),
-            IconButton(
-              icon: const Icon(Icons.call),
-              onPressed: () {
-                // TODO: Implement voice call
-              },
+            Semantics(
+              label: 'Start voice call',
+              button: true,
+              child: IconButton(
+                icon: const Icon(Icons.call),
+                onPressed: () {
+                  // TODO: Implement voice call
+                },
+                tooltip: 'Start voice call',
+              ),
             ),
             PopupMenuButton<String>(
               onSelected: (value) async {

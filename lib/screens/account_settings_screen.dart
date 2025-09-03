@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+
 import '../core/constants.dart';
-import '../providers/theme_provider.dart';
+
 import '../services/api_service.dart';
+import '../widgets/consistent_app_bar.dart';
 import 'privacy_settings_screen.dart';
 import 'notifications_settings_screen.dart';
 import 'data_storage_screen.dart';
@@ -233,12 +234,9 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Account Settings'),
+      appBar: const ConsistentAppBar(
+        title: 'Account Settings',
         centerTitle: true,
-        elevation: 0,
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        foregroundColor: Theme.of(context).textTheme.titleLarge?.color,
       ),
       body: Stack(
         children: [
@@ -280,12 +278,8 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: [
-                    Provider.of<ThemeProvider>(context).isDarkMode
-                        ? AppColors.darkPrimary
-                        : AppColors.primary,
-                    Provider.of<ThemeProvider>(context).isDarkMode
-                        ? AppColors.darkPrimary.withOpacity(0.8)
-                        : AppColors.primary.withOpacity(0.8),
+                    AppColors.primary,
+                    AppColors.primary.withOpacity(0.8),
                   ],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
@@ -320,45 +314,6 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                 ],
               ),
             ),
-            const SizedBox(height: 24),
-
-            // Appearance Section
-            Text(
-              'Appearance',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Theme.of(context).textTheme.titleLarge?.color,
-              ),
-            ),
-            const SizedBox(height: 12),
-
-            // Dark Mode Toggle
-            Consumer<ThemeProvider>(
-              builder: (context, themeProvider, child) {
-                return _buildSettingsItem(
-                  icon: themeProvider.isDarkMode 
-                      ? Icons.dark_mode 
-                      : Icons.light_mode,
-                  title: 'Dark Mode',
-                  subtitle: themeProvider.isDarkMode
-                      ? 'Switch to light mode'
-                      : 'Switch to dark mode',
-                  trailing: Switch(
-                    value: themeProvider.isDarkMode,
-                    onChanged: (value) {
-                      themeProvider.toggleTheme();
-                    },
-                    activeColor: AppColors.primary,
-                    activeTrackColor: AppColors.primary.withOpacity(0.3),
-                  ),
-                  onTap: () {
-                    themeProvider.toggleTheme();
-                  },
-                );
-              },
-            ),
-
             const SizedBox(height: 24),
 
             // Account Section

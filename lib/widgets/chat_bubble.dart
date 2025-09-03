@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import '../core/constants.dart';
 import '../models/message.dart';
 import '../services/firebase_auth_service.dart';
-import '../providers/theme_provider.dart';
+
 import 'full_screen_image_viewer.dart';
 
 class ChatBubble extends StatelessWidget {
@@ -18,28 +17,24 @@ class ChatBubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<ThemeProvider>(
-      builder: (context, themeProvider, child) {
-        return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-          child: Column(
-            crossAxisAlignment: _isCurrentUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
-            children: [
-              _buildMessageBubble(context, themeProvider.isDarkMode),
-              const SizedBox(height: 2),
-              _buildMessageTime(themeProvider.isDarkMode),
-            ],
-          ),
-        );
-      },
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      child: Column(
+        crossAxisAlignment: _isCurrentUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+        children: [
+          _buildMessageBubble(context),
+          const SizedBox(height: 2),
+          _buildMessageTime(),
+        ],
+      ),
     );
   }
 
-  Widget _buildMessageBubble(BuildContext context, bool isDarkMode) {
+  Widget _buildMessageBubble(BuildContext context) {
     return Container(
       constraints: const BoxConstraints(maxWidth: 280),
       decoration: BoxDecoration(
-        color: _getBubbleColor(isDarkMode),
+        color: _getBubbleColor(),
         borderRadius: BorderRadius.circular(18).copyWith(
           topLeft: _isCurrentUser ? const Radius.circular(18) : const Radius.circular(4),
           topRight: _isCurrentUser ? const Radius.circular(4) : const Radius.circular(18),
@@ -48,55 +43,55 @@ class ChatBubble extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildMessageContent(context, isDarkMode),
-          if (message.type != MessageType.text) _buildMessageStatus(isDarkMode),
+          _buildMessageContent(context),
+          if (message.type != MessageType.text) _buildMessageStatus(),
         ],
       ),
     );
   }
 
-  Color _getBubbleColor(bool isDarkMode) {
+  Color _getBubbleColor() {
     if (_isCurrentUser) {
-      // Sent messages: Simple purple in dark mode, primary in light mode
-      return isDarkMode ? const Color(0xFF6B46C1) : AppColors.primary;
+      // Sent messages: Always use primary color
+      return AppColors.primary;
     } else {
-      // Received messages: Simple gray in dark mode
-      return isDarkMode ? const Color(0xFF4A4A5E) : AppColors.receivedMessage;
+      // Received messages: Always use received message color
+      return AppColors.receivedMessage;
     }
   }
 
-  Color _getTextColor(bool isDarkMode) {
+  Color _getTextColor() {
     if (_isCurrentUser) {
       // Sent messages always use white text
       return Colors.white;
     } else {
       // Received messages use theme-appropriate text color
-      return isDarkMode ? AppColors.darkText : AppColors.text;
+      return AppColors.text;
     }
   }
 
-  Widget _buildMessageContent(BuildContext context, bool isDarkMode) {
+  Widget _buildMessageContent(BuildContext context) {
     switch (message.type) {
       case MessageType.text:
-        return _buildTextMessage(isDarkMode);
+        return _buildTextMessage();
       case MessageType.image:
-        return _buildImageMessage(context, isDarkMode);
+        return _buildImageMessage(context);
       case MessageType.video:
-        return _buildVideoMessage(isDarkMode);
+        return _buildVideoMessage();
       case MessageType.audio:
-        return _buildAudioMessage(isDarkMode);
+        return _buildAudioMessage();
       case MessageType.location:
-        return _buildLocationMessage(isDarkMode);
+        return _buildLocationMessage();
       case MessageType.file:
-        return _buildFileMessage(isDarkMode);
+        return _buildFileMessage();
       case MessageType.system:
-        return _buildSystemMessage(isDarkMode);
+        return _buildSystemMessage();
       default:
-        return _buildTextMessage(isDarkMode);
+        return _buildTextMessage();
     }
   }
 
-  Widget _buildTextMessage(bool isDarkMode) {
+  Widget _buildTextMessage() {
     return Padding(
       padding: const EdgeInsets.all(12),
       child: Row(
@@ -107,7 +102,7 @@ class ChatBubble extends StatelessWidget {
             child: Text(
               message.displayContent,
               style: TextStyle(
-                color: _getTextColor(isDarkMode),
+                color: _getTextColor(),
                 fontSize: 16,
               ),
             ),
@@ -125,7 +120,7 @@ class ChatBubble extends StatelessWidget {
     );
   }
 
-  Widget _buildImageMessage(BuildContext context, bool isDarkMode) {
+  Widget _buildImageMessage(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -209,7 +204,7 @@ class ChatBubble extends StatelessWidget {
             child: Text(
               message.displayContent,
               style: TextStyle(
-                color: _getTextColor(isDarkMode),
+                color: _getTextColor(),
                 fontSize: 16,
               ),
             ),
@@ -218,7 +213,7 @@ class ChatBubble extends StatelessWidget {
     );
   }
 
-  Widget _buildVideoMessage(bool isDarkMode) {
+  Widget _buildVideoMessage() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -243,7 +238,7 @@ class ChatBubble extends StatelessWidget {
             child: Text(
               message.displayContent,
               style: TextStyle(
-                color: _getTextColor(isDarkMode),
+                color: _getTextColor(),
                 fontSize: 16,
               ),
             ),
@@ -252,7 +247,7 @@ class ChatBubble extends StatelessWidget {
     );
   }
 
-  Widget _buildAudioMessage(bool isDarkMode) {
+  Widget _buildAudioMessage() {
     return Container(
       width: 200,
       padding: const EdgeInsets.all(12),
@@ -260,7 +255,7 @@ class ChatBubble extends StatelessWidget {
         children: [
           Icon(
             Icons.play_arrow,
-            color: _getTextColor(isDarkMode),
+            color: _getTextColor(),
           ),
           const SizedBox(width: 8),
           Expanded(
@@ -270,7 +265,7 @@ class ChatBubble extends StatelessWidget {
                 Text(
                   'Audio Message',
                   style: TextStyle(
-                    color: _getTextColor(isDarkMode),
+                    color: _getTextColor(),
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -279,7 +274,7 @@ class ChatBubble extends StatelessWidget {
                   value: 0.3,
                   backgroundColor: Colors.grey,
                   valueColor: AlwaysStoppedAnimation<Color>(
-                    isDarkMode ? AppColors.darkPrimary : AppColors.primary,
+                    AppColors.primary,
                   ),
                 ),
               ],
@@ -290,7 +285,7 @@ class ChatBubble extends StatelessWidget {
     );
   }
 
-  Widget _buildLocationMessage(bool isDarkMode) {
+  Widget _buildLocationMessage() {
     final latitude = message.metadata?['latitude']?.toDouble();
     final longitude = message.metadata?['longitude']?.toDouble();
     final address = message.metadata?['address'];
@@ -299,7 +294,7 @@ class ChatBubble extends StatelessWidget {
       width: 200,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
-        color: isDarkMode ? Colors.grey[800] : Colors.grey[200],
+        color: Colors.grey[800],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -326,7 +321,7 @@ class ChatBubble extends StatelessWidget {
                 Text(
                   'Location',
                   style: TextStyle(
-                    color: _getTextColor(isDarkMode),
+                    color: _getTextColor(),
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -335,7 +330,7 @@ class ChatBubble extends StatelessWidget {
                   Text(
                     address,
                     style: TextStyle(
-                      color: _getTextColor(isDarkMode),
+                      color: _getTextColor(),
                       fontSize: 12,
                     ),
                   ),
@@ -348,7 +343,7 @@ class ChatBubble extends StatelessWidget {
     );
   }
 
-  Widget _buildFileMessage(bool isDarkMode) {
+  Widget _buildFileMessage() {
     final fileName = message.metadata?['fileName'] ?? 'File';
     final fileSize = message.metadata?['fileSize'] ?? 'Unknown size';
 
@@ -356,7 +351,7 @@ class ChatBubble extends StatelessWidget {
       width: 200,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: isDarkMode ? Colors.grey[800] : Colors.grey[200],
+        color: Colors.grey[800],
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
@@ -364,7 +359,7 @@ class ChatBubble extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: isDarkMode ? AppColors.darkPrimary : AppColors.primary,
+              color: AppColors.primary,
               borderRadius: BorderRadius.circular(8),
             ),
             child: const Icon(
@@ -381,7 +376,7 @@ class ChatBubble extends StatelessWidget {
                 Text(
                   fileName,
                   style: TextStyle(
-                    color: _getTextColor(isDarkMode),
+                    color: _getTextColor(),
                     fontWeight: FontWeight.w600,
                   ),
                   maxLines: 1,
@@ -391,7 +386,7 @@ class ChatBubble extends StatelessWidget {
                 Text(
                   fileSize,
                   style: TextStyle(
-                    color: _getTextColor(isDarkMode),
+                    color: _getTextColor(),
                     fontSize: 12,
                   ),
                 ),
@@ -403,18 +398,18 @@ class ChatBubble extends StatelessWidget {
     );
   }
 
-  Widget _buildSystemMessage(bool isDarkMode) {
+  Widget _buildSystemMessage() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: isDarkMode ? AppColors.darkBackground : AppColors.background,
+        color: AppColors.background,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: (isDarkMode ? AppColors.darkText : AppColors.text).withOpacity(0.2)),
+        border: Border.all(color: AppColors.text.withOpacity(0.2)),
       ),
       child: Text(
         message.displayContent,
         style: TextStyle(
-          color: (isDarkMode ? AppColors.darkText : AppColors.text).withOpacity(0.7),
+          color: AppColors.text.withOpacity(0.7),
           fontSize: 12,
           fontStyle: FontStyle.italic,
         ),
@@ -423,7 +418,7 @@ class ChatBubble extends StatelessWidget {
     );
   }
 
-  Widget _buildMessageStatus(bool isDarkMode) {
+  Widget _buildMessageStatus() {
     if (!_isCurrentUser) return const SizedBox.shrink();
 
     return Padding(
@@ -458,7 +453,7 @@ class ChatBubble extends StatelessWidget {
     }
   }
 
-  Widget _buildMessageTime(bool isDarkMode) {
+  Widget _buildMessageTime() {
     return Padding(
       padding: EdgeInsets.only(
         left: _isCurrentUser ? 0 : 16,
@@ -467,7 +462,7 @@ class ChatBubble extends StatelessWidget {
       child: Text(
         message.formattedTime ?? _formatTime(message.timestamp),
         style: TextStyle(
-          color: (isDarkMode ? AppColors.darkText : AppColors.text).withOpacity(0.5),
+          color: AppColors.text.withOpacity(0.5),
           fontSize: 12,
         ),
       ),

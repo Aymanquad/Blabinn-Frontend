@@ -8,6 +8,7 @@ import '../core/constants.dart';
 import '../providers/user_provider.dart';
 import '../screens/privacy_security_settings_screen.dart';
 import '../screens/help_support_settings_screen.dart';
+import '../widgets/consistent_app_bar.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({Key? key}) : super(key: key);
@@ -105,8 +106,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Profile'),
+      appBar: const ConsistentAppBar(
+        title: 'Profile',
         backgroundColor: Colors.transparent,
         elevation: 0,
       ),
@@ -191,8 +192,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Profile'),
+      appBar: const ConsistentAppBar(
+        title: 'Profile',
         backgroundColor: Colors.transparent,
         elevation: 0,
       ),

@@ -4,6 +4,9 @@ import '../core/constants.dart';
 import '../services/api_service.dart';
 import '../models/chat.dart';
 import '../widgets/banner_ad_widget.dart';
+import '../widgets/empty_state.dart';
+import '../widgets/skeleton_list.dart';
+import '../widgets/glass_container.dart';
 import 'chat_screen.dart';
 
 class ChatListScreen extends StatefulWidget {
@@ -267,6 +270,78 @@ class _ChatListScreenState extends State<ChatListScreen> {
     );
   }
 
+  Widget _buildLoadingState() {
+    return SkeletonList(
+      itemCount: 8,
+      itemBuilder: (context, index) => GlassContainer(
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            // Avatar skeleton
+            Container(
+              width: 50,
+              height: 50,
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+            ),
+            const SizedBox(width: 16),
+            // Content skeleton
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: double.infinity,
+                    height: 16,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    width: 200,
+                    height: 14,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    if (_searchController.text.isNotEmpty) {
+      return EmptyState(
+        icon: Icons.search_off,
+        title: 'No friends found',
+        subtitle: 'Try a different search term',
+        primaryActionLabel: 'Clear Search',
+        onPrimaryAction: () => _searchController.clear(),
+      );
+    } else {
+      return EmptyState(
+        icon: Icons.chat_bubble_outline,
+        title: 'No friends to chat with yet',
+        subtitle: 'Add friends to start chatting!',
+        primaryActionLabel: 'Find Friends',
+        onPrimaryAction: () {
+          // Navigate to add friends screen or connect screen
+          // This would depend on your navigation structure
+        },
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -342,9 +417,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
             ),
             Expanded(
               child: _isLoading
-                  ? const Center(
-                      child: CircularProgressIndicator(),
-                    )
+                  ? _buildLoadingState()
                   : _errorMessage != null
                       ? Builder(
                           builder: (context) {
@@ -379,48 +452,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
                           },
                         )
                       : _filteredFriends.isEmpty
-                          ? Builder(
-                              builder: (context) {
-                                final theme = Theme.of(context);
-                                return Center(
-                                  child: Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Icon(
-                                        _searchController.text.isNotEmpty
-                                            ? Icons.search_off
-                                            : Icons.chat_bubble_outline,
-                                        size: 64,
-                                        color: theme.colorScheme.onSurface
-                                            .withOpacity(0.4),
-                                      ),
-                                      const SizedBox(height: 16),
-                                      Text(
-                                        _searchController.text.isNotEmpty
-                                            ? 'No friends found'
-                                            : 'No friends to chat with yet',
-                                        style: TextStyle(
-                                          color: theme.colorScheme.onSurface
-                                              .withOpacity(0.7),
-                                          fontSize: 16,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 8),
-                                      Text(
-                                        _searchController.text.isNotEmpty
-                                            ? 'Try a different search term'
-                                            : 'Add friends to start chatting!',
-                                        style: TextStyle(
-                                          color: theme.colorScheme.onSurface
-                                              .withOpacity(0.5),
-                                          fontSize: 14,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                );
-                              },
-                            )
+                          ? _buildEmptyState()
                           : RefreshIndicator(
                               onRefresh: _loadChatsData,
                               child: ListView.builder(
