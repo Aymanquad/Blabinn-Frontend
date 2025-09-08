@@ -19,8 +19,8 @@ class EmptyState extends StatelessWidget {
 
   const EmptyState({
     super.key,
-    required this.icon,
-    required this.title,
+    this.icon = Icons.info_outline,
+    this.title = 'Nothing here yet',
     this.subtitle,
     this.primaryActionLabel,
     this.onPrimaryAction,
