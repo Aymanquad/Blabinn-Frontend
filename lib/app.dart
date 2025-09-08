@@ -1045,13 +1045,14 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
                   ),
                 ),
                 actions: [
-                  // Credits Display
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
-                    child: Center(
-                      child: CreditsDisplaySmall(),
+                  // Show credits only on Home (index 2) and Credit Shop (index 3)
+                  if (_currentIndex == 2 || _currentIndex == 3)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      child: Center(
+                        child: CreditsDisplaySmall(),
+                      ),
                     ),
-                  ),
                   IconButton(
                     icon: Icon(
                       Icons.person,

@@ -60,10 +60,11 @@ class _ProfilePreviewScreenState extends State<ProfilePreviewScreen> {
     try {
       final id = _data!['uid'] ?? _data!['id'];
       if (id == null) return;
-      await _matching.likeUser(id);
+      // Use connection flow instead of non-existent matching route
+      await _api.postJson('/connections/friend-request', {'toUserId': id});
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Liked')), 
+          const SnackBar(content: Text('Request sent')), 
         );
       }
     } catch (e) {
@@ -121,12 +122,10 @@ class _ProfilePreviewScreenState extends State<ProfilePreviewScreen> {
                 chips: _composeChips(_data!),
                 bio: (_data!['bio'] as String?) ?? '',
                 isOnline: _data!['isOnline'] as bool? ?? false,
-                onPass: () => Navigator.maybePop(context),
-                onLike: _handleLike,
-                onMessage: () {
-                  // Reuse existing navigation to chat via named route from app or direct screen
-                  Navigator.pushNamed(context, '/chat-list');
-                },
+                // Only show actions when previewing someone else
+                onPass: _isSelf() ? null : () => Navigator.maybePop(context),
+                onLike: _isSelf() ? null : _handleLike,
+                onMessage: _isSelf() ? null : () { Navigator.pushNamed(context, '/chat-list'); },
               ),
             ),
         ],
@@ -150,6 +149,14 @@ class _ProfilePreviewScreenState extends State<ProfilePreviewScreen> {
         ? List<String>.from(d['interests'])
         : <String>[];
     return interests.take(3).toList();
+  }
+
+  bool _isSelf() {
+    final id = _data?['uid'] ?? _data?['id'];
+    final selfId = _data?['currentUserId'];
+    if (id != null && selfId != null) return id == selfId;
+    // Fallback: if no userId was passed into screen, assume self preview
+    return widget.userId == null;
   }
 }
 

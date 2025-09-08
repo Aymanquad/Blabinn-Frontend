@@ -19,6 +19,15 @@ class _CreditShopScreenState extends State<CreditShopScreen> {
   final BillingService _billingService = BillingService();
   final ChatifyAdService _adService = ChatifyAdService();
 
+  // Display-only override for prices. Update here for new pricing.
+  static const Map<String, String> _displayCreditPrices = {
+    'credits_70': '₹49.00',
+    'credits_150': '₹99.00',
+    'credits_400': '₹249.00',
+    'credits_900': '₹499.00',
+    'credits_2000': '₹999.00',
+  };
+
   @override
   void initState() {
     super.initState();
@@ -128,10 +137,8 @@ class _CreditShopScreenState extends State<CreditShopScreen> {
                     children: [
                       _HeaderBalance(),
                       const SizedBox(height: 16),
-                      _SectionHeader(title: 'Buy Credits'),
+                      // Removed old credit bundles section; we now show only new pricing sections below
                       const SizedBox(height: 8),
-                      // Credit bundles from billing service
-                      ..._buildCreditBundles(),
                       const SizedBox(height: 24),
                       _SectionHeader(title: 'Earn Credits (Watch Ads)'),
                       const SizedBox(height: 8),
@@ -159,9 +166,10 @@ class _CreditShopScreenState extends State<CreditShopScreen> {
 
     return creditProducts.map((product) {
       final isMostPopular = product.id == 'credits_150';
+      final displayPrice = _displayCreditPrices[product.id] ?? product.price;
       return _CreditBundleCard(
         title: '${product.id.replaceAll('credits_', '')} credits',
-        price: product.price,
+        price: displayPrice,
         productId: product.id,
         isMostPopular: isMostPopular,
         billingService: _billingService,
