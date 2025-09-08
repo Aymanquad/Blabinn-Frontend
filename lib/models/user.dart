@@ -21,6 +21,21 @@ class User {
   final String? deviceId; // For guest users
   final int? age; // New field for age
   final String? gender; // New field for gender
+  
+  // Chatify User Type System
+  final String userType; // 'guest', 'signed_up_free', 'premium'
+  final bool isVerified; // Verification status for signed-up/premium users
+  final DateTime? verificationDate; // When user was verified
+  final int connectCount; // Track number of connects for ad triggers
+  final int pageSwitchCount; // Track page switches for ad triggers
+  final DateTime? lastPageSwitchTime; // Reset counter periodically
+  final int dailyAdViews; // Track daily reward ad views
+  final DateTime? lastAdViewDate; // Reset daily counter
+  final int superLikesUsed; // Track superlikes used this period
+  final int boostsUsed; // Track boosts used this period
+  final int friendsCount; // Track friends count for premium limits
+  final int whoLikedViews; // Track "Who Liked You" views
+  final DateTime? lastWhoLikedViewDate; // Reset daily counter
 
   User({
     required this.id,
@@ -45,6 +60,19 @@ class User {
     this.deviceId,
     this.age,
     this.gender,
+    this.userType = 'guest', // Default to guest
+    this.isVerified = false,
+    this.verificationDate,
+    this.connectCount = 0,
+    this.pageSwitchCount = 0,
+    this.lastPageSwitchTime,
+    this.dailyAdViews = 0,
+    this.lastAdViewDate,
+    this.superLikesUsed = 0,
+    this.boostsUsed = 0,
+    this.friendsCount = 0,
+    this.whoLikedViews = 0,
+    this.lastWhoLikedViewDate,
   });
 
   User copyWith({
@@ -70,6 +98,19 @@ class User {
     String? deviceId,
     int? age,
     String? gender,
+    String? userType,
+    bool? isVerified,
+    DateTime? verificationDate,
+    int? connectCount,
+    int? pageSwitchCount,
+    DateTime? lastPageSwitchTime,
+    int? dailyAdViews,
+    DateTime? lastAdViewDate,
+    int? superLikesUsed,
+    int? boostsUsed,
+    int? friendsCount,
+    int? whoLikedViews,
+    DateTime? lastWhoLikedViewDate,
   }) {
     return User(
       id: id ?? this.id,
@@ -94,6 +135,19 @@ class User {
       deviceId: deviceId ?? this.deviceId,
       age: age ?? this.age,
       gender: gender ?? this.gender,
+      userType: userType ?? this.userType,
+      isVerified: isVerified ?? this.isVerified,
+      verificationDate: verificationDate ?? this.verificationDate,
+      connectCount: connectCount ?? this.connectCount,
+      pageSwitchCount: pageSwitchCount ?? this.pageSwitchCount,
+      lastPageSwitchTime: lastPageSwitchTime ?? this.lastPageSwitchTime,
+      dailyAdViews: dailyAdViews ?? this.dailyAdViews,
+      lastAdViewDate: lastAdViewDate ?? this.lastAdViewDate,
+      superLikesUsed: superLikesUsed ?? this.superLikesUsed,
+      boostsUsed: boostsUsed ?? this.boostsUsed,
+      friendsCount: friendsCount ?? this.friendsCount,
+      whoLikedViews: whoLikedViews ?? this.whoLikedViews,
+      lastWhoLikedViewDate: lastWhoLikedViewDate ?? this.lastWhoLikedViewDate,
     );
   }
 
@@ -109,18 +163,31 @@ class User {
       'location': location,
       'latitude': latitude,
       'longitude': longitude,
-             'isOnline': isOnline,
-       'lastSeen': lastSeen?.toIso8601String(),
-       'isPremium': isPremium,
-       'adsFree': adsFree,
-       'credits': credits,
-       'createdAt': createdAt.toIso8601String(),
+      'isOnline': isOnline,
+      'lastSeen': lastSeen?.toIso8601String(),
+      'isPremium': isPremium,
+      'adsFree': adsFree,
+      'credits': credits,
+      'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt.toIso8601String(),
       'isBlocked': isBlocked,
       'isFriend': isFriend,
       'deviceId': deviceId,
       'age': age,
       'gender': gender,
+      'userType': userType,
+      'isVerified': isVerified,
+      'verificationDate': verificationDate?.toIso8601String(),
+      'connectCount': connectCount,
+      'pageSwitchCount': pageSwitchCount,
+      'lastPageSwitchTime': lastPageSwitchTime?.toIso8601String(),
+      'dailyAdViews': dailyAdViews,
+      'lastAdViewDate': lastAdViewDate?.toIso8601String(),
+      'superLikesUsed': superLikesUsed,
+      'boostsUsed': boostsUsed,
+      'friendsCount': friendsCount,
+      'whoLikedViews': whoLikedViews,
+      'lastWhoLikedViewDate': lastWhoLikedViewDate?.toIso8601String(),
     };
   }
 
@@ -230,6 +297,59 @@ class User {
         // We don't store lastLoginAt in the User model, but we should handle it gracefully
       }
 
+      // Handle new user type fields
+      DateTime? verificationDate;
+      if (json['verificationDate'] != null) {
+        if (json['verificationDate'] is String) {
+          verificationDate = DateTime.parse(json['verificationDate'] as String);
+        } else if (json['verificationDate'] is Map) {
+          final timestamp = json['verificationDate'] as Map<String, dynamic>;
+          final seconds = timestamp['_seconds'] as int?;
+          if (seconds != null) {
+            verificationDate = DateTime.fromMillisecondsSinceEpoch(seconds * 1000);
+          }
+        }
+      }
+
+      DateTime? lastPageSwitchTime;
+      if (json['lastPageSwitchTime'] != null) {
+        if (json['lastPageSwitchTime'] is String) {
+          lastPageSwitchTime = DateTime.parse(json['lastPageSwitchTime'] as String);
+        } else if (json['lastPageSwitchTime'] is Map) {
+          final timestamp = json['lastPageSwitchTime'] as Map<String, dynamic>;
+          final seconds = timestamp['_seconds'] as int?;
+          if (seconds != null) {
+            lastPageSwitchTime = DateTime.fromMillisecondsSinceEpoch(seconds * 1000);
+          }
+        }
+      }
+
+      DateTime? lastAdViewDate;
+      if (json['lastAdViewDate'] != null) {
+        if (json['lastAdViewDate'] is String) {
+          lastAdViewDate = DateTime.parse(json['lastAdViewDate'] as String);
+        } else if (json['lastAdViewDate'] is Map) {
+          final timestamp = json['lastAdViewDate'] as Map<String, dynamic>;
+          final seconds = timestamp['_seconds'] as int?;
+          if (seconds != null) {
+            lastAdViewDate = DateTime.fromMillisecondsSinceEpoch(seconds * 1000);
+          }
+        }
+      }
+
+      DateTime? lastWhoLikedViewDate;
+      if (json['lastWhoLikedViewDate'] != null) {
+        if (json['lastWhoLikedViewDate'] is String) {
+          lastWhoLikedViewDate = DateTime.parse(json['lastWhoLikedViewDate'] as String);
+        } else if (json['lastWhoLikedViewDate'] is Map) {
+          final timestamp = json['lastWhoLikedViewDate'] as Map<String, dynamic>;
+          final seconds = timestamp['_seconds'] as int?;
+          if (seconds != null) {
+            lastWhoLikedViewDate = DateTime.fromMillisecondsSinceEpoch(seconds * 1000);
+          }
+        }
+      }
+
       return User(
         id: userId,
         username: userName,
@@ -241,18 +361,31 @@ class User {
         location: json['location'] as String?,
         latitude: json['latitude'] as double?,
         longitude: json['longitude'] as double?,
-                 isOnline: json['isOnline'] as bool? ?? false,
-         lastSeen: lastSeenDate,
-         isPremium: json['isPremium'] as bool? ?? false,
-         adsFree: json['adsFree'] as bool? ?? false, // Default to showing ads
-         credits: json['credits'] as int? ?? 100, // Default 100 credits for all users
-         createdAt: createdAtDate,
+        isOnline: json['isOnline'] as bool? ?? false,
+        lastSeen: lastSeenDate,
+        isPremium: json['isPremium'] as bool? ?? false,
+        adsFree: json['adsFree'] as bool? ?? false, // Default to showing ads
+        credits: json['credits'] as int? ?? 100, // Default 100 credits for all users
+        createdAt: createdAtDate,
         updatedAt: updatedAtDate,
         isBlocked: json['isBlocked'] as bool? ?? false,
         isFriend: json['isFriend'] as bool? ?? false,
         deviceId: json['deviceId'] as String?,
         age: json['age'] as int?,
         gender: json['gender'] as String?,
+        userType: json['userType'] as String? ?? 'guest',
+        isVerified: json['isVerified'] as bool? ?? false,
+        verificationDate: verificationDate,
+        connectCount: json['connectCount'] as int? ?? 0,
+        pageSwitchCount: json['pageSwitchCount'] as int? ?? 0,
+        lastPageSwitchTime: lastPageSwitchTime,
+        dailyAdViews: json['dailyAdViews'] as int? ?? 0,
+        lastAdViewDate: lastAdViewDate,
+        superLikesUsed: json['superLikesUsed'] as int? ?? 0,
+        boostsUsed: json['boostsUsed'] as int? ?? 0,
+        friendsCount: json['friendsCount'] as int? ?? 0,
+        whoLikedViews: json['whoLikedViews'] as int? ?? 0,
+        lastWhoLikedViewDate: lastWhoLikedViewDate,
       );
     } catch (e) {
       // print('❌ ERROR: User.fromJson failed - $e');
@@ -287,6 +420,88 @@ class User {
         age != null &&
         gender != null &&
         gender!.isNotEmpty;
+  }
+
+  // User type helper methods
+  bool get isGuestUser => userType == 'guest';
+  bool get isSignedUpFree => userType == 'signed_up_free';
+  bool get isPremiumUser => userType == 'premium';
+
+  // Get user type badge information
+  Map<String, dynamic> get userTypeBadge {
+    switch (userType) {
+      case 'guest':
+        return {
+          'type': 'guest',
+          'label': 'Anonymous',
+          'color': 0xFF6B7280, // Gray
+          'icon': '👤'
+        };
+      case 'signed_up_free':
+        return {
+          'type': 'signed_up_free',
+          'label': 'Free',
+          'color': 0xFF3B82F6, // Blue
+          'icon': '⭐'
+        };
+      case 'premium':
+        return {
+          'type': 'premium',
+          'label': 'Premium',
+          'color': 0xFFF59E0B, // Amber
+          'icon': '👑'
+        };
+      default:
+        return {
+          'type': 'guest',
+          'label': 'Anonymous',
+          'color': 0xFF6B7280,
+          'icon': '👤'
+        };
+    }
+  }
+
+  // Check if user can match with another user type
+  bool canMatchWith(String otherUserType) {
+    switch (userType) {
+      case 'guest':
+        return otherUserType == 'guest';
+      case 'signed_up_free':
+        return otherUserType == 'signed_up_free' || otherUserType == 'premium';
+      case 'premium':
+        return true; // Premium users can match with everyone
+      default:
+        return false;
+    }
+  }
+
+  // Check if user has access to a feature
+  bool hasFeatureAccess(String feature) {
+    // Special rule: Women get all features free (except ads)
+    if (gender == 'female' && feature != 'ads_free') {
+      return true;
+    }
+
+    switch (feature) {
+      case 'add_friends':
+        return userType != 'guest';
+      case 'send_images':
+        return userType != 'guest';
+      case 'instant_match':
+        return userType == 'premium';
+      case 'unlimited_friends':
+        return userType == 'premium';
+      case 'unlimited_who_liked':
+        return userType == 'premium';
+      case 'ads_free':
+        return userType == 'premium';
+      case 'boosts':
+        return userType == 'premium';
+      case 'superlikes':
+        return userType == 'premium';
+      default:
+        return false;
+    }
   }
 
   String get statusText {

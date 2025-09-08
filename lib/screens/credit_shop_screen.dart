@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
+import '../services/chatify_ad_service.dart';
 import '../services/api_service.dart';
 import '../services/billing_service.dart';
 import '../providers/user_provider.dart';
 import '../models/user.dart';
+import '../widgets/consistent_app_bar.dart';
 
 class CreditShopScreen extends StatefulWidget {
   const CreditShopScreen({super.key});
@@ -15,12 +17,15 @@ class CreditShopScreen extends StatefulWidget {
 
 class _CreditShopScreenState extends State<CreditShopScreen> {
   final BillingService _billingService = BillingService();
+  final ChatifyAdService _adService = ChatifyAdService();
 
   @override
   void initState() {
     super.initState();
     _initializeBilling();
     _listenToPurchases();
+    // Trigger interstitial on entering Credit Shop
+    _adService.onEnterCreditShop();
   }
 
   void _listenToPurchases() {
@@ -81,9 +86,8 @@ class _CreditShopScreenState extends State<CreditShopScreen> {
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Credit Shop'),
-        centerTitle: true,
+      appBar: ConsistentAppBar(
+        title: 'Credit Shop',
         actions: [
           if (_billingService.isAvailable)
             IconButton(
@@ -129,6 +133,10 @@ class _CreditShopScreenState extends State<CreditShopScreen> {
                       // Credit bundles from billing service
                       ..._buildCreditBundles(),
                       const SizedBox(height: 24),
+                      _SectionHeader(title: 'Earn Credits (Watch Ads)'),
+                      const SizedBox(height: 8),
+                      _EarnCreditsCard(),
+                      const SizedBox(height: 24),
                       _SectionHeader(title: 'Premium Plans'),
                       const SizedBox(height: 8),
                       ..._buildPremiumPlans(theme),
@@ -162,19 +170,28 @@ class _CreditShopScreenState extends State<CreditShopScreen> {
   }
 
   List<Widget> _buildPremiumPlans(ThemeData theme) {
-    final premiumProducts = _billingService.products
-        .where((product) => product.id.startsWith('premium_'))
-        .toList();
+    // Desired order and fallback pricing
+    final desired = [
+      {'id': 'premium_weekly', 'title': '1 Week', 'price': '₹299'},
+      {'id': 'premium_monthly', 'title': '1 Month', 'price': '₹599'},
+      {'id': 'premium_3months', 'title': '3 Months', 'price': '₹1499'},
+      {'id': 'premium_6months', 'title': '6 Months', 'price': '₹1999'},
+      {'id': 'premium_yearly', 'title': '12 Months', 'price': '₹2500'},
+      {'id': 'premium_lifetime', 'title': 'Lifetime', 'price': '₹4999'},
+    ];
 
-    return premiumProducts.map((product) {
-      final isMonthly = product.id == 'premium_monthly';
+    final byId = {
+      for (final p in _billingService.products.where((p) => p.id.startsWith('premium_'))) p.id: p
+    };
+
+    return desired.map((plan) {
+      final product = byId[plan['id']];
+      final displayPrice = product?.price ?? plan['price'] as String;
       return _PremiumPlanCard(
-        title: isMonthly ? 'Monthly Premium' : 'Yearly Premium',
-        subtitle: isMonthly 
-            ? '120 daily credits + media folder + unlimited image sending to friends + ads-free experience'
-            : '300 daily credits + media folder + unlimited image sending to friends + ads-free experience',
-        price: product.price,
-        productId: product.id,
+        title: plan['title'] as String,
+        subtitle: 'Ad-free + instant match + boosts + super likes + unlimited friends',
+        price: displayPrice,
+        productId: plan['id'] as String,
         gradient: LinearGradient(colors: [
           theme.colorScheme.primary.withOpacity(0.15),
           theme.colorScheme.tertiary.withOpacity(0.08),
@@ -234,6 +251,11 @@ class _HeaderBalance extends StatelessWidget {
           TextButton.icon(
             onPressed: () async {
               try {
+                // Show two rewarded ads to claim daily bonus
+                final adOk1 = await ChatifyAdService().showRewardedAd();
+                final adOk2 = adOk1 ? await ChatifyAdService().showRewardedAd() : false;
+                if (!adOk2) return;
+
                 final api = ApiService();
                 final result = await api.claimDailyCredits();
                 final awarded = (result['awarded'] as int?) ?? 0;
@@ -477,6 +499,93 @@ class _PremiumPlanCardState extends State<_PremiumPlanCard> {
             )
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _EarnCreditsCard extends StatefulWidget {
+  @override
+  State<_EarnCreditsCard> createState() => _EarnCreditsCardState();
+}
+
+class _EarnCreditsCardState extends State<_EarnCreditsCard> {
+  bool _loading = false;
+
+  Future<void> _watchAdForCredits(int amount) async {
+    if (_loading) return;
+    setState(() => _loading = true);
+    try {
+      final adOk = await ChatifyAdService().showRewardedAd();
+      if (!adOk) return;
+
+      final api = ApiService();
+      final result = await api.grantAdCredits(amount: amount, trigger: 'credit_shop_reward');
+      final granted = (result['granted'] as int?) ?? amount;
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Credits awarded: +$granted')),
+        );
+      }
+
+      // Refresh user credits display
+      if (mounted) {
+        final userProvider = Provider.of<UserProvider>(context, listen: false);
+        final profile = await ApiService().getMyProfile();
+        if (profile['profile'] != null) {
+          userProvider.updateCurrentUser(User.fromJson(profile['profile']));
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to award credits: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(colors: [
+          theme.colorScheme.surface.withOpacity(0.9),
+          theme.colorScheme.surface.withOpacity(0.75),
+        ]),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: theme.colorScheme.primary.withOpacity(0.08)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('Watch a short ad to earn credits'),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              _earnButton('Watch Ad (+10)', 10),
+              const SizedBox(width: 12),
+              _earnButton('Watch Ad (+20)', 20),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _earnButton(String label, int amount) {
+    return Expanded(
+      child: ElevatedButton(
+        onPressed: _loading ? null : () => _watchAdForCredits(amount),
+        child: _loading
+            ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+            : Text(label),
       ),
     );
   }

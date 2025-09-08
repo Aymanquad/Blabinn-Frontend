@@ -64,9 +64,13 @@ class CustomBottomNavigationBar extends StatelessWidget {
     final isSelected = index == currentIndex;
     final item = items[index];
     
-    return GestureDetector(
-      onTap: () => onTap(index),
-      child: AnimatedContainer(
+    return Semantics(
+      label: '${item.label}${isSelected ? ' (selected)' : ''}',
+      button: true,
+      selected: isSelected,
+      child: GestureDetector(
+        onTap: () => onTap(index),
+        child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         curve: Curves.easeInOut,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -108,6 +112,7 @@ class CustomBottomNavigationBar extends StatelessWidget {
             ),
           ],
         ),
+      ),
       ),
     );
   }

@@ -106,10 +106,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: const ConsistentAppBar(
+      appBar: ConsistentAppBar(
         title: 'Profile',
         backgroundColor: Colors.transparent,
         elevation: 0,
+        actions: [
+          IconButton(
+            tooltip: 'Preview profile',
+            onPressed: () => Navigator.pushNamed(context, '/profile-preview'),
+            icon: const Icon(Icons.remove_red_eye_rounded),
+          ),
+          const SizedBox(width: 8),
+        ],
       ),
       body: Stack(
         children: [
@@ -310,6 +318,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
             const SizedBox(height: 32),
 
+            // Profile Preview
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: () {
+                  Navigator.pushNamed(context, '/profile-preview');
+                },
+                icon: const Icon(Icons.visibility),
+                label: const Text('Preview Profile'),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  foregroundColor: theme.colorScheme.onSurface,
+                  side: BorderSide(color: theme.colorScheme.onSurface.withOpacity(0.2)),
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 16),
+
             // Settings Section
             Container(
               decoration: BoxDecoration(
@@ -318,6 +345,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
               child: Column(
                 children: [
+                  // Verification CTA
+                  if (!user.isVerified) ...[
+                    ListTile(
+                      leading: Icon(Icons.verified_outlined, color: Colors.blue.shade700),
+                      title: Text('Get Verified', style: TextStyle(color: theme.colorScheme.onSurface)),
+                      subtitle: Text('Increase trust and unlock features in some regions'),
+                      trailing: Icon(Icons.arrow_forward_ios, size: 16, color: theme.colorScheme.onSurface.withOpacity(0.5)),
+                      onTap: () async {
+                        try {
+                          final res = await _apiService.requestVerification();
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Verification requested')),
+                            );
+                          }
+                        } catch (_) {}
+                      },
+                    ),
+                    Divider(height: 1, color: theme.colorScheme.outline.withOpacity(0.2)),
+                  ],
                   // Profile Management
                   ListTile(
                     leading: Icon(Icons.person_outline,

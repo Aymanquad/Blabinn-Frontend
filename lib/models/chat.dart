@@ -209,6 +209,10 @@ class Chat {
         return lastMessage!.displayContent;
       case MessageType.image:
         return '📷 Image';
+      case MessageType.viewOnceImage:
+        return '🕒 View-once image';
+      case MessageType.viewOnceVideo:
+        return '🕒 View-once video';
       case MessageType.location:
         return '📍 Location';
       case MessageType.system:

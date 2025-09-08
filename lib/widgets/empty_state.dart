@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../core/theme_extensions.dart';
+import '../core/constants.dart';
 
 /// A reusable empty state widget that displays an icon, title, subtitle,
 /// and optional primary action button. Used for empty lists and screens.
@@ -13,6 +14,8 @@ class EmptyState extends StatelessWidget {
   final EdgeInsets? padding;
   final double? iconSize;
   final Color? iconColor;
+  final Gradient? iconBackground; // override background behind icon
+  final Color? primaryButtonColor; // override primary action button color
 
   const EmptyState({
     super.key,
@@ -25,6 +28,8 @@ class EmptyState extends StatelessWidget {
     this.padding,
     this.iconSize,
     this.iconColor,
+    this.iconBackground,
+    this.primaryButtonColor,
   });
 
   @override
@@ -42,7 +47,7 @@ class EmptyState extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                gradient: tokens?.primaryGradient,
+                gradient: iconBackground ?? tokens?.primaryGradient,
                 borderRadius: BorderRadius.circular(
                   tokens?.radiusLarge ?? 20,
                 ),
@@ -91,6 +96,7 @@ class EmptyState extends StatelessWidget {
                   onPressed: onPrimaryAction,
                   style: FilledButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 16),
+                    backgroundColor: primaryButtonColor ?? AppColors.primary,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(
                         tokens?.radiusMedium ?? 16,

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../core/constants.dart';
 import '../services/api_service.dart';
 import '../models/chat.dart';
+import '../widgets/skeleton_list.dart';
 import 'chat_screen.dart';
 import 'report_user_screen.dart';
 
@@ -316,14 +317,13 @@ class _FriendsListScreenState extends State<FriendsListScreen> {
                         if (userId != null) {
                           Navigator.pushNamed(
                             context,
-                            '/user-profile',
-                            arguments: userId,
+                            '/profile-preview',
+                            arguments: {'userId': userId, 'initialUserData': friend},
                           );
                         } else {
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
-                              content: Text(
-                                  'Unable to view profile: User ID not found'),
+                              content: Text('Unable to view profile: User ID not found'),
                               backgroundColor: Colors.red,
                             ),
                           );
@@ -480,8 +480,9 @@ class _FriendsListScreenState extends State<FriendsListScreen> {
           ),
           Expanded(
             child: _isLoading
-                ? const Center(
-                    child: CircularProgressIndicator(),
+                ? SkeletonList(
+                    itemCount: 8,
+                    itemBuilder: (context, index) => SkeletonLayouts.profileCard(),
                   )
                 : _errorMessage != null
               ? Center(

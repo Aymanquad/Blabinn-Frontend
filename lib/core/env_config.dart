@@ -4,7 +4,7 @@
 
 class EnvConfig {
   // Environment
-  static const String environment = 'production';
+  static const String environment = 'development';
 
   // ===== HISHAM PC CONFIG (COMMENTED OUT) =====
   // API Configuration
@@ -39,21 +39,20 @@ class EnvConfig {
   // Physical Device IP (for Android physical devices)
   // static const String physicalDeviceIp = '192.168.1.5';  // Updated to correct IP
 
-  // ===== DEPLOYED BACKEND CONFIG =====
+  // ===== LOCAL BACKEND CONFIG =====
   // API Configuration
-  static const String apiBaseUrlAndroid =
-      'https://blabbin-backend.onrender.com';
-  static const String apiBaseUrlIos = 'https://blabbin-backend.onrender.com';
-  static const String apiBaseUrlWeb = 'https://blabbin-backend.onrender.com';
-  static const String apiBaseUrlDefault =
-      'https://blabbin-backend.onrender.com';
+  // Android emulator uses 10.0.2.2 to reach host machine's localhost
+  static const String apiBaseUrlAndroid = 'http://10.0.2.2:3000';
+  static const String apiBaseUrlIos = 'http://localhost:3000';
+  static const String apiBaseUrlWeb = 'http://localhost:3000';
+  static const String apiBaseUrlDefault = 'http://localhost:3000';
   static const String apiVersion = 'v1';
 
-  // WebSocket Configuration - Socket.IO uses HTTP URLs, not WS URLs
-  static const String wsUrlAndroid = 'https://blabbin-backend.onrender.com';
-  static const String wsUrlIos = 'https://blabbin-backend.onrender.com';
-  static const String wsUrlWeb = 'https://blabbin-backend.onrender.com';
-  static const String wsUrlDefault = 'https://blabbin-backend.onrender.com';
+  // WebSocket Configuration - Socket.IO uses HTTP URLs for base
+  static const String wsUrlAndroid = 'http://10.0.2.2:3000';
+  static const String wsUrlIos = 'http://localhost:3000';
+  static const String wsUrlWeb = 'http://localhost:3000';
+  static const String wsUrlDefault = 'http://localhost:3000';
 
   // Physical Device IP (for Android physical devices) - Not needed for deployed backend
   // static const String physicalDeviceIp = '';

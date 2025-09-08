@@ -20,6 +20,7 @@ import 'screens/search_screen.dart';
 import 'screens/friend_requests_screen.dart';
 import 'screens/friends_screen.dart';
 import 'screens/user_profile_screen.dart';
+import 'screens/profile_preview_screen.dart';
 import 'screens/chat_list_screen.dart';
 import 'screens/friends_list_screen.dart';
 import 'screens/account_settings_screen.dart';
@@ -114,6 +115,19 @@ class ChatApp extends StatelessWidget {
                 '/friends': (context) => const FriendsScreen(),
                 '/chat-list': (context) => const ChatListScreen(),
                 '/friends-list': (context) => const FriendsListScreen(),
+                '/profile-preview': (context) {
+                  final args = ModalRoute.of(context)?.settings.arguments;
+                  if (args is Map<String, dynamic>) {
+                    return ProfilePreviewScreen(
+                      userId: args['userId'] as String?,
+                      initialUserData: args['initialUserData'] as Map<String, dynamic>?,
+                    );
+                  }
+                  if (args is String) {
+                    return ProfilePreviewScreen(userId: args);
+                  }
+                  return const ProfilePreviewScreen();
+                },
                 '/test-interstitial': (context) =>
                     const TestInterstitialScreen(),
                 '/random-chat': (context) {

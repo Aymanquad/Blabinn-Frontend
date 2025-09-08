@@ -200,6 +200,17 @@ class ApiService {
     }
   }
 
+  // ============== Public helpers for JSON endpoints (for other services) ==============
+  Future<Map<String, dynamic>> getJson(String endpointWithQuery) async {
+    final response = await _get(endpointWithQuery);
+    return _handleResponse(response);
+  }
+
+  Future<Map<String, dynamic>> postJson(String endpoint, Map<String, dynamic> data) async {
+    final response = await _post(endpoint, data);
+    return _handleResponse(response);
+  }
+
   // Authentication methods (these are handled by Firebase now)
   Future<Map<String, dynamic>> verifyAuth() async {
     final response = await _get('/auth/verify');
@@ -290,6 +301,14 @@ class ApiService {
     return _handleResponse(response);
   }
 
+  Future<Map<String, dynamic>> grantAdCredits({int amount = 10, String trigger = 'credit_shop_reward'}) async {
+    final response = await _post('/billing/credits/grant-ad', {
+      'amount': amount,
+      'trigger': trigger,
+    });
+    return _handleResponse(response);
+  }
+
   Future<Map<String, dynamic>> spendCredits({
     required int amount,
     required String feature,
@@ -316,6 +335,22 @@ class ApiService {
       'purchaseType': purchaseType,
       'orderId': orderId ?? 'mock_order_${DateTime.now().millisecondsSinceEpoch}',
     });
+    return _handleResponse(response);
+  }
+
+  // ============== Verification APIs ==============
+  Future<Map<String, dynamic>> getVerificationStatus() async {
+    final response = await _get('/verification/status');
+    return _handleResponse(response);
+  }
+
+  Future<Map<String, dynamic>> requestVerification() async {
+    final response = await _post('/verification/request', {});
+    return _handleResponse(response);
+  }
+
+  Future<Map<String, dynamic>> completeVerification() async {
+    final response = await _post('/verification/complete', {});
     return _handleResponse(response);
   }
 
@@ -839,5 +874,149 @@ class ApiService {
     }
   }
 
+  // ==================== AD TRACKING METHODS ====================
+
+  /// Update connect count
+  Future<void> updateConnectCount(int connectCount) async {
+    try {
+      final response = await _post('/ad-tracking/connect-count', {
+        'connectCount': connectCount,
+      });
+      _handleResponse(response);
+      print('✅ Connect count updated: $connectCount');
+    } catch (e) {
+      print('❌ Error updating connect count: $e');
+      rethrow;
+    }
+  }
+
+  /// Update page switch count
+  Future<void> updatePageSwitchCount(int pageSwitchCount, DateTime lastPageSwitchTime) async {
+    try {
+      final response = await _post('/ad-tracking/page-switch-count', {
+        'pageSwitchCount': pageSwitchCount,
+        'lastPageSwitchTime': lastPageSwitchTime.toIso8601String(),
+      });
+      _handleResponse(response);
+      print('✅ Page switch count updated: $pageSwitchCount');
+    } catch (e) {
+      print('❌ Error updating page switch count: $e');
+      rethrow;
+    }
+  }
+
+  /// Update daily ad views
+  Future<void> updateDailyAdViews(int dailyAdViews, DateTime lastAdViewDate) async {
+    try {
+      final response = await _post('/ad-tracking/daily-ad-views', {
+        'dailyAdViews': dailyAdViews,
+        'lastAdViewDate': lastAdViewDate.toIso8601String(),
+      });
+      _handleResponse(response);
+      print('✅ Daily ad views updated: $dailyAdViews');
+    } catch (e) {
+      print('❌ Error updating daily ad views: $e');
+      rethrow;
+    }
+  }
+
+  /// Update who liked views
+  Future<void> updateWhoLikedViews(int whoLikedViews, DateTime lastWhoLikedViewDate) async {
+    try {
+      final response = await _post('/ad-tracking/who-liked-views', {
+        'whoLikedViews': whoLikedViews,
+        'lastWhoLikedViewDate': lastWhoLikedViewDate.toIso8601String(),
+      });
+      _handleResponse(response);
+      print('✅ Who liked views updated: $whoLikedViews');
+    } catch (e) {
+      print('❌ Error updating who liked views: $e');
+      rethrow;
+    }
+  }
+
+  /// Track ad view
+  Future<void> trackAdView(String adType, String trigger, Map<String, dynamic>? metadata) async {
+    try {
+      final response = await _post('/ad-tracking/track-view', {
+        'adType': adType,
+        'trigger': trigger,
+        'metadata': metadata ?? {},
+      });
+      _handleResponse(response);
+      print('✅ Ad view tracked: $adType - $trigger');
+    } catch (e) {
+      print('❌ Error tracking ad view: $e');
+      rethrow;
+    }
+  }
+
+  /// Track ad click
+  Future<void> trackAdClick(String adType, String trigger, Map<String, dynamic>? metadata) async {
+    try {
+      final response = await _post('/ad-tracking/track-click', {
+        'adType': adType,
+        'trigger': trigger,
+        'metadata': metadata ?? {},
+      });
+      _handleResponse(response);
+      print('✅ Ad click tracked: $adType - $trigger');
+    } catch (e) {
+      print('❌ Error tracking ad click: $e');
+      rethrow;
+    }
+  }
+
+  /// Track reward ad completion
+  Future<void> trackRewardAdCompletion(String rewardType, Map<String, dynamic>? rewardData) async {
+    try {
+      final response = await _post('/ad-tracking/track-reward', {
+        'rewardType': rewardType,
+        'rewardData': rewardData ?? {},
+      });
+      _handleResponse(response);
+      print('✅ Reward ad completion tracked: $rewardType');
+    } catch (e) {
+      print('❌ Error tracking reward ad completion: $e');
+      rethrow;
+    }
+  }
+
+  /// Get user ad statistics
+  Future<Map<String, dynamic>> getUserAdStats() async {
+    try {
+      final response = await _get('/ad-tracking/stats');
+      final data = _handleResponse(response);
+      return data['data'] ?? {};
+    } catch (e) {
+      print('❌ Error getting user ad stats: $e');
+      rethrow;
+    }
+  }
+
+  /// Check if user can view "Who Liked You"
+  Future<Map<String, dynamic>> canViewWhoLikedYou() async {
+    try {
+      final response = await _get('/ad-tracking/can-view-who-liked');
+      final data = _handleResponse(response);
+      return data['data'] ?? {};
+    } catch (e) {
+      print('❌ Error checking who liked you view: $e');
+      rethrow;
+    }
+  }
+
+  // ============== Analytics APIs ==============
+  Future<void> trackEvent(String type, {Map<String, dynamic>? metadata}) async {
+    try {
+      final response = await _post('/analytics/track', {
+        'type': type,
+        'metadata': metadata ?? {},
+      });
+      _handleResponse(response);
+    } catch (e) {
+      // Non-fatal
+    }
+  }
 
 }

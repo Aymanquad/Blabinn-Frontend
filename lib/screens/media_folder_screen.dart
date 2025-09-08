@@ -10,6 +10,7 @@ import '../services/api_service.dart';
 import '../services/premium_service.dart';
 import '../utils/permission_helper.dart';
 import '../widgets/banner_ad_widget.dart';
+import '../widgets/empty_state.dart';
 
 /// MediaFolderScreen - Manages user's media collection with two tabs:
 /// 1. Saved - All images saved to media folder (from camera)
@@ -494,34 +495,12 @@ class _MediaFolderScreenState extends State<MediaFolderScreen>
 
   Widget _buildImageGrid(List<File> images) {
     if (images.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.photo_library_outlined,
-              size: 64,
-              color: Theme.of(context).textTheme.bodySmall?.color,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'No images yet',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w500,
-                color: Theme.of(context).textTheme.bodySmall?.color,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Add images from camera',
-              style: TextStyle(
-                fontSize: 14,
-                color: Theme.of(context).textTheme.bodySmall?.color,
-              ),
-            ),
-          ],
-        ),
+      return EmptyState(
+        icon: Icons.photo_library_outlined,
+        title: 'No images yet',
+        subtitle: 'Add images from camera',
+        primaryActionLabel: 'Take Photo',
+        onPrimaryAction: _takePhoto,
       );
     }
 
@@ -571,10 +550,10 @@ class _MediaFolderScreenState extends State<MediaFolderScreen>
 
   Widget _buildReceivedImageGrid(List<Map<String, dynamic>> receivedImages) {
     if (receivedImages.isEmpty) {
-      return _buildEmptyState(
-        'No received images',
-        'Images sent by your friends will be saved here automatically',
-        Icons.inbox_outlined,
+      return EmptyState(
+        icon: Icons.inbox_outlined,
+        title: 'No received images',
+        subtitle: 'Images sent by your friends will be saved here automatically',
       );
     }
 
@@ -776,38 +755,6 @@ class _MediaFolderScreenState extends State<MediaFolderScreen>
     }
   }
 
-  Widget _buildEmptyState(String title, String subtitle, IconData icon) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            icon,
-            size: 64,
-            color: Theme.of(context).textTheme.bodySmall?.color,
-          ),
-          const SizedBox(height: 16),
-          Text(
-            title,
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w500,
-              color: Theme.of(context).textTheme.bodySmall?.color,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            subtitle,
-            style: TextStyle(
-              fontSize: 14,
-              color: Theme.of(context).textTheme.bodySmall?.color,
-            ),
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -854,7 +801,7 @@ class _MediaFolderScreenState extends State<MediaFolderScreen>
                   PremiumService.checkMediaStorage(context);
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.orange,
+                  backgroundColor: AppColors.primary,
                   foregroundColor: Colors.white,
                   padding:
                       const EdgeInsets.symmetric(horizontal: 32, vertical: 12),

@@ -31,7 +31,7 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Initialize security features - prevent screenshots and screen recording
+  // Initialize security features - allow screenshots by default
   await _initializeSecurity();
 
   // Try to initialize Firebase, but don't crash if it fails
@@ -80,11 +80,10 @@ void main() async {
 
 Future<void> _initializeSecurity() async {
   try {
-    // Enable security features - prevent screenshots and screen recording
-    await ScreenProtector.preventScreenshotOn();
-    await ScreenProtector.protectDataLeakageOn();
-
-    // print('🔒 Security features initialized - Screenshots and screen recording blocked');
+    // Allow screenshots by default; selective screens will enable protection
+    await ScreenProtector.preventScreenshotOff();
+    await ScreenProtector.protectDataLeakageOff();
+    // print('🔓 Screenshots enabled globally; protected per-screen where needed');
   } catch (e) {
     // print('⚠️ Failed to initialize security features: $e');
   }

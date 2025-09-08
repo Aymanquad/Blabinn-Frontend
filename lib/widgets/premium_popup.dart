@@ -32,14 +32,14 @@ class PremiumPopup extends StatelessWidget {
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              Color(0xFFFFD700), // Gold
-              Color(0xFFFFE55C), // Light Gold
-              Color(0xFFFFB347), // Orange Gold
+              Color(0xFF151221), // Deep navy
+              Color(0xFF221B36), // Dark purple
+              Color(0xFF2B2140), // Rich indigo
             ],
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.3),
+              color: Colors.black.withOpacity(0.6),
               blurRadius: 20,
               offset: const Offset(0, 10),
             ),
@@ -57,10 +57,10 @@ class PremiumPopup extends StatelessWidget {
                   topLeft: Radius.circular(20),
                   topRight: Radius.circular(20),
                 ),
-                gradient: LinearGradient(
+                gradient: const LinearGradient(
                   colors: [
-                    Colors.orange.shade700,
-                    Colors.orange.shade500,
+                    Color(0xFF3A2A75),
+                    Color(0xFF5A3FB1),
                   ],
                 ),
               ),
@@ -71,7 +71,7 @@ class PremiumPopup extends StatelessWidget {
                     width: 60,
                     height: 60,
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
+                      color: Colors.white.withOpacity(0.12),
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(
@@ -123,10 +123,10 @@ class PremiumPopup extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.1),
+                      color: Colors.white.withOpacity(0.08),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: Colors.white.withOpacity(0.2),
+                        color: Colors.white.withOpacity(0.15),
                         width: 1,
                       ),
                     ),
@@ -153,25 +153,25 @@ class PremiumPopup extends StatelessWidget {
 
                   const SizedBox(height: 20),
 
-                                     // Price or Credits Info
-                   Container(
-                     padding:
-                         const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                     decoration: BoxDecoration(
-                       color: Colors.white.withOpacity(0.2),
-                       borderRadius: BorderRadius.circular(20),
-                     ),
-                     child: Text(
-                       description.contains('credits') 
-                         ? 'Buy Credits to Continue' 
-                         : 'Only ₹1,500',
-                       style: const TextStyle(
-                         fontSize: 18,
-                         fontWeight: FontWeight.bold,
-                         color: Colors.white,
-                       ),
-                     ),
-                   ),
+                  // Price or Credits Info
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF5A3FB1).withOpacity(0.25),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      description.contains('credits')
+                          ? 'Buy Credits to Continue'
+                          : 'Only ₹1,500',
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -187,7 +187,7 @@ class PremiumPopup extends StatelessWidget {
                       onPressed: onCancel ?? () => Navigator.of(context).pop(),
                       style: TextButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 12),
-                        backgroundColor: Colors.white.withOpacity(0.2),
+                        backgroundColor: Colors.white.withOpacity(0.12),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(25),
                         ),
@@ -221,20 +221,22 @@ class PremiumPopup extends StatelessWidget {
                           },
                       style: ElevatedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 12),
-                        backgroundColor: Colors.white,
+                        backgroundColor: const Color(0xFF6C4CCF),
                         elevation: 5,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(25),
                         ),
                       ),
-                                             child: Text(
-                         description.contains('credits') ? 'Buy Credits' : 'Buy Premium',
-                         style: const TextStyle(
-                           color: Color(0xFFFFB347),
-                           fontSize: 16,
-                           fontWeight: FontWeight.bold,
-                         ),
-                       ),
+                      child: Text(
+                        description.contains('credits')
+                            ? 'Buy Credits'
+                            : 'Buy Premium',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
                   ),
                 ],

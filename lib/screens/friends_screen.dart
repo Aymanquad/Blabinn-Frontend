@@ -3,6 +3,7 @@ import '../core/constants.dart';
 import '../services/api_service.dart';
 import '../models/chat.dart';
 import '../screens/chat_screen.dart';
+import '../widgets/empty_state.dart';
 
 class FriendsScreen extends StatefulWidget {
   const FriendsScreen({super.key});
@@ -329,6 +330,28 @@ class _FriendsScreenState extends State<FriendsScreen> {
     );
   }
 
+  Widget _buildEmptyState() {
+    if (_searchController.text.isNotEmpty) {
+      return EmptyState(
+        icon: Icons.search_off,
+        title: 'No friends found',
+        subtitle: 'Try a different search term',
+        primaryActionLabel: 'Clear Search',
+        onPrimaryAction: () => _searchController.clear(),
+      );
+    } else {
+      return EmptyState(
+        icon: Icons.people_outline,
+        title: 'No Friends Yet',
+        subtitle: 'Start connecting with people to see them here!',
+        primaryActionLabel: 'Find People',
+        onPrimaryAction: () {
+          Navigator.pushNamed(context, '/search');
+        },
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -460,53 +483,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
                   ),
                 )
               : _filteredFriends.isEmpty
-                  ? Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            _searchController.text.isNotEmpty
-                                ? Icons.search_off
-                                : Icons.people_outline,
-                            size: 64,
-                            color: Colors.grey[400],
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            _searchController.text.isNotEmpty
-                                ? 'No friends found'
-                                : 'No Friends Yet',
-                            style: Theme.of(context)
-                                .textTheme
-                                .titleLarge
-                                ?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.grey[600],
-                                ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            _searchController.text.isNotEmpty
-                                ? 'Try a different search term'
-                                : 'Start connecting with people to see them here!',
-                            style: TextStyle(
-                              color: Colors.grey[500],
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                          if (_searchController.text.isEmpty) ...[
-                            const SizedBox(height: 24),
-                            ElevatedButton.icon(
-                              onPressed: () {
-                                Navigator.pushNamed(context, '/search');
-                              },
-                              icon: const Icon(Icons.search),
-                              label: const Text('Find People'),
-                            ),
-                          ],
-                        ],
-                      ),
-                    )
+                  ? _buildEmptyState()
                   : RefreshIndicator(
                       onRefresh: _loadFriends,
                       child: ListView.builder(

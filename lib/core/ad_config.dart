@@ -69,6 +69,12 @@ class AdConfig {
   static const String iosInterstitialAdUnitId =
       'ca-app-pub-5160335418378680/3008256301'; // Real Interstitial Ad Unit ID
 
+  // Test Rewarded Ad Unit IDs for development
+  static const String androidRewardedAdUnitId =
+      'ca-app-pub-5160335418378680/1234567890'; // Real Rewarded Ad Unit ID (placeholder)
+  static const String iosRewardedAdUnitId =
+      'ca-app-pub-5160335418378680/0987654321'; // Real Rewarded Ad Unit ID (placeholder)
+
   // Test AdMob Application ID for Android Manifest
   static const String androidManifestAppId =
       'ca-app-pub-3940256099942544~3347511713'; // Test App ID

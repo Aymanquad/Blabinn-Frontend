@@ -3,6 +3,8 @@ import '../utils/html_decoder.dart';
 enum MessageType {
   text,
   image,
+  viewOnceImage,
+  viewOnceVideo,
   location,
   system,
   video,
@@ -39,6 +41,7 @@ class Message {
   final List<String> readBy;
   final Map<String, dynamic>? metadata;
   final String? formattedTime;
+  final bool? hasBeenViewed; // For view-once messages
 
   Message({
     required this.id,
@@ -61,6 +64,7 @@ class Message {
     this.readBy = const [],
     this.metadata,
     this.formattedTime,
+    this.hasBeenViewed,
   });
 
   Message copyWith({
@@ -84,6 +88,7 @@ class Message {
     List<String>? readBy,
     Map<String, dynamic>? metadata,
     String? formattedTime,
+    bool? hasBeenViewed,
   }) {
     return Message(
       id: id ?? this.id,
@@ -106,6 +111,7 @@ class Message {
       readBy: readBy ?? this.readBy,
       metadata: metadata ?? this.metadata,
       formattedTime: formattedTime ?? this.formattedTime,
+      hasBeenViewed: hasBeenViewed ?? this.hasBeenViewed,
     );
   }
 
@@ -131,6 +137,7 @@ class Message {
       'readBy': readBy,
       'metadata': metadata,
       'formattedTime': formattedTime,
+      'hasBeenViewed': hasBeenViewed,
     };
   }
 
@@ -199,6 +206,7 @@ class Message {
           ? Map<String, dynamic>.from(json['metadata'])
           : null,
       formattedTime: json['formattedTime']?.toString(),
+      hasBeenViewed: json['hasBeenViewed'] as bool?,
     );
   }
 

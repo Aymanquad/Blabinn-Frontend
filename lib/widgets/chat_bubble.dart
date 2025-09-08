@@ -30,6 +30,32 @@ class ChatBubble extends StatelessWidget {
     );
   }
 
+  Widget _buildViewOnceBadge(BuildContext context, {required IconData icon, required String label}) {
+    return Container(
+      width: 200,
+      decoration: BoxDecoration(
+        borderRadius: const BorderRadius.all(Radius.circular(18)),
+        color: Colors.black.withOpacity(0.2),
+        border: Border.all(color: Colors.white24),
+      ),
+      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, color: Colors.white70),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              label,
+              style: const TextStyle(color: Colors.white70),
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildMessageBubble(BuildContext context) {
     return Container(
       constraints: const BoxConstraints(maxWidth: 280),
@@ -76,6 +102,10 @@ class ChatBubble extends StatelessWidget {
         return _buildTextMessage();
       case MessageType.image:
         return _buildImageMessage(context);
+      case MessageType.viewOnceImage:
+        return _buildViewOnceBadge(context, icon: Icons.image, label: 'View once photo');
+      case MessageType.viewOnceVideo:
+        return _buildViewOnceBadge(context, icon: Icons.videocam, label: 'View once video');
       case MessageType.video:
         return _buildVideoMessage();
       case MessageType.audio:
@@ -509,6 +539,7 @@ class ChatBubble extends StatelessWidget {
           builder: (context) => FullScreenImageViewer(
             imageUrl: message.imageUrl!,
             heroTag: 'image_${message.id}',
+            viewOnce: message.type == MessageType.viewOnceImage,
           ),
         ),
       );

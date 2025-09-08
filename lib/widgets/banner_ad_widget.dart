@@ -52,8 +52,30 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
     });
 
     try {
+      // Use adaptive banner size that fits any device width
+      final AnchoredAdaptiveBannerAdSize? adaptiveSize = await AdSize.getCurrentOrientationAnchoredAdaptiveBannerAdSize(
+        MediaQuery.of(context).size.width.truncate(),
+      );
+
       final adService = AdService();
-      final bannerAd = await adService.loadBannerAd();
+      BannerAd? bannerAd;
+
+      if (adaptiveSize != null) {
+        bannerAd = BannerAd(
+          adUnitId: adService.bannerAdUnitId,
+          size: adaptiveSize,
+          request: const AdRequest(),
+          listener: BannerAdListener(
+            onAdLoaded: (ad) {},
+            onAdFailedToLoad: (ad, error) {
+              ad.dispose();
+            },
+          ),
+        );
+        await bannerAd.load();
+      } else {
+        bannerAd = await adService.loadBannerAd();
+      }
 
       if (mounted && bannerAd != null) {
         setState(() {
@@ -61,13 +83,11 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
           _isLoaded = true;
           _isLoading = false;
         });
-        // debugPrint('✅ Banner ad loaded successfully in widget');
       } else {
         setState(() {
           _isLoading = false;
           _errorMessage = 'Failed to load ad';
         });
-        // debugPrint('❌ Banner ad failed to load in widget');
       }
     } catch (e) {
       if (mounted) {
@@ -128,8 +148,9 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
 
     // Show ad if loaded
     if (_isLoaded && _bannerAd != null) {
+      final double calculatedHeight = _bannerAd!.size.height.toDouble();
       return Container(
-        height: widget.height ?? 50,
+        height: widget.height ?? calculatedHeight,
         margin: widget.margin ?? const EdgeInsets.symmetric(horizontal: 16),
         child: AdWidget(ad: _bannerAd!),
       );

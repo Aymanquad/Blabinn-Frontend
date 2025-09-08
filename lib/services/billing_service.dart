@@ -13,8 +13,12 @@ class BillingService {
   static const String _kCredit400 = 'credits_400';
   static const String _kCredit900 = 'credits_900';
   static const String _kCredit2000 = 'credits_2000';
+  static const String _kPremiumWeekly = 'premium_weekly';
   static const String _kPremiumMonthly = 'premium_monthly';
+  static const String _kPremium3Months = 'premium_3months';
+  static const String _kPremium6Months = 'premium_6months';
   static const String _kPremiumYearly = 'premium_yearly';
+  static const String _kPremiumLifetime = 'premium_lifetime';
 
   static const Set<String> _kIds = <String>{
     _kCredit70,
@@ -22,8 +26,12 @@ class BillingService {
     _kCredit400,
     _kCredit900,
     _kCredit2000,
+    _kPremiumWeekly,
     _kPremiumMonthly,
+    _kPremium3Months,
+    _kPremium6Months,
     _kPremiumYearly,
+    _kPremiumLifetime,
   };
 
   final InAppPurchase _inAppPurchase = InAppPurchase.instance;
@@ -163,10 +171,8 @@ class BillingService {
       }
 
       // Determine purchase type
-      final String purchaseType = _kIds.contains(purchaseDetails.productID) && 
-          (purchaseDetails.productID == _kPremiumMonthly || 
-           purchaseDetails.productID == _kPremiumYearly) 
-          ? 'subscription' 
+      final String purchaseType = purchaseDetails.productID.startsWith('premium_')
+          ? 'subscription'
           : 'consumable';
 
       // Verify with backend
@@ -190,7 +196,10 @@ class BillingService {
       productDetails: product,
     );
 
-    if (product.id == _kPremiumMonthly || product.id == _kPremiumYearly) {
+    if (product.id == _kPremiumWeekly ||
+        product.id == _kPremiumMonthly ||
+        product.id == _kPremiumYearly ||
+        product.id == _kPremiumLifetime) {
       await _inAppPurchase.buyNonConsumable(purchaseParam: purchaseParam);
     } else {
       await _inAppPurchase.buyConsumable(purchaseParam: purchaseParam);

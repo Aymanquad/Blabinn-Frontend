@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../core/constants.dart';
 import '../services/api_service.dart';
 import '../models/report.dart';
+import '../widgets/consistent_app_bar.dart';
 
 class ReportUserScreen extends StatefulWidget {
   final Map<String, dynamic> userToReport;
@@ -115,23 +116,8 @@ class _ReportUserScreenState extends State<ReportUserScreen> {
                     'Unknown User';
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Report User'),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        foregroundColor: Colors.white,
-        flexibleSpace: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [
-                Colors.black.withOpacity(0.35),
-                Colors.transparent,
-              ],
-            ),
-          ),
-        ),
+      appBar: GradientAppBar(
+        title: 'Report User',
       ),
       body: Stack(
         children: [

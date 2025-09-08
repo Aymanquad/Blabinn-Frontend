@@ -7,6 +7,7 @@ import '../services/auth_service.dart';
 import '../services/api_service.dart';
 import '../services/boost_profile_service.dart';
 import '../widgets/simple_image_cropper.dart';
+import '../widgets/consistent_app_bar.dart';
 import '../utils/permission_helper.dart';
 
 class ProfileManagementScreen extends StatefulWidget {
@@ -244,31 +245,9 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Complete Your Profile'),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        foregroundColor: Colors.white,
-        flexibleSpace: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [
-                Colors.black.withOpacity(0.35),
-                Colors.transparent,
-              ],
-            ),
-          ),
-        ),
-        automaticallyImplyLeading:
-            _hasExistingProfile, // Show back button for existing users
-        leading: _hasExistingProfile
-            ? IconButton(
-                icon: const Icon(Icons.arrow_back),
-                onPressed: () => Navigator.of(context).pop(),
-              )
-            : null,
+      appBar: GradientAppBar(
+        title: 'Complete Your Profile',
+        showBackButton: _hasExistingProfile,
       ),
       body: Stack(
         children: [

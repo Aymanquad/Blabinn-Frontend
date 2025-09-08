@@ -327,6 +327,12 @@ class _ChatListScreenState extends State<ChatListScreen> {
         subtitle: 'Try a different search term',
         primaryActionLabel: 'Clear Search',
         onPrimaryAction: () => _searchController.clear(),
+        iconBackground: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF3A2A75), Color(0xFF2B2140)],
+        ),
+        primaryButtonColor: AppColors.primary,
       );
     } else {
       return EmptyState(
@@ -338,6 +344,12 @@ class _ChatListScreenState extends State<ChatListScreen> {
           // Navigate to add friends screen or connect screen
           // This would depend on your navigation structure
         },
+        iconBackground: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF7E5FF2), Color(0xFF5A3FB1)],
+        ),
+        primaryButtonColor: AppColors.primary,
       );
     }
   }

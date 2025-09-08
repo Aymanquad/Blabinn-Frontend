@@ -5,6 +5,7 @@ import '../services/api_service.dart';
 
 import '../widgets/full_screen_image_viewer.dart';
 import '../widgets/consistent_app_bar.dart';
+import '../widgets/skeleton_list.dart';
 import '../models/chat.dart';
 import '../screens/chat_screen.dart';
 
@@ -1014,9 +1015,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
               ),
               if (_isLoading)
                 Center(
-                  child: CircularProgressIndicator(
-                    color: AppColors.primary,
-                  ),
+                  child: SkeletonLayouts.profileCard(),
                 )
               else if (_errorMessage != null)
                 Center(

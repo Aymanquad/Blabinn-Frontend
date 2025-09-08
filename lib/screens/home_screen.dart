@@ -220,6 +220,10 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   Widget _buildMainContent(BuildContext context, AppThemeTokens? tokens) {
+    if (_stateManager.isMatching) {
+      return ConnectUIComponents.buildMatchingScreen(context, _stateManager);
+    }
+
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Column(
@@ -255,19 +259,31 @@ class _HomeScreenState extends State<HomeScreen>
         ),
         const SizedBox(height: 16),
         
-        GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2,
-            crossAxisSpacing: 16,
-            mainAxisSpacing: 16,
-            childAspectRatio: 1.2,
-          ),
-          itemCount: _quickActions.length,
-          itemBuilder: (context, index) {
-            final action = _quickActions[index];
-            return _buildQuickActionCard(context, action, tokens);
+        LayoutBuilder(
+          builder: (context, constraints) {
+            // Calculate a responsive grid for all screen sizes/orientations
+            final screenWidth = constraints.maxWidth;
+            final isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
+            // 2 columns on phones portrait, 3 on tablets/landscape with enough width
+            final crossAxisCount = screenWidth >= 700 || (isLandscape && screenWidth >= 600) ? 3 : 2;
+            // Slightly taller tiles to prevent text overflow across devices
+            final childAspectRatio = crossAxisCount >= 3 ? 1.05 : 0.95;
+
+            return GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: crossAxisCount,
+                crossAxisSpacing: 16,
+                mainAxisSpacing: 16,
+                childAspectRatio: childAspectRatio,
+              ),
+              itemCount: _quickActions.length,
+              itemBuilder: (context, index) {
+                final action = _quickActions[index];
+                return _buildQuickActionCard(context, action, tokens);
+              },
+            );
           },
         ),
       ],
@@ -297,13 +313,16 @@ class _HomeScreenState extends State<HomeScreen>
               ),
             ),
             const SizedBox(height: 12),
-            Text(
-              action['title'],
-              style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                color: Colors.white,
-                fontWeight: FontWeight.w600,
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                action['title'],
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                ),
+                textAlign: TextAlign.center,
               ),
-              textAlign: TextAlign.center,
             ),
             const SizedBox(height: 4),
             Text(
