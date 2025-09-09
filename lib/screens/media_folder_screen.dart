@@ -553,7 +553,8 @@ class _MediaFolderScreenState extends State<MediaFolderScreen>
       return EmptyState(
         icon: Icons.inbox_outlined,
         title: 'No received images',
-        subtitle: 'Images sent by your friends will be saved here automatically',
+        subtitle:
+            'Images sent by your friends will be saved here automatically',
       );
     }
 
@@ -755,7 +756,6 @@ class _MediaFolderScreenState extends State<MediaFolderScreen>
     }
   }
 
-
   @override
   Widget build(BuildContext context) {
     // Check if user has premium for media folder access
@@ -816,17 +816,11 @@ class _MediaFolderScreenState extends State<MediaFolderScreen>
 
     return Scaffold(
       appBar: null,
-      body: Container(
-        decoration: const BoxDecoration(
-          image: DecorationImage(
-            image: AssetImage('assets/images/violettoblack_bg.png'),
-            fit: BoxFit.cover,
-          ),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(0, 100, 0, 100), // Increased padding for transparent bars
-          child: Column(
-            children: [
+      body: Padding(
+        padding: const EdgeInsets.fromLTRB(
+            0, 100, 0, 100), // Increased padding for transparent bars
+        child: Column(
+          children: [
             // TabBar
             ClipRRect(
               child: BackdropFilter(
@@ -869,7 +863,6 @@ class _MediaFolderScreenState extends State<MediaFolderScreen>
               margin: EdgeInsets.only(bottom: 8),
             ),
           ],
-        ),
         ),
       ),
     );

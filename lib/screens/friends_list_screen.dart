@@ -42,7 +42,9 @@ class _FriendsListScreenState extends State<FriendsListScreen> {
         _filteredFriends = List.from(_friends);
       } else {
         _filteredFriends = _friends.where((friend) {
-          final displayName = (friend['displayName'] ?? friend['username'] ?? 'Unknown').toLowerCase();
+          final displayName =
+              (friend['displayName'] ?? friend['username'] ?? 'Unknown')
+                  .toLowerCase();
           final username = (friend['username'] ?? '').toLowerCase();
           return displayName.contains(query) || username.contains(query);
         }).toList();
@@ -186,7 +188,8 @@ class _FriendsListScreenState extends State<FriendsListScreen> {
   Future<void> _reportUser(Map<String, dynamic> friend) async {
     // Check if user has already reported this friend
     try {
-      final hasReported = await _apiService.hasUserReported(friend['uid'] ?? friend['id']);
+      final hasReported =
+          await _apiService.hasUserReported(friend['uid'] ?? friend['id']);
       if (hasReported) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -318,12 +321,16 @@ class _FriendsListScreenState extends State<FriendsListScreen> {
                           Navigator.pushNamed(
                             context,
                             '/profile-preview',
-                            arguments: {'userId': userId, 'initialUserData': friend},
+                            arguments: {
+                              'userId': userId,
+                              'initialUserData': friend
+                            },
                           );
                         } else {
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
-                              content: Text('Unable to view profile: User ID not found'),
+                              content: Text(
+                                  'Unable to view profile: User ID not found'),
                               backgroundColor: Colors.red,
                             ),
                           );
@@ -417,36 +424,8 @@ class _FriendsListScreenState extends State<FriendsListScreen> {
           ),
         ],
       ),
-      body: Stack(
+      body: Column(
         children: [
-          Positioned.fill(
-            child: Container(
-              decoration: const BoxDecoration(
-                image: DecorationImage(
-                  image: AssetImage('assets/images/violettoblack_bg.png'),
-                  fit: BoxFit.cover,
-                ),
-              ),
-            ),
-          ),
-          Positioned.fill(
-            child: Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Colors.black.withOpacity(0.10),
-                    Colors.transparent,
-                    Colors.black.withOpacity(0.18),
-                  ],
-                  stops: const [0, 0.5, 1],
-                ),
-              ),
-            ),
-          ),
-          Column(
-            children: [
           // Search Bar
           Padding(
             padding: const EdgeInsets.all(16.0),
@@ -482,82 +461,82 @@ class _FriendsListScreenState extends State<FriendsListScreen> {
             child: _isLoading
                 ? SkeletonList(
                     itemCount: 8,
-                    itemBuilder: (context, index) => SkeletonLayouts.profileCard(),
+                    itemBuilder: (context, index) =>
+                        SkeletonLayouts.profileCard(),
                   )
                 : _errorMessage != null
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.error_outline,
-                        size: 64,
-                        color: Colors.white.withOpacity(0.6),
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        _errorMessage!,
-                        style: TextStyle(
-                          color: Colors.white.withOpacity(0.8),
-                          fontSize: 16,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 16),
-                      ElevatedButton(
-                        onPressed: _loadFriends,
-                        child: const Text('Retry'),
-                      ),
-                    ],
-                  ),
-                )
-              : _filteredFriends.isEmpty
-                  ? Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            _searchController.text.isNotEmpty
-                                ? Icons.search_off
-                                : Icons.people_outline,
-                            size: 64,
-                            color: Colors.white.withOpacity(0.6),
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            _searchController.text.isNotEmpty
-                                ? 'No friends found'
-                                : 'No friends yet',
-                            style: TextStyle(
-                              color: Colors.white.withOpacity(0.8),
-                              fontSize: 16,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            _searchController.text.isNotEmpty
-                                ? 'Try a different search term'
-                                : 'Start connecting with people to build your friends list!',
-                            style: TextStyle(
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.error_outline,
+                              size: 64,
                               color: Colors.white.withOpacity(0.6),
-                              fontSize: 14,
                             ),
-                            textAlign: TextAlign.center,
+                            const SizedBox(height: 16),
+                            Text(
+                              _errorMessage!,
+                              style: TextStyle(
+                                color: Colors.white.withOpacity(0.8),
+                                fontSize: 16,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 16),
+                            ElevatedButton(
+                              onPressed: _loadFriends,
+                              child: const Text('Retry'),
+                            ),
+                          ],
+                        ),
+                      )
+                    : _filteredFriends.isEmpty
+                        ? Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  _searchController.text.isNotEmpty
+                                      ? Icons.search_off
+                                      : Icons.people_outline,
+                                  size: 64,
+                                  color: Colors.white.withOpacity(0.6),
+                                ),
+                                const SizedBox(height: 16),
+                                Text(
+                                  _searchController.text.isNotEmpty
+                                      ? 'No friends found'
+                                      : 'No friends yet',
+                                  style: TextStyle(
+                                    color: Colors.white.withOpacity(0.8),
+                                    fontSize: 16,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  _searchController.text.isNotEmpty
+                                      ? 'Try a different search term'
+                                      : 'Start connecting with people to build your friends list!',
+                                  style: TextStyle(
+                                    color: Colors.white.withOpacity(0.6),
+                                    fontSize: 14,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ],
+                            ),
+                          )
+                        : RefreshIndicator(
+                            onRefresh: _loadFriends,
+                            child: ListView.builder(
+                              itemCount: _filteredFriends.length,
+                              itemBuilder: (context, index) {
+                                return _buildFriendCard(
+                                    _filteredFriends[index]);
+                              },
+                            ),
                           ),
-                        ],
-                      ),
-                    )
-                  : RefreshIndicator(
-                      onRefresh: _loadFriends,
-                      child: ListView.builder(
-                        itemCount: _filteredFriends.length,
-                        itemBuilder: (context, index) {
-                          return _buildFriendCard(_filteredFriends[index]);
-                        },
-                      ),
-                    ),
-          ),
-        ],
           ),
         ],
       ),

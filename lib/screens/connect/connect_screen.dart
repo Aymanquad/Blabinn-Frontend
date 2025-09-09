@@ -27,17 +27,11 @@ class _ConnectScreenState extends State<ConnectScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          image: DecorationImage(
-            image: AssetImage('assets/images/violettoblack_bg.png'),
-            fit: BoxFit.cover,
-          ),
-        ),
+      body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(16, 100, 16, 100), // Increased padding for transparent bars
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const SizedBox(height: 16),
               // Connect section moved to top

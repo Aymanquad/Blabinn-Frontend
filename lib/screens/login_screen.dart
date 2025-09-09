@@ -1,12 +1,10 @@
-import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:http/http.dart' as http;
-import '../core/constants.dart';
 import '../core/config.dart';
 import '../services/firebase_auth_service.dart';
 import '../services/auth_service.dart';
+import '../widgets/glass_container.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -22,26 +20,18 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          image: DecorationImage(
-            image: AssetImage('assets/images/violettoblack_bg.png'),
-            fit: BoxFit.cover,
-          ),
-        ),
-        child: SafeArea(
-          child: Column(
-            children: [
-              // Upper section with logo and welcome text
-              Expanded(
-                flex: 1,
-                child: _buildUpperSection(),
-              ),
-              
-              // Lower section with login panel
-              _buildLoginPanel(),
-            ],
-          ),
+      body: SafeArea(
+        child: Column(
+          children: [
+            // Upper section with logo and welcome text
+            Expanded(
+              flex: 1,
+              child: _buildUpperSection(),
+            ),
+
+            // Lower section with login panel
+            _buildLoginPanel(),
+          ],
         ),
       ),
     );
@@ -62,7 +52,7 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
           ),
           const SizedBox(height: 24),
-          
+
           // Welcome text
           Text(
             'Welcome',
@@ -78,21 +68,10 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Widget _buildLoginPanel() {
-    return Container(
-      width: double.infinity,
+    return GlassCard(
       margin: const EdgeInsets.all(24),
       padding: const EdgeInsets.all(32),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.95),
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
-          ),
-        ],
-      ),
+      borderRadius: BorderRadius.circular(20),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -101,7 +80,7 @@ class _LoginScreenState extends State<LoginScreen> {
             'Connect with people around the world',
             style: TextStyle(
               fontSize: 16,
-              color: Colors.grey[700],
+              color: Colors.white,
               fontWeight: FontWeight.w500,
             ),
             textAlign: TextAlign.center,
@@ -140,20 +119,23 @@ class _LoginScreenState extends State<LoginScreen> {
       width: double.infinity,
       height: 56,
       child: ElevatedButton.icon(
-        onPressed: isFirebaseAvailable && !_isLoading ? _signInWithGoogle : null,
+        onPressed:
+            isFirebaseAvailable && !_isLoading ? _signInWithGoogle : null,
         icon: _isLoading
             ? const SizedBox(
                 width: 20,
                 height: 20,
                 child: CircularProgressIndicator(strokeWidth: 2),
               )
-                         : const Icon(
-                 Icons.g_mobiledata,
-                 size: 24,
-                 color: Colors.black87,
-               ),
+            : const Icon(
+                Icons.g_mobiledata,
+                size: 24,
+                color: Colors.black87,
+              ),
         label: Text(
-          isFirebaseAvailable ? 'Connect with Google' : 'Google (Requires Firebase)',
+          isFirebaseAvailable
+              ? 'Connect with Google'
+              : 'Google (Requires Firebase)',
           style: const TextStyle(
             color: Colors.black87,
             fontSize: 16,
@@ -161,9 +143,9 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
         ),
         style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.white,
+          backgroundColor: Colors.white.withOpacity(0.9),
           foregroundColor: Colors.black87,
-          side: BorderSide(color: Colors.grey[300]!),
+          side: BorderSide(color: Colors.white.withOpacity(0.3)),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
@@ -193,7 +175,9 @@ class _LoginScreenState extends State<LoginScreen> {
                 color: Colors.white,
               ),
         label: Text(
-          isFirebaseAvailable ? 'Connect with Apple' : 'Apple (Requires Firebase)',
+          isFirebaseAvailable
+              ? 'Connect with Apple'
+              : 'Apple (Requires Firebase)',
           style: const TextStyle(
             color: Colors.white,
             fontSize: 16,
@@ -201,7 +185,7 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
         ),
         style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.black,
+          backgroundColor: Colors.black.withOpacity(0.8),
           foregroundColor: Colors.white,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
@@ -215,18 +199,18 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget _buildDivider() {
     return Row(
       children: [
-        Expanded(child: Divider(color: Colors.grey[300])),
+        Expanded(child: Divider(color: Colors.white.withOpacity(0.3))),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Text(
             'or',
             style: TextStyle(
-              color: Colors.grey[600],
+              color: Colors.white.withOpacity(0.8),
               fontWeight: FontWeight.w600,
             ),
           ),
         ),
-        Expanded(child: Divider(color: Colors.grey[300])),
+        Expanded(child: Divider(color: Colors.white.withOpacity(0.3))),
       ],
     );
   }
@@ -256,7 +240,8 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
         ),
         style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFF6B46C1), // Purple color
+          backgroundColor:
+              const Color(0xFF6B46C1).withOpacity(0.9), // Purple color
           foregroundColor: Colors.white,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
@@ -272,7 +257,7 @@ class _LoginScreenState extends State<LoginScreen> {
       'By continuing, you agree to our Terms of Service and Privacy Policy',
       style: TextStyle(
         fontSize: 12,
-        color: Colors.grey[600],
+        color: Colors.white.withOpacity(0.7),
         height: 1.4,
       ),
       textAlign: TextAlign.center,

@@ -53,7 +53,8 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
 
     try {
       // Use adaptive banner size that fits any device width
-      final AnchoredAdaptiveBannerAdSize? adaptiveSize = await AdSize.getCurrentOrientationAnchoredAdaptiveBannerAdSize(
+      final AnchoredAdaptiveBannerAdSize? adaptiveSize =
+          await AdSize.getCurrentOrientationAnchoredAdaptiveBannerAdSize(
         MediaQuery.of(context).size.width.truncate(),
       );
 
@@ -96,7 +97,7 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
           _errorMessage = 'Error loading ad: ${e.toString()}';
         });
       }
-      // debugPrint('❌ Error loading banner ad in widget: $e');
+      debugPrint('❌ Error loading banner ad in widget: $e');
     }
   }
 

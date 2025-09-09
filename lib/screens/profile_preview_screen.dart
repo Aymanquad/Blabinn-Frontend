@@ -85,51 +85,36 @@ class _ProfilePreviewScreenState extends State<ProfilePreviewScreen> {
         elevation: 0,
       ),
       extendBodyBehindAppBar: true,
-      body: Stack(
-        children: [
-          Positioned.fill(
-            child: Container(
-              decoration: const BoxDecoration(
-                image: DecorationImage(
-                  image: AssetImage('assets/images/violettoblack_bg.png'),
-                  fit: BoxFit.cover,
+      body: _loading
+          ? const Center(child: CircularProgressIndicator())
+          : _error != null
+              ? Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.error_outline, size: 48, color: Colors.red),
+                      const SizedBox(height: 8),
+                      Text(_error!, style: const TextStyle(color: Colors.white)),
+                      const SizedBox(height: 8),
+                      ElevatedButton(onPressed: _load, child: const Text('Retry')),
+                    ],
+                  ),
+                )
+              : Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 80, 16, 24),
+                  child: ProfilePreviewCard(
+                    imageUrl: _data!['profilePicture'] ?? _data!['profileImage'],
+                    title: _composeTitle(_data!),
+                    subtitle: _composeSubtitle(_data!),
+                    chips: _composeChips(_data!),
+                    bio: (_data!['bio'] as String?) ?? '',
+                    isOnline: _data!['isOnline'] as bool? ?? false,
+                    // Only show actions when previewing someone else
+                    onPass: _isSelf() ? null : () => Navigator.maybePop(context),
+                    onLike: _isSelf() ? null : _handleLike,
+                    onMessage: _isSelf() ? null : () { Navigator.pushNamed(context, '/chat-list'); },
+                  ),
                 ),
-              ),
-            ),
-          ),
-          if (_loading)
-            const Center(child: CircularProgressIndicator())
-          else if (_error != null)
-            Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(Icons.error_outline, size: 48, color: Colors.red),
-                  const SizedBox(height: 8),
-                  Text(_error!, style: const TextStyle(color: Colors.white)),
-                  const SizedBox(height: 8),
-                  ElevatedButton(onPressed: _load, child: const Text('Retry')),
-                ],
-              ),
-            )
-          else
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 80, 16, 24),
-              child: ProfilePreviewCard(
-                imageUrl: _data!['profilePicture'] ?? _data!['profileImage'],
-                title: _composeTitle(_data!),
-                subtitle: _composeSubtitle(_data!),
-                chips: _composeChips(_data!),
-                bio: (_data!['bio'] as String?) ?? '',
-                isOnline: _data!['isOnline'] as bool? ?? false,
-                // Only show actions when previewing someone else
-                onPass: _isSelf() ? null : () => Navigator.maybePop(context),
-                onLike: _isSelf() ? null : _handleLike,
-                onMessage: _isSelf() ? null : () { Navigator.pushNamed(context, '/chat-list'); },
-              ),
-            ),
-        ],
-      ),
     );
   }
 

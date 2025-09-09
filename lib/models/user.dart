@@ -21,7 +21,7 @@ class User {
   final String? deviceId; // For guest users
   final int? age; // New field for age
   final String? gender; // New field for gender
-  
+
   // Chatify User Type System
   final String userType; // 'guest', 'signed_up_free', 'premium'
   final bool isVerified; // Verification status for signed-up/premium users
@@ -206,11 +206,19 @@ class User {
       final String userId = userIdRaw;
 
       // Safely extract string values with fallbacks
-      String userName = 'Anonymous User';
+      String userName = 'Guest User';
       if (json['displayName'] != null && json['displayName'] is String) {
         userName = json['displayName'] as String;
       } else if (json['username'] != null && json['username'] is String) {
         userName = json['username'] as String;
+      } else if (json['userType'] == 'guest' || json['isAnonymous'] == true) {
+        // Generate a more meaningful guest username
+        final userId = json['uid'] ?? json['id'] ?? '';
+        if (userId.isNotEmpty) {
+          userName = 'Guest_${userId.substring(0, 6)}';
+        } else {
+          userName = 'Guest User';
+        }
       }
 
       String? userEmail;
@@ -306,7 +314,8 @@ class User {
           final timestamp = json['verificationDate'] as Map<String, dynamic>;
           final seconds = timestamp['_seconds'] as int?;
           if (seconds != null) {
-            verificationDate = DateTime.fromMillisecondsSinceEpoch(seconds * 1000);
+            verificationDate =
+                DateTime.fromMillisecondsSinceEpoch(seconds * 1000);
           }
         }
       }
@@ -314,12 +323,14 @@ class User {
       DateTime? lastPageSwitchTime;
       if (json['lastPageSwitchTime'] != null) {
         if (json['lastPageSwitchTime'] is String) {
-          lastPageSwitchTime = DateTime.parse(json['lastPageSwitchTime'] as String);
+          lastPageSwitchTime =
+              DateTime.parse(json['lastPageSwitchTime'] as String);
         } else if (json['lastPageSwitchTime'] is Map) {
           final timestamp = json['lastPageSwitchTime'] as Map<String, dynamic>;
           final seconds = timestamp['_seconds'] as int?;
           if (seconds != null) {
-            lastPageSwitchTime = DateTime.fromMillisecondsSinceEpoch(seconds * 1000);
+            lastPageSwitchTime =
+                DateTime.fromMillisecondsSinceEpoch(seconds * 1000);
           }
         }
       }
@@ -332,7 +343,8 @@ class User {
           final timestamp = json['lastAdViewDate'] as Map<String, dynamic>;
           final seconds = timestamp['_seconds'] as int?;
           if (seconds != null) {
-            lastAdViewDate = DateTime.fromMillisecondsSinceEpoch(seconds * 1000);
+            lastAdViewDate =
+                DateTime.fromMillisecondsSinceEpoch(seconds * 1000);
           }
         }
       }
@@ -340,12 +352,15 @@ class User {
       DateTime? lastWhoLikedViewDate;
       if (json['lastWhoLikedViewDate'] != null) {
         if (json['lastWhoLikedViewDate'] is String) {
-          lastWhoLikedViewDate = DateTime.parse(json['lastWhoLikedViewDate'] as String);
+          lastWhoLikedViewDate =
+              DateTime.parse(json['lastWhoLikedViewDate'] as String);
         } else if (json['lastWhoLikedViewDate'] is Map) {
-          final timestamp = json['lastWhoLikedViewDate'] as Map<String, dynamic>;
+          final timestamp =
+              json['lastWhoLikedViewDate'] as Map<String, dynamic>;
           final seconds = timestamp['_seconds'] as int?;
           if (seconds != null) {
-            lastWhoLikedViewDate = DateTime.fromMillisecondsSinceEpoch(seconds * 1000);
+            lastWhoLikedViewDate =
+                DateTime.fromMillisecondsSinceEpoch(seconds * 1000);
           }
         }
       }
@@ -365,7 +380,8 @@ class User {
         lastSeen: lastSeenDate,
         isPremium: json['isPremium'] as bool? ?? false,
         adsFree: json['adsFree'] as bool? ?? false, // Default to showing ads
-        credits: json['credits'] as int? ?? 100, // Default 100 credits for all users
+        credits:
+            json['credits'] as int? ?? 100, // Default 100 credits for all users
         createdAt: createdAtDate,
         updatedAt: updatedAtDate,
         isBlocked: json['isBlocked'] as bool? ?? false,

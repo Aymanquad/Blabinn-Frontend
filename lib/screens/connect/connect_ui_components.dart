@@ -508,20 +508,13 @@ class ConnectUIComponents {
   static Widget buildMainScaffold(BuildContext context, ConnectStateManager stateManager) {
     return Scaffold(
       appBar: null,
-      body: Container(
-        decoration: const BoxDecoration(
-          image: DecorationImage(
-            image: AssetImage('assets/images/violettoblack_bg.png'),
-            fit: BoxFit.cover,
-          ),
-        ),
-        child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 100, 16, 100),
-            child: Column(
-              children: [
-                Expanded(
-                  child: buildMainContent(context, stateManager),
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 100, 16, 100),
+          child: Column(
+            children: [
+              Expanded(
+                child: buildMainContent(context, stateManager),
                 ),
                 buildConnectButton(context, stateManager),
                 const SizedBox(height: 16),
@@ -534,7 +527,6 @@ class ConnectUIComponents {
             ),
           ),
         ),
-      ),
     );
   }
 } 

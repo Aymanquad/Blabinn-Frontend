@@ -474,34 +474,7 @@ class _SearchScreenState extends State<SearchScreen> {
         ),
         titleTextStyle: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
       ),
-      body: Stack(
-        children: [
-          Positioned.fill(
-            child: Container(
-              decoration: const BoxDecoration(
-                image: DecorationImage(
-                  image: AssetImage('assets/images/violettoblack_bg.png'),
-                  fit: BoxFit.cover,
-                ),
-              ),
-            ),
-          ),
-          Positioned.fill(
-            child: Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Colors.black.withOpacity(0.10),
-                    Colors.transparent,
-                    Colors.black.withOpacity(0.18),
-                  ],
-                  stops: const [0, 0.5, 1],
-                ),
-              ),
-            ),
-          ),
+      body:
           Column(
             children: [
               _buildSearchBar(),
@@ -510,8 +483,6 @@ class _SearchScreenState extends State<SearchScreen> {
               ),
             ],
           ),
-        ],
-      ),
     );
   }
 }

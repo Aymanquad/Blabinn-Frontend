@@ -29,7 +29,7 @@ class AdService {
     try {
       await MobileAds.instance.initialize();
       _isInitialized = true;
-      // debugPrint('✅ AdMob SDK initialized successfully');
+      debugPrint('✅ AdMob SDK initialized successfully');
 
       // Start the interstitial ad timer
       _startInterstitialTimer();
@@ -86,10 +86,10 @@ class AdService {
       request: const AdRequest(),
       listener: BannerAdListener(
         onAdLoaded: (ad) {
-          // debugPrint('✅ Banner ad loaded successfully');
+          debugPrint('✅ Banner ad loaded successfully');
         },
         onAdFailedToLoad: (ad, error) {
-          // debugPrint('❌ Banner ad failed to load: ${error.message}');
+          debugPrint('❌ Banner ad failed to load: ${error.message}');
           ad.dispose();
         },
         onAdOpened: (ad) {

@@ -42,7 +42,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _checkAuthStatus() async {
     await _authService.initialize();
     await _apiService.initialize();
-    
+
     // Check if we have a logged-in user
     if (_authService.currentUser != null) {
       // Load fresh profile data from API
@@ -59,10 +59,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
     try {
       // Load fresh profile data from API
       final responseData = await _apiService.getMyProfile();
-      
+
       if (responseData['profile'] != null) {
         final profileData = responseData['profile'];
-        
+
         final updatedUser = User.fromJson(profileData);
         setState(() {
           _currentUser = updatedUser;
@@ -119,78 +119,48 @@ class _ProfileScreenState extends State<ProfileScreen> {
           const SizedBox(width: 8),
         ],
       ),
-      body: Stack(
-        children: [
-          Positioned.fill(
-            child: Container(
-              decoration: const BoxDecoration(
-                image: DecorationImage(
-                  image: AssetImage('assets/images/general_overlay.png'),
-                  fit: BoxFit.cover,
-                ),
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.person_outline,
+                size: 64,
+                color: theme.colorScheme.onSurface.withOpacity(0.4),
               ),
-            ),
-          ),
-          Positioned.fill(
-            child: Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Colors.black.withOpacity(0.15),
-                    Colors.transparent,
-                    Colors.black.withOpacity(0.25),
-                  ],
-                  stops: const [0, 0.5, 1],
-                ),
-              ),
-            ),
-          ),
-          Center(
-            child: Padding(
-              padding: const EdgeInsets.all(32),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.person_outline,
-                    size: 64,
-                    color: theme.colorScheme.onSurface.withOpacity(0.4),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Welcome to ${AppConstants.appName}',
-                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Sign in to access your profile and settings',
-                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                          color: theme.colorScheme.onSurface.withOpacity(0.7),
-                        ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 32),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: () {
-                        Navigator.pushNamed(context, '/login');
-                      },
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                      ),
-                      child: const Text('Sign In'),
+              const SizedBox(height: 16),
+              Text(
+                'Welcome to ${AppConstants.appName}',
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
                     ),
-                  ),
-                ],
               ),
-            ),
+              const SizedBox(height: 8),
+              Text(
+                'Sign in to access your profile and settings',
+                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                      color: theme.colorScheme.onSurface.withOpacity(0.7),
+                    ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 32),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.pushNamed(context, '/login');
+                  },
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                  ),
+                  child: const Text('Sign In'),
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -205,134 +175,128 @@ class _ProfileScreenState extends State<ProfileScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
       ),
-      body: Stack(
-        children: [
-          Positioned.fill(
-            child: Container(
-              decoration: const BoxDecoration(
-                image: DecorationImage(
-                  image: AssetImage('assets/images/general_overlay.png'),
-                  fit: BoxFit.cover,
-                ),
-              ),
-            ),
-          ),
-          Positioned.fill(
-            child: Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Colors.black.withOpacity(0.10),
-                    Colors.transparent,
-                    Colors.black.withOpacity(0.22),
-                  ],
-                  stops: const [0, 0.5, 1],
-                ),
-              ),
-            ),
-          ),
-          SingleChildScrollView(
-            padding: const EdgeInsets.all(20),
-            child: Column(
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            // --- Profile header (avatar + name + badges) ---
+            Column(
+              mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-            // Profile Picture
-            CircleAvatar(
-              radius: 60,
-              backgroundColor: theme.colorScheme.surface,
-              backgroundImage: user.hasProfileImage
-                  ? NetworkImage(user.profileImage!)
-                  : null,
-              child: !user.hasProfileImage
-                  ? Icon(
-                      Icons.person,
-                      size: 60,
-                      color: theme.colorScheme.onSurface.withOpacity(0.6),
-                    )
-                  : null,
-            ),
-            const SizedBox(height: 16),
-
-            // User Name
-            Text(
-              user.username,
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: theme.colorScheme.onSurface,
-              ),
-            ),
-            const SizedBox(height: 8),
-
-            // Email
-            if (user.email != null)
-              Text(
-                user.email!,
-                style: TextStyle(
-                  fontSize: 16,
-                  color: theme.colorScheme.onSurface.withOpacity(0.7),
+                // Avatar
+                CircleAvatar(
+                  radius: 56,
+                  backgroundColor: Colors.white.withOpacity(0.08),
+                  backgroundImage: user.hasProfileImage
+                      ? NetworkImage(user.profileImage!)
+                      : null,
+                  child: !user.hasProfileImage
+                      ? Icon(
+                          Icons.person,
+                          size: 56,
+                          color: Colors.white.withOpacity(0.75),
+                        )
+                      : null,
                 ),
-              ),
-            const SizedBox(height: 8),
 
-            // User Status
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: user.isGuest ? Colors.orange[100] : Colors.green[100],
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Text(
-                user.isGuest ? 'Guest User' : 'Registered User',
-                style: TextStyle(
-                  color: user.isGuest ? Colors.orange[800] : Colors.green[800],
-                  fontWeight: FontWeight.w500,
+                const SizedBox(height: 12),
+
+                // **Display name** (restore this)
+                Builder(
+                  builder: (context) {
+                    final name = (user.displayName.trim().isNotEmpty)
+                        ? user.displayName.trim()
+                        : (user.username.trim().isNotEmpty)
+                            ? user.username.trim()
+                            : 'User';
+
+                    return Text(
+                      name,
+                      textAlign: TextAlign.center,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.w700,
+                            color: Theme.of(context).colorScheme.onSurface,
+                          ),
+                    );
+                  },
                 ),
-              ),
-            ),
-            
-            const SizedBox(height: 8),
-            
-            // Credits Display - Use the same source as navbar
-            Consumer<UserProvider>(
-              builder: (context, userProvider, child) {
-                final currentCredits = userProvider.currentUser?.credits ?? 0;
-                return Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: Colors.blue[100],
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Text(
-                    'Credits: $currentCredits',
-                    style: TextStyle(
-                      color: Colors.blue[800],
-                      fontWeight: FontWeight.w500,
+
+                const SizedBox(height: 10),
+
+                // Badges under the name (wrap to avoid overflow)
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  alignment: WrapAlignment.center,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: const Color(
+                            0xFF82D49F), // "Registered User" pill color
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      child: Text(
+                        user.isGuest ? 'Guest User' : 'Registered User',
+                        style:
+                            Theme.of(context).textTheme.labelMedium?.copyWith(
+                                  color: Colors.black,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                      ),
+                    ),
+                    Consumer<UserProvider>(
+                      builder: (context, userProvider, child) {
+                        final currentCredits =
+                            userProvider.currentUser?.credits ?? 0;
+                        return Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.18),
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                          child: Text(
+                            'Credits: $currentCredits',
+                            style: Theme.of(context)
+                                .textTheme
+                                .labelMedium
+                                ?.copyWith(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                          ),
+                        );
+                      },
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 14),
+
+                // Profile Preview
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: () {
+                      Navigator.pushNamed(context, '/profile-preview');
+                    },
+                    icon: const Icon(Icons.visibility),
+                    label: const Text('Preview Profile'),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      foregroundColor: theme.colorScheme.onSurface,
+                      side: BorderSide(
+                          color: theme.colorScheme.onSurface.withOpacity(0.2)),
                     ),
                   ),
-                );
-              },
-            ),
-
-            const SizedBox(height: 32),
-
-            // Profile Preview
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton.icon(
-                onPressed: () {
-                  Navigator.pushNamed(context, '/profile-preview');
-                },
-                icon: const Icon(Icons.visibility),
-                label: const Text('Preview Profile'),
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  foregroundColor: theme.colorScheme.onSurface,
-                  side: BorderSide(color: theme.colorScheme.onSurface.withOpacity(0.2)),
                 ),
-              ),
+              ],
             ),
 
             const SizedBox(height: 16),
@@ -348,22 +312,30 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   // Verification CTA
                   if (!user.isVerified) ...[
                     ListTile(
-                      leading: Icon(Icons.verified_outlined, color: Colors.blue.shade700),
-                      title: Text('Get Verified', style: TextStyle(color: theme.colorScheme.onSurface)),
-                      subtitle: Text('Increase trust and unlock features in some regions'),
-                      trailing: Icon(Icons.arrow_forward_ios, size: 16, color: theme.colorScheme.onSurface.withOpacity(0.5)),
+                      leading: Icon(Icons.verified_outlined,
+                          color: Colors.blue.shade700),
+                      title: Text('Get Verified',
+                          style: TextStyle(color: theme.colorScheme.onSurface)),
+                      subtitle: Text(
+                          'Increase trust and unlock features in some regions'),
+                      trailing: Icon(Icons.arrow_forward_ios,
+                          size: 16,
+                          color: theme.colorScheme.onSurface.withOpacity(0.5)),
                       onTap: () async {
                         try {
                           final res = await _apiService.requestVerification();
                           if (mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Verification requested')),
+                              const SnackBar(
+                                  content: Text('Verification requested')),
                             );
                           }
                         } catch (_) {}
                       },
                     ),
-                    Divider(height: 1, color: theme.colorScheme.outline.withOpacity(0.2)),
+                    Divider(
+                        height: 1,
+                        color: theme.colorScheme.outline.withOpacity(0.2)),
                   ],
                   // Profile Management
                   ListTile(
@@ -414,7 +386,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => const PrivacySecuritySettingsScreen(),
+                          builder: (context) =>
+                              const PrivacySecuritySettingsScreen(),
                         ),
                       );
                     },
@@ -437,7 +410,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => const HelpSupportSettingsScreen(),
+                          builder: (context) =>
+                              const HelpSupportSettingsScreen(),
                         ),
                       );
                     },
@@ -448,71 +422,69 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
             const SizedBox(height: 32),
 
-                         // Boost Profile Button
-             FutureBuilder<bool>(
-               future: BoostProfileService().isProfileBoosted(),
-               builder: (context, snapshot) {
-                 final isBoosted = snapshot.data ?? false;
-                 
-                 return Column(
-                   children: [
-                     Container(
-                       width: double.infinity,
-                       decoration: BoxDecoration(
-                         borderRadius: BorderRadius.circular(8),
-                         gradient: isBoosted 
-                           ? LinearGradient(
-                               colors: [
-                                 Colors.amber.shade400,
-                                 Colors.orange.shade600,
-                               ],
-                             )
-                           : null,
-                         color: isBoosted ? null : Colors.blue.shade600,
-                       ),
-                       child: ElevatedButton(
-                         onPressed: () => _showBoostProfileDialog(),
-                         style: ElevatedButton.styleFrom(
-                           backgroundColor: Colors.transparent,
-                           foregroundColor: Colors.white,
-                           padding: const EdgeInsets.symmetric(vertical: 16),
-                           shape: RoundedRectangleBorder(
-                             borderRadius: BorderRadius.circular(8),
-                           ),
-                           elevation: 0,
-                         ),
-                         child: Row(
-                           mainAxisAlignment: MainAxisAlignment.center,
-                           children: [
-                             Icon(
-                               isBoosted ? Icons.star : Icons.rocket_launch,
-                               size: 20,
-                             ),
-                             const SizedBox(width: 8),
-                             Text(
-                               isBoosted ? 'Profile Boosted!' : 'Boost Profile',
-                               style: const TextStyle(
-                                 fontSize: 16,
-                                 fontWeight: FontWeight.w600,
-                               ),
-                             ),
-                             if (isBoosted) ...[
-                               const SizedBox(width: 8),
-                               Icon(
-                                 Icons.timer,
-                                 size: 16,
-                               ),
-                             ],
-                           ],
-                         ),
-                       ),
-                     ),
-                     
+            // Boost Profile Button
+            FutureBuilder<bool>(
+              future: BoostProfileService().isProfileBoosted(),
+              builder: (context, snapshot) {
+                final isBoosted = snapshot.data ?? false;
 
-                   ],
-                 );
-               },
-             ),
+                return Column(
+                  children: [
+                    Container(
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(8),
+                        gradient: isBoosted
+                            ? LinearGradient(
+                                colors: [
+                                  Colors.amber.shade400,
+                                  Colors.orange.shade600,
+                                ],
+                              )
+                            : null,
+                        color: isBoosted ? null : Colors.blue.shade600,
+                      ),
+                      child: ElevatedButton(
+                        onPressed: () => _showBoostProfileDialog(),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.transparent,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          elevation: 0,
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              isBoosted ? Icons.star : Icons.rocket_launch,
+                              size: 20,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              isBoosted ? 'Profile Boosted!' : 'Boost Profile',
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            if (isBoosted) ...[
+                              const SizedBox(width: 8),
+                              Icon(
+                                Icons.timer,
+                                size: 16,
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
 
             const SizedBox(height: 16),
 
@@ -632,24 +604,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ],
               ),
             ),
-              ],
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
   void _showBoostProfileDialog() {
     final boostService = BoostProfileService();
-    
+
     showDialog(
       context: context,
       builder: (context) => FutureBuilder<bool>(
         future: boostService.isProfileBoosted(),
         builder: (context, snapshot) {
           final isBoosted = snapshot.data ?? false;
-          
+
           return AlertDialog(
             title: Row(
               children: [
@@ -709,7 +679,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   Text(
                     'Your profile is currently boosted and will appear at the top of the discover page for other users!',
                     style: TextStyle(
-                      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.8),
+                      color: Theme.of(context)
+                          .colorScheme
+                          .onSurface
+                          .withOpacity(0.8),
                     ),
                   ),
                 ] else ...[
@@ -746,7 +719,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         Text(
                           '• Appear at the top of discover page\n• Get 10x more profile views\n• Stand out with golden shine effect\n• Lasts for 24 hours',
                           style: TextStyle(
-                            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.8),
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurface
+                                .withOpacity(0.8),
                             fontSize: 14,
                           ),
                         ),
@@ -808,82 +784,77 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-     Future<void> _purchaseBoost() async {
-     try {
-       final boostService = BoostProfileService();
-       
-       // Show loading dialog
-       showDialog(
-         context: context,
-         barrierDismissible: false,
-         builder: (context) => const AlertDialog(
-           content: Row(
-             children: [
-               CircularProgressIndicator(),
-               SizedBox(width: 16),
-               Text('Purchasing boost...'),
-             ],
-           ),
-         ),
-       );
+  Future<void> _purchaseBoost() async {
+    try {
+      final boostService = BoostProfileService();
 
-       final result = await boostService.purchaseBoost();
-       
-       // Close loading dialog
-       Navigator.pop(context);
+      // Show loading dialog
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const AlertDialog(
+          content: Row(
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(width: 16),
+              Text('Purchasing boost...'),
+            ],
+          ),
+        ),
+      );
 
+      final result = await boostService.purchaseBoost();
 
+      // Close loading dialog
+      Navigator.pop(context);
 
-       if (result['success'] == true) {
-         // Show success message
-         ScaffoldMessenger.of(context).showSnackBar(
-           SnackBar(
-             content: Text(result['message']),
-             backgroundColor: Colors.green,
-           ),
-         );
-         
-         // Refresh the profile data to show updated credits
-         await _loadProfileData();
-         
-         // Also refresh the UserProvider to update the navbar credits
-         final userProvider = Provider.of<UserProvider>(context, listen: false);
-         final newCredits = result['credits'] as int?;
-         print('🔍 DEBUG: ProfileScreen - Boost result credits: $newCredits');
-         if (newCredits != null) {
-           print('🔍 DEBUG: ProfileScreen - Updating UserProvider credits to: $newCredits');
-           userProvider.updateCredits(newCredits);
-         } else {
-           print('🔍 DEBUG: ProfileScreen - Refreshing credits from server');
-           await userProvider.refreshCredits();
-         }
-       } else {
-         // Show error message
-         ScaffoldMessenger.of(context).showSnackBar(
-           SnackBar(
-             content: Text(result['message']),
-             backgroundColor: Colors.red,
-           ),
-         );
-       }
-     } catch (e) {
-       // Close loading dialog if still open
-       if (Navigator.canPop(context)) {
-         Navigator.pop(context);
-       }
-       
-       ScaffoldMessenger.of(context).showSnackBar(
-         SnackBar(
-           content: Text('Error: $e'),
-           backgroundColor: Colors.red,
-         ),
-       );
-     }
-   }
+      if (result['success'] == true) {
+        // Show success message
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(result['message']),
+            backgroundColor: Colors.green,
+          ),
+        );
 
+        // Refresh the profile data to show updated credits
+        await _loadProfileData();
 
+        // Also refresh the UserProvider to update the navbar credits
+        final userProvider = Provider.of<UserProvider>(context, listen: false);
+        final newCredits = result['credits'] as int?;
+        print('🔍 DEBUG: ProfileScreen - Boost result credits: $newCredits');
+        if (newCredits != null) {
+          print(
+              '🔍 DEBUG: ProfileScreen - Updating UserProvider credits to: $newCredits');
+          userProvider.updateCredits(newCredits);
+        } else {
+          print('🔍 DEBUG: ProfileScreen - Refreshing credits from server');
+          await userProvider.refreshCredits();
+        }
+      } else {
+        // Show error message
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(result['message']),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      // Close loading dialog if still open
+      if (Navigator.canPop(context)) {
+        Navigator.pop(context);
+      }
 
-
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
 
   Future<void> _handleLogout() async {
     // Show confirmation dialog

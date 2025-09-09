@@ -56,12 +56,24 @@ android {
     buildTypes {
         release {
             signingConfig = signingConfigs.getByName("release")
-            isMinifyEnabled = false
-            isShrinkResources = false
+            // Enable R8 code shrinking and resource shrinking for smaller APKs
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                file("proguard-rules.pro")
+            )
         }
         debug {
             // Enable billing for debug builds (for testing only)
             signingConfig = signingConfigs.getByName("debug")
+        }
+    }
+
+    // Exclude unnecessary metadata from the APK to save a bit of space
+    packaging {
+        resources {
+            excludes += "/META-INF/{AL2.0,LGPL2.1,DEPENDENCIES,LICENSE,LICENSE.txt,license.txt,NOTICE,NOTICE.txt}"
         }
     }
 }

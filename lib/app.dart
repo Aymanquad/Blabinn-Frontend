@@ -36,6 +36,7 @@ import 'widgets/credits_display.dart';
 import 'screens/credit_shop_screen.dart';
 import 'services/api_service.dart';
 import 'widgets/custom_bottom_nav.dart';
+import 'widgets/app_background.dart';
 
 // Global navigator key for navigation from anywhere
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
@@ -102,6 +103,8 @@ class ChatApp extends StatelessWidget {
               theme: _buildDarkTheme(),
               themeMode: ThemeMode.dark,
               home: const SplashScreen(),
+              builder: (context, child) =>
+                  AppBackground(child: child ?? const SizedBox()),
               routes: {
                 '/home': (context) => const MainNavigationScreen(),
                 '/profile': (context) => const ProfileScreen(),
@@ -120,7 +123,8 @@ class ChatApp extends StatelessWidget {
                   if (args is Map<String, dynamic>) {
                     return ProfilePreviewScreen(
                       userId: args['userId'] as String?,
-                      initialUserData: args['initialUserData'] as Map<String, dynamic>?,
+                      initialUserData:
+                          args['initialUserData'] as Map<String, dynamic>?,
                     );
                   }
                   if (args is String) {
@@ -131,7 +135,8 @@ class ChatApp extends StatelessWidget {
                 '/test-interstitial': (context) =>
                     const TestInterstitialScreen(),
                 '/random-chat': (context) {
-                  final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+                  final args = ModalRoute.of(context)?.settings.arguments
+                      as Map<String, dynamic>?;
                   if (args != null) {
                     final sessionId = args['sessionId'] as String?;
                     final chatRoomId = args['chatRoomId'] as String?;
@@ -170,7 +175,6 @@ class ChatApp extends StatelessWidget {
   }
 }
 
-
 // Theme building method - Dark mode only
 
 ThemeData _buildDarkTheme() {
@@ -188,8 +192,8 @@ ThemeData _buildDarkTheme() {
       onSurface: AppColors.text,
       onBackground: AppColors.text,
     ),
-    scaffoldBackgroundColor: AppColors.background,
-    
+    scaffoldBackgroundColor: Colors.transparent,
+
     // Enhanced TextTheme with consistent hierarchy
     textTheme: const TextTheme(
       // Display styles for hero text
@@ -211,7 +215,7 @@ ThemeData _buildDarkTheme() {
         color: AppColors.text,
         letterSpacing: 0,
       ),
-      
+
       // Title styles for section headers
       titleLarge: TextStyle(
         fontSize: 22,
@@ -231,7 +235,7 @@ ThemeData _buildDarkTheme() {
         color: AppColors.text,
         letterSpacing: 0.1,
       ),
-      
+
       // Body styles for content
       bodyLarge: TextStyle(
         fontSize: 16,
@@ -251,7 +255,7 @@ ThemeData _buildDarkTheme() {
         color: AppColors.textSecondary,
         letterSpacing: 0.4,
       ),
-      
+
       // Label styles for buttons and inputs
       labelLarge: TextStyle(
         fontSize: 14,
@@ -272,7 +276,7 @@ ThemeData _buildDarkTheme() {
         letterSpacing: 0.5,
       ),
     ),
-    
+
     // Enhanced AppBar theme
     appBarTheme: const AppBarTheme(
       backgroundColor: AppColors.background,
@@ -286,7 +290,7 @@ ThemeData _buildDarkTheme() {
       ),
       centerTitle: true,
     ),
-    
+
     // Enhanced Button themes
     elevatedButtonTheme: ElevatedButtonThemeData(
       style: ElevatedButton.styleFrom(
@@ -305,7 +309,7 @@ ThemeData _buildDarkTheme() {
         ),
       ),
     ),
-    
+
     filledButtonTheme: FilledButtonThemeData(
       style: FilledButton.styleFrom(
         backgroundColor: AppColors.secondary,
@@ -322,7 +326,7 @@ ThemeData _buildDarkTheme() {
         ),
       ),
     ),
-    
+
     outlinedButtonTheme: OutlinedButtonThemeData(
       style: OutlinedButton.styleFrom(
         foregroundColor: AppColors.primary,
@@ -338,7 +342,7 @@ ThemeData _buildDarkTheme() {
         ),
       ),
     ),
-    
+
     textButtonTheme: TextButtonThemeData(
       style: TextButton.styleFrom(
         foregroundColor: AppColors.primary,
@@ -350,7 +354,7 @@ ThemeData _buildDarkTheme() {
         ),
       ),
     ),
-    
+
     // Enhanced Card theme
     cardTheme: CardThemeData(
       color: AppColors.cardBackground,
@@ -361,7 +365,7 @@ ThemeData _buildDarkTheme() {
       ),
       margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
     ),
-    
+
     // Enhanced Input theme
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
@@ -390,7 +394,7 @@ ThemeData _buildDarkTheme() {
         fontWeight: FontWeight.normal,
       ),
     ),
-    
+
     // Enhanced Chip theme
     chipTheme: ChipThemeData(
       backgroundColor: AppColors.inputBackground,
@@ -405,7 +409,7 @@ ThemeData _buildDarkTheme() {
       ),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
     ),
-    
+
     // Enhanced Bottom Navigation theme
     bottomNavigationBarTheme: const BottomNavigationBarThemeData(
       backgroundColor: AppColors.cardBackground,
@@ -414,7 +418,7 @@ ThemeData _buildDarkTheme() {
       type: BottomNavigationBarType.fixed,
       elevation: 8,
     ),
-    
+
     extensions: <ThemeExtension<dynamic>>[
       AppThemeTokens.instance,
     ],
@@ -672,9 +676,11 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
           final api = ApiService();
           final result = await api.claimDailyCredits();
           final awarded = (result['awarded'] as int?) ?? 0;
-          final credits = (result['credits'] as int?) ?? userProvider.currentUser!.credits;
+          final credits =
+              (result['credits'] as int?) ?? userProvider.currentUser!.credits;
           if (awarded > 0) {
-            userProvider.updateCurrentUser(userProvider.currentUser!.copyWith(credits: credits));
+            userProvider.updateCurrentUser(
+                userProvider.currentUser!.copyWith(credits: credits));
             if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
@@ -900,7 +906,8 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
                   ),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: (iconColor ?? const Color(0xFFA259FF)).withOpacity(0.3),
+                    color:
+                        (iconColor ?? const Color(0xFFA259FF)).withOpacity(0.3),
                     width: 1,
                   ),
                 ),
@@ -1000,8 +1007,6 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
 
   @override
   Widget build(BuildContext context) {
-    
-
     return Scaffold(
       key: _scaffoldKey,
       extendBody: true,

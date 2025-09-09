@@ -107,7 +107,7 @@ class BoostedProfilesWidgetState extends State<BoostedProfilesWidget>
       return Container(
         height: 180,
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(24),
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
@@ -133,7 +133,7 @@ class BoostedProfilesWidgetState extends State<BoostedProfilesWidget>
       return Container(
         height: 180,
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(24),
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
@@ -194,7 +194,7 @@ class BoostedProfilesWidgetState extends State<BoostedProfilesWidget>
       child: Container(
         height: 180,
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(24),
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
@@ -223,8 +223,8 @@ class BoostedProfilesWidgetState extends State<BoostedProfilesWidget>
               padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
               decoration: BoxDecoration(
                 borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(20),
-                  topRight: Radius.circular(20),
+                  topLeft: Radius.circular(24),
+                  topRight: Radius.circular(24),
                 ),
                 gradient: LinearGradient(
                   begin: Alignment.topLeft,

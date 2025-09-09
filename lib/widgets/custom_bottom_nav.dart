@@ -29,7 +29,7 @@ class CustomBottomNavigationBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final tokens = theme.extension<AppThemeTokens>();
-    
+
     return Container(
       decoration: BoxDecoration(
         color: backgroundColor ?? theme.colorScheme.surface,
@@ -37,7 +37,8 @@ class CustomBottomNavigationBar extends StatelessWidget {
       ),
       child: SafeArea(
         child: Padding(
-          padding: padding ?? const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          padding:
+              padding ?? const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: List.generate(
@@ -63,7 +64,7 @@ class CustomBottomNavigationBar extends StatelessWidget {
   ) {
     final isSelected = index == currentIndex;
     final item = items[index];
-    
+
     return Semantics(
       label: '${item.label}${isSelected ? ' (selected)' : ''}',
       button: true,
@@ -71,48 +72,52 @@ class CustomBottomNavigationBar extends StatelessWidget {
       child: GestureDetector(
         onTap: () => onTap(index),
         child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        curve: Curves.easeInOut,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        decoration: BoxDecoration(
-          gradient: isSelected ? tokens?.primaryGradient : null,
-          borderRadius: BorderRadius.circular(
-            tokens?.radiusLarge ?? 20,
-          ),
-          boxShadow: isSelected ? tokens?.softShadows : null,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Handle both IconData and Widget icons
-            if (item.icon is IconData)
-              Icon(
-                item.icon as IconData,
-                color: isSelected
-                    ? Colors.white
-                    : unselectedItemColor ?? theme.colorScheme.onSurface.withOpacity(0.6),
-                size: 24,
-              )
-            else if (item.icon is Widget)
-              SizedBox(
-                width: 24,
-                height: 24,
-                child: item.icon as Widget,
-              ),
-            const SizedBox(height: 4),
-            Text(
-              item.label ?? '',
-              style: TextStyle(
-                color: isSelected
-                    ? Colors.white
-                    : unselectedItemColor ?? theme.colorScheme.onSurface.withOpacity(0.6),
-                fontSize: 12,
-                fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-              ),
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeInOut,
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+          decoration: BoxDecoration(
+            gradient: isSelected ? tokens?.primaryGradient : null,
+            borderRadius: BorderRadius.circular(
+              tokens?.radiusLarge ?? 20,
             ),
-          ],
+            boxShadow: isSelected ? tokens?.softShadows : null,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Handle both IconData and Widget icons
+              if (item.icon is IconData)
+                Icon(
+                  item.icon as IconData,
+                  color: isSelected
+                      ? Colors.white
+                      : unselectedItemColor ??
+                          theme.colorScheme.onSurface.withOpacity(0.6),
+                  size: 20,
+                )
+              else if (item.icon is Widget)
+                SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: item.icon as Widget,
+                ),
+              const SizedBox(height: 2),
+              Text(
+                item.label ?? '',
+                style: TextStyle(
+                  color: isSelected
+                      ? Colors.white
+                      : unselectedItemColor ??
+                          theme.colorScheme.onSurface.withOpacity(0.6),
+                  fontSize: 10,
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
         ),
-      ),
       ),
     );
   }

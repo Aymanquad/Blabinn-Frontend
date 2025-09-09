@@ -15,7 +15,7 @@ class FriendsScreen extends StatefulWidget {
 class _FriendsScreenState extends State<FriendsScreen> {
   final ApiService _apiService = ApiService();
   final TextEditingController _searchController = TextEditingController();
-  
+
   List<Map<String, dynamic>> _friends = [];
   List<Map<String, dynamic>> _filteredFriends = [];
   bool _isLoading = false;
@@ -41,7 +41,9 @@ class _FriendsScreenState extends State<FriendsScreen> {
         _filteredFriends = List.from(_friends);
       } else {
         _filteredFriends = _friends.where((friend) {
-          final displayName = (friend['displayName'] ?? friend['username'] ?? 'Unknown').toLowerCase();
+          final displayName =
+              (friend['displayName'] ?? friend['username'] ?? 'Unknown')
+                  .toLowerCase();
           final username = (friend['username'] ?? '').toLowerCase();
           return displayName.contains(query) || username.contains(query);
         }).toList();
@@ -381,35 +383,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
           ),
         ],
       ),
-      body: Stack(
-        children: [
-          Positioned.fill(
-            child: Container(
-              decoration: const BoxDecoration(
-                image: DecorationImage(
-                  image: AssetImage('assets/images/violettoblack_bg.png'),
-                  fit: BoxFit.cover,
-                ),
-              ),
-            ),
-          ),
-          Positioned.fill(
-            child: Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Colors.black.withOpacity(0.10),
-                    Colors.transparent,
-                    Colors.black.withOpacity(0.18),
-                  ],
-                  stops: const [0, 0.5, 1],
-                ),
-              ),
-            ),
-          ),
-          Column(
+      body: Column(
         children: [
           // Search Bar
           Padding(
@@ -450,52 +424,54 @@ class _FriendsScreenState extends State<FriendsScreen> {
                     ),
                   )
                 : _errorMessage != null
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.error_outline,
-                        size: 64,
-                        color: Colors.red[300],
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'Error',
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                              fontWeight: FontWeight.bold,
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.error_outline,
+                              size: 64,
+                              color: Colors.red[300],
                             ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        _errorMessage!,
-                        style: TextStyle(
-                          color: Colors.grey[600],
+                            const SizedBox(height: 16),
+                            Text(
+                              'Error',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .titleLarge
+                                  ?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              _errorMessage!,
+                              style: TextStyle(
+                                color: Colors.grey[600],
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 16),
+                            ElevatedButton(
+                              onPressed: _loadFriends,
+                              child: const Text('Try Again'),
+                            ),
+                          ],
                         ),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 16),
-                      ElevatedButton(
-                        onPressed: _loadFriends,
-                        child: const Text('Try Again'),
-                      ),
-                    ],
-                  ),
-                )
-              : _filteredFriends.isEmpty
-                  ? _buildEmptyState()
-                  : RefreshIndicator(
-                      onRefresh: _loadFriends,
-                      child: ListView.builder(
-                        padding: const EdgeInsets.all(16),
-                        itemCount: _filteredFriends.length,
-                        itemBuilder: (context, index) {
-                          return _buildFriendCard(_filteredFriends[index]);
-                        },
-                      ),
-                    ),
-          ),
-        ],
+                      )
+                    : _filteredFriends.isEmpty
+                        ? _buildEmptyState()
+                        : RefreshIndicator(
+                            onRefresh: _loadFriends,
+                            child: ListView.builder(
+                              padding: const EdgeInsets.all(16),
+                              itemCount: _filteredFriends.length,
+                              itemBuilder: (context, index) {
+                                return _buildFriendCard(
+                                    _filteredFriends[index]);
+                              },
+                            ),
+                          ),
           ),
         ],
       ),

@@ -987,32 +987,6 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
           ),
           body: Stack(
             children: [
-              Positioned.fill(
-                child: Container(
-                  decoration: const BoxDecoration(
-                    image: DecorationImage(
-                      image: AssetImage('assets/images/violettoblack_bg.png'),
-                      fit: BoxFit.cover,
-                    ),
-                  ),
-                ),
-              ),
-              Positioned.fill(
-                child: Container(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        Colors.black.withOpacity(0.12),
-                        Colors.transparent,
-                        Colors.black.withOpacity(0.20),
-                      ],
-                      stops: const [0, 0.5, 1],
-                    ),
-                  ),
-                ),
-              ),
               if (_isLoading)
                 Center(
                   child: SkeletonLayouts.profileCard(),

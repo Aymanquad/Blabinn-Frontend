@@ -47,7 +47,9 @@ class _ChatListScreenState extends State<ChatListScreen> {
         _filteredFriends = List.from(_friends);
       } else {
         _filteredFriends = _friends.where((friend) {
-          final displayName = (friend['displayName'] ?? friend['username'] ?? 'Unknown').toLowerCase();
+          final displayName =
+              (friend['displayName'] ?? friend['username'] ?? 'Unknown')
+                  .toLowerCase();
           final username = (friend['username'] ?? '').toLowerCase();
           return displayName.contains(query) || username.contains(query);
         }).toList();
@@ -168,102 +170,106 @@ class _ChatListScreenState extends State<ChatListScreen> {
         child: BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
           child: Container(
-      child: ListTile(
-        leading: Stack(
-          children: [
-            CircleAvatar(
-              radius: 25,
-              backgroundColor: theme.colorScheme.primary.withOpacity(0.1),
-              backgroundImage:
-                  profilePicture != null ? NetworkImage(profilePicture) : null,
-              child: profilePicture == null
-                  ? Text(
-                      displayName[0].toUpperCase(),
+            child: ListTile(
+              leading: Stack(
+                children: [
+                  CircleAvatar(
+                    radius: 25,
+                    backgroundColor: theme.colorScheme.primary.withOpacity(0.1),
+                    backgroundImage: profilePicture != null
+                        ? NetworkImage(profilePicture)
+                        : null,
+                    child: profilePicture == null
+                        ? Text(
+                            displayName[0].toUpperCase(),
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: theme.colorScheme.primary,
+                            ),
+                          )
+                        : null,
+                  ),
+                  if (unreadCount > 0)
+                    Positioned(
+                      top: 0,
+                      right: 0,
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: AppColors.error,
+                          shape: BoxShape.circle,
+                        ),
+                        constraints: const BoxConstraints(
+                          minWidth: 20,
+                          minHeight: 20,
+                        ),
+                        child: Text(
+                          unreadCount > 99 ? '99+' : unreadCount.toString(),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+              title: Text(
+                displayName,
+                style: TextStyle(
+                  fontWeight:
+                      unreadCount > 0 ? FontWeight.bold : FontWeight.normal,
+                ),
+              ),
+              subtitle: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (lastMessage != null)
+                    Text(
+                      lastMessage,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
+                        color: theme.colorScheme.onSurface.withOpacity(0.7),
+                        fontWeight: unreadCount > 0
+                            ? FontWeight.w500
+                            : FontWeight.normal,
+                      ),
+                    ),
+                  if (lastMessageTime != null)
+                    Text(
+                      lastMessageTime,
+                      style: TextStyle(
+                        color: theme.colorScheme.onSurface.withOpacity(0.5),
+                        fontSize: 12,
+                      ),
+                    ),
+                ],
+              ),
+              trailing: unreadCount > 0
+                  ? Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
                         color: theme.colorScheme.primary,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        'NEW',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     )
-                  : null,
+                  : Icon(Icons.chevron_right,
+                      color: theme.colorScheme.onSurface.withOpacity(0.5)),
+              onTap: () => _openChatWithFriend(friend),
             ),
-            if (unreadCount > 0)
-              Positioned(
-                top: 0,
-                right: 0,
-                child: Container(
-                  padding: const EdgeInsets.all(4),
-                  decoration: BoxDecoration(
-                    color: AppColors.error,
-                    shape: BoxShape.circle,
-                  ),
-                  constraints: const BoxConstraints(
-                    minWidth: 20,
-                    minHeight: 20,
-                  ),
-                  child: Text(
-                    unreadCount > 99 ? '99+' : unreadCount.toString(),
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-              ),
-          ],
-        ),
-        title: Text(
-          displayName,
-          style: TextStyle(
-            fontWeight: unreadCount > 0 ? FontWeight.bold : FontWeight.normal,
-          ),
-        ),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (lastMessage != null)
-              Text(
-                lastMessage,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: theme.colorScheme.onSurface.withOpacity(0.7),
-                  fontWeight:
-                      unreadCount > 0 ? FontWeight.w500 : FontWeight.normal,
-                ),
-              ),
-            if (lastMessageTime != null)
-              Text(
-                lastMessageTime,
-                style: TextStyle(
-                  color: theme.colorScheme.onSurface.withOpacity(0.5),
-                  fontSize: 12,
-                ),
-              ),
-          ],
-        ),
-        trailing: unreadCount > 0
-            ? Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.primary,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  'NEW',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              )
-            : Icon(Icons.chevron_right,
-                color: theme.colorScheme.onSurface.withOpacity(0.5)),
-        onTap: () => _openChatWithFriend(friend),
-      ),
           ),
         ),
       ),
@@ -358,17 +364,11 @@ class _ChatListScreenState extends State<ChatListScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: null,
-      body: Container(
-        decoration: const BoxDecoration(
-          image: DecorationImage(
-            image: AssetImage('assets/images/violettoblack_bg.png'),
-            fit: BoxFit.cover,
-          ),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(0, 120, 0, 72), // Restore top spacing; we'll tighten space below the search bar
-          child: Column(
-            children: [
+      body: Padding(
+        padding: const EdgeInsets.fromLTRB(0, 120, 0,
+            72), // Restore top spacing; we'll tighten space below the search bar
+        child: Column(
+          children: [
             // Search Bar
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
@@ -441,14 +441,15 @@ class _ChatListScreenState extends State<ChatListScreen> {
                                   Icon(
                                     Icons.error_outline,
                                     size: 64,
-                                    color: theme.colorScheme.onSurface.withOpacity(0.4),
+                                    color: theme.colorScheme.onSurface
+                                        .withOpacity(0.4),
                                   ),
                                   const SizedBox(height: 16),
                                   Text(
                                     _errorMessage!,
                                     style: TextStyle(
-                                      color:
-                                          theme.colorScheme.onSurface.withOpacity(0.7),
+                                      color: theme.colorScheme.onSurface
+                                          .withOpacity(0.7),
                                       fontSize: 16,
                                     ),
                                     textAlign: TextAlign.center,
@@ -471,7 +472,8 @@ class _ChatListScreenState extends State<ChatListScreen> {
                                 padding: const EdgeInsets.only(top: 16),
                                 itemCount: _filteredFriends.length,
                                 itemBuilder: (context, index) {
-                                  return _buildChatItem(_filteredFriends[index]);
+                                  return _buildChatItem(
+                                      _filteredFriends[index]);
                                 },
                               ),
                             ),
@@ -482,7 +484,6 @@ class _ChatListScreenState extends State<ChatListScreen> {
               margin: EdgeInsets.only(bottom: 8),
             ),
           ],
-        ),
         ),
       ),
     );
