@@ -33,3 +33,15 @@
 # Avoid warnings about missing META-INF
 -dontwarn org.codehaus.mojo.animal_sniffer.*
 
+# Google Play Core (for Flutter deferred components) - completely ignore
+-dontwarn com.google.android.play.core.**
+-dontwarn com.google.android.play.core.splitcompat.**
+-dontwarn com.google.android.play.core.splitinstall.**
+
+# Flutter deferred components - completely ignore
+-dontwarn io.flutter.embedding.engine.deferredcomponents.**
+-dontwarn io.flutter.embedding.android.FlutterPlayStoreSplitApplication
+
+# Ignore all Google Play Core related classes
+-ignorewarnings
+

@@ -28,6 +28,11 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
   @override
   void initState() {
     super.initState();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
     _loadAd();
   }
 
@@ -53,9 +58,11 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
 
     try {
       // Use adaptive banner size that fits any device width
+      // Get screen width safely after widget is built
+      final screenWidth = MediaQuery.sizeOf(context).width.truncate();
       final AnchoredAdaptiveBannerAdSize? adaptiveSize =
           await AdSize.getCurrentOrientationAnchoredAdaptiveBannerAdSize(
-        MediaQuery.of(context).size.width.truncate(),
+        screenWidth,
       );
 
       final adService = AdService();

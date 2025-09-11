@@ -31,10 +31,10 @@
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         
-        <!-- AdMob Application ID (Test ID for Development) -->
+        <!-- AdMob Application ID -->
         <meta-data
             android:name="com.google.android.gms.ads.APPLICATION_ID"
-            android:value="ca-app-pub-3940256099942544~3347511713"/>
+            android:value="ca-app-pub-5160335418378680~2708057766"/>
             
         <activity
             android:name=".MainActivity"

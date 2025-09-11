@@ -58,9 +58,9 @@
 		<string>remote-notification</string>
 	</array>
 	
-	<!-- AdMob Configuration (Test ID for Development) -->
+	<!-- AdMob Configuration (Production) -->
 	<key>GADApplicationIdentifier</key>
-	<string>ca-app-pub-3940256099942544~1458002511</string>
+	<string>ca-app-pub-5160335418378680~2656870690</string>
 	
 	<!-- SKAdNetworkItems for iOS 14+ -->
 	<key>SKAdNetworkItems</key>
