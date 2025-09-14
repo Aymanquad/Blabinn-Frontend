@@ -24,10 +24,10 @@ class _SubscriptionPlansScreenState extends State<SubscriptionPlansScreen> {
   bool _isLoading = false;
   String? _error;
 
-  // Indian pricing plans
+  // Indian pricing plans with new Google Play product IDs
   final List<Map<String, dynamic>> _plans = [
     {
-      'id': 'premium_weekly',
+      'id': '8248-1325-3123-2424-premium-weekly',
       'title': '1 Week',
       'price': '₹299',
       'duration': '1 week',
@@ -45,7 +45,7 @@ class _SubscriptionPlansScreenState extends State<SubscriptionPlansScreen> {
       'popular': false,
     },
     {
-      'id': 'premium_monthly',
+      'id': '8248-1325-3123-2424-premium-monthly',
       'title': '1 Month',
       'price': '₹599',
       'duration': '1 month',
@@ -63,7 +63,7 @@ class _SubscriptionPlansScreenState extends State<SubscriptionPlansScreen> {
       'popular': true,
     },
     {
-      'id': 'premium_3months',
+      'id': '8248-1325-3123-2424-premium-3months',
       'title': '3 Months',
       'price': '₹1499',
       'duration': '3 months',
@@ -81,7 +81,7 @@ class _SubscriptionPlansScreenState extends State<SubscriptionPlansScreen> {
       'popular': false,
     },
     {
-      'id': 'premium_6months',
+      'id': '8248-1325-3123-2424-premium-6months',
       'title': '6 Months',
       'price': '₹1999',
       'duration': '6 months',
@@ -99,7 +99,7 @@ class _SubscriptionPlansScreenState extends State<SubscriptionPlansScreen> {
       'popular': false,
     },
     {
-      'id': 'premium_yearly',
+      'id': '8248-1325-3123-2424-premium-yearly',
       'title': '12 Months',
       'price': '₹2500',
       'duration': '1 year',
@@ -117,7 +117,7 @@ class _SubscriptionPlansScreenState extends State<SubscriptionPlansScreen> {
       'popular': false,
     },
     {
-      'id': 'premium_lifetime',
+      'id': '8248-1325-3123-2424-premium-lifetime',
       'title': 'Lifetime',
       'price': '₹4999',
       'duration': 'Lifetime',

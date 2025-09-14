@@ -21,11 +21,11 @@ class _CreditShopScreenState extends State<CreditShopScreen> {
 
   // Display-only override for prices. Update here for new pricing.
   static const Map<String, String> _displayCreditPrices = {
-    'credits_70': '₹49.00',
-    'credits_150': '₹99.00',
-    'credits_400': '₹249.00',
-    'credits_900': '₹499.00',
-    'credits_2000': '₹999.00',
+    '8248-1325-3123-2424-credits-70': '₹49.00',
+    '8248-1325-3123-2424-credits-150': '₹99.00',
+    '8248-1325-3123-2424-credits-400': '₹249.00',
+    '8248-1325-3123-2424-credits-900': '₹499.00',
+    '8248-1325-3123-2424-credits-2000': '₹999.00',
   };
 
   @override
@@ -161,20 +161,20 @@ class _CreditShopScreenState extends State<CreditShopScreen> {
 
   List<Widget> _buildCreditBundles() {
     final creditProducts = _billingService.products
-        .where((product) => product.id.startsWith('credits_'))
+        .where((product) => product.id.startsWith('8248-1325-3123-2424-credits-'))
         .toList()
       ..sort((a, b) {
         // Extract credit amount and sort
-        final aCredits = int.tryParse(a.id.replaceAll('credits_', '')) ?? 0;
-        final bCredits = int.tryParse(b.id.replaceAll('credits_', '')) ?? 0;
+        final aCredits = int.tryParse(a.id.replaceAll('8248-1325-3123-2424-credits-', '')) ?? 0;
+        final bCredits = int.tryParse(b.id.replaceAll('8248-1325-3123-2424-credits-', '')) ?? 0;
         return aCredits.compareTo(bCredits);
       });
 
     return creditProducts.map((product) {
-      final isMostPopular = product.id == 'credits_150';
+      final isMostPopular = product.id == '8248-1325-3123-2424-credits-150';
       final displayPrice = _displayCreditPrices[product.id] ?? product.price;
       return _CreditBundleCard(
-        title: '${product.id.replaceAll('credits_', '')} credits',
+        title: '${product.id.replaceAll('8248-1325-3123-2424-credits-', '')} credits',
         price: displayPrice,
         productId: product.id,
         isMostPopular: isMostPopular,
@@ -184,19 +184,19 @@ class _CreditShopScreenState extends State<CreditShopScreen> {
   }
 
   List<Widget> _buildPremiumPlans(ThemeData theme) {
-    // Desired order and fallback pricing
+    // Desired order and fallback pricing with new Google Play product IDs
     final desired = [
-      {'id': 'premium_weekly', 'title': '1 Week', 'price': '₹299'},
-      {'id': 'premium_monthly', 'title': '1 Month', 'price': '₹599'},
-      {'id': 'premium_3months', 'title': '3 Months', 'price': '₹1499'},
-      {'id': 'premium_6months', 'title': '6 Months', 'price': '₹1999'},
-      {'id': 'premium_yearly', 'title': '12 Months', 'price': '₹2500'},
-      {'id': 'premium_lifetime', 'title': 'Lifetime', 'price': '₹4999'},
+      {'id': '8248-1325-3123-2424-premium-weekly', 'title': '1 Week', 'price': '₹299'},
+      {'id': '8248-1325-3123-2424-premium-monthly', 'title': '1 Month', 'price': '₹599'},
+      {'id': '8248-1325-3123-2424-premium-3months', 'title': '3 Months', 'price': '₹1499'},
+      {'id': '8248-1325-3123-2424-premium-6months', 'title': '6 Months', 'price': '₹1999'},
+      {'id': '8248-1325-3123-2424-premium-yearly', 'title': '12 Months', 'price': '₹2500'},
+      {'id': '8248-1325-3123-2424-premium-lifetime', 'title': 'Lifetime', 'price': '₹4999'},
     ];
 
     final byId = {
       for (final p
-          in _billingService.products.where((p) => p.id.startsWith('premium_')))
+          in _billingService.products.where((p) => p.id.startsWith('8248-1325-3123-2424-premium-')))
         p.id: p
     };
 

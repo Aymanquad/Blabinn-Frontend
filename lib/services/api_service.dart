@@ -323,7 +323,7 @@ class ApiService {
   // Billing verification (simulated backend verification)
   Future<Map<String, dynamic>> verifyPurchase({
     required String platform, // 'android' | 'ios'
-    required String productId, // e.g. credits_70, premium_monthly
+    required String productId, // e.g. 8248-1325-3123-2424-credits-70, 8248-1325-3123-2424-premium-monthly
     required String purchaseType, // 'consumable' | 'subscription'
     String? purchaseToken,
     String? orderId,
