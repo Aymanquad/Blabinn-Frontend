@@ -82,7 +82,7 @@ class _HomeScreenV2State extends State<HomeScreenV2>
               ),
 
               // Main Content - Only rebuilds when matching status changes
-              Expanded(
+              Flexible(
                 child: MatchingSelector(
                   builder: (context, isMatching) {
                     if (isMatching) {
@@ -325,8 +325,8 @@ class _HomeScreenV2State extends State<HomeScreenV2>
       child: GlassContainer(
         child: ListTile(
           leading: CircleAvatar(
-            backgroundColor: Colors.blue.withOpacity(0.2),
-            child: const Icon(Icons.person, color: Colors.blue),
+            backgroundColor: const Color(0xFF8B5CF6).withOpacity(0.2),
+            child: const Icon(Icons.person, color: Color(0xFF8B5CF6)),
           ),
           title: Text(
             'Chat ${chat.id.substring(0, 8)}',
@@ -449,7 +449,7 @@ class _HomeScreenV2State extends State<HomeScreenV2>
 
   Widget _buildBottomSection(BuildContext context, bool isConnected) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
       child: Column(
         children: [
           // Connect Button - Only rebuilds when connection status changes

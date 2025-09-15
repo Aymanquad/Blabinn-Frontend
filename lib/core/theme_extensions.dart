@@ -42,44 +42,44 @@ class AppThemeTokens extends ThemeExtension<AppThemeTokens> {
         primaryGradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFFA259FF), Color(0xFFE0B0FF)],
+          colors: [Color(0xFF8B5CF6), Color(0xFFC4B5FD)], // Vibrant purple gradient
         ),
         secondaryGradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFF4DD4C9), Color(0xFFA259FF)],
+          colors: [Color(0xFF5B21B6), Color(0xFF8B5CF6)], // Dark to light purple
         ),
-        radiusSmall: 10,
-        radiusMedium: 16,
-        radiusLarge: 20,
+        radiusSmall: 12, // More rounded for modern look
+        radiusMedium: 20, // Increased for better visual appeal
+        radiusLarge: 28, // More prominent rounded corners
         spacingSmall: const EdgeInsets.all(8),
         spacingMedium: const EdgeInsets.all(16),
         spacingLarge: const EdgeInsets.all(24),
         softShadows: [
           BoxShadow(
-            color: const Color(0xFF000000).withOpacity(0.30),
-            blurRadius: 20,
+            color: const Color(0xFF8B5CF6).withOpacity(0.15), // Purple-tinted shadow
+            blurRadius: 24,
             spreadRadius: 0,
-            offset: const Offset(0, 10),
+            offset: const Offset(0, 8),
           ),
         ],
-        glassTint: const Color(0xFF000000).withOpacity(0.20),
-        surfaceTint: const Color(0xFF000000).withOpacity(0.05),
-        overlayTint: const Color(0xFF000000).withOpacity(0.40),
+        glassTint: const Color(0xFF8B5CF6).withOpacity(0.10), // Purple glass tint
+        surfaceTint: const Color(0xFF8B5CF6).withOpacity(0.05), // Subtle purple tint
+        overlayTint: const Color(0xFF000000).withOpacity(0.50), // Darker overlay
         microShadows: [
           BoxShadow(
-            color: const Color(0xFF000000).withOpacity(0.15),
-            blurRadius: 8,
+            color: const Color(0xFF8B5CF6).withOpacity(0.10), // Purple micro shadow
+            blurRadius: 12,
             spreadRadius: 0,
-            offset: const Offset(0, 2),
+            offset: const Offset(0, 4),
           ),
         ],
         macroShadows: [
           BoxShadow(
-            color: const Color(0xFF000000).withOpacity(0.25),
-            blurRadius: 32,
+            color: const Color(0xFF8B5CF6).withOpacity(0.20), // Purple macro shadow
+            blurRadius: 40,
             spreadRadius: 0,
-            offset: const Offset(0, 16),
+            offset: const Offset(0, 12),
           ),
         ],
       );

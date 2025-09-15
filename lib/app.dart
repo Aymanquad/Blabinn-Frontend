@@ -37,7 +37,8 @@ import 'widgets/credits_display.dart';
 import 'screens/credit_shop_screen.dart';
 import 'services/api_service.dart';
 import 'widgets/custom_bottom_nav.dart';
-import 'widgets/app_background.dart';
+import 'widgets/modern_navigation_bar.dart';
+import 'widgets/enhanced_background.dart';
 import 'utils/logger.dart';
 
 // Global navigator key for navigation from anywhere
@@ -106,7 +107,7 @@ class ChatApp extends StatelessWidget {
               themeMode: ThemeMode.dark,
               home: const SplashScreen(),
               builder: (context, child) =>
-                  AppBackground(child: child ?? const SizedBox()),
+                  EnhancedBackground(child: child ?? const SizedBox()),
               routes: {
                 '/home': (context) => const MainNavigationScreen(),
                 '/profile': (context) => const ProfileScreen(),
@@ -1082,6 +1083,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
       key: _scaffoldKey,
       extendBody: true,
       extendBodyBehindAppBar: true,
+      resizeToAvoidBottomInset: false,
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(kToolbarHeight),
         child: ClipRRect(
@@ -1150,38 +1152,40 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
           _drawerAnimationController.reverse();
         }
       },
-      body: PageView(
-        controller: _pageController,
-        onPageChanged: (index) {
-          setState(() {
-            _currentIndex = index;
-          });
-        },
-        children: _screens,
+      body: Padding(
+        padding: const EdgeInsets.only(bottom: 8),
+        child: PageView(
+          controller: _pageController,
+          onPageChanged: (index) {
+            setState(() {
+              _currentIndex = index;
+            });
+          },
+          children: _screens,
+        ),
       ),
-      bottomNavigationBar: ModernBottomNavigationBar(
+      bottomNavigationBar: FloatingNavigationBar(
         currentIndex: _currentIndex,
         onTap: _onTabTapped,
-        backgroundColor: Colors.transparent,
         items: [
-          BottomNavigationBarItem(
-            icon: Icon(AppIcons.connect),
+          NavigationBarItem(
+            icon: AppIcons.connect,
             label: AppStrings.connect,
           ),
-          BottomNavigationBarItem(
-            icon: Icon(AppIcons.chat),
+          NavigationBarItem(
+            icon: AppIcons.chat,
             label: AppStrings.chats,
           ),
-          BottomNavigationBarItem(
-            icon: Icon(AppIcons.home),
+          NavigationBarItem(
+            icon: AppIcons.home,
             label: AppStrings.home,
           ),
-          const BottomNavigationBarItem(
-            icon: Icon(Icons.store_mall_directory_outlined),
+          const NavigationBarItem(
+            icon: Icons.store_mall_directory_outlined,
             label: 'Credit Shop',
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.favorite),
+          NavigationBarItem(
+            icon: Icons.favorite,
             label: 'Likes',
           ),
         ],

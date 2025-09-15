@@ -9,6 +9,10 @@ import '../providers/user_provider.dart';
 import '../screens/privacy_security_settings_screen.dart';
 import '../screens/help_support_settings_screen.dart';
 import '../widgets/consistent_app_bar.dart';
+import '../widgets/modern_card.dart';
+import '../widgets/gradient_button.dart';
+import '../widgets/profile_avatar.dart';
+import '../widgets/animated_button.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({Key? key}) : super(key: key);
@@ -185,25 +189,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                // Avatar
-                CircleAvatar(
-                  radius: 56,
-                  backgroundColor: Colors.white.withOpacity(0.08),
-                  backgroundImage: user.hasProfileImage
-                      ? NetworkImage(user.profileImage!)
-                      : null,
-                  child: !user.hasProfileImage
-                      ? Icon(
-                          Icons.person,
-                          size: 56,
-                          color: Colors.white.withOpacity(0.75),
-                        )
-                      : null,
+                // Modern Avatar
+                LargeProfileAvatar(
+                  imageUrl: user.hasProfileImage ? user.profileImage : null,
+                  displayName: user.displayName.isNotEmpty ? user.displayName : user.username,
+                  onTap: () {
+                    Navigator.pushNamed(context, '/profile-management');
+                  },
+                  showEditIcon: true,
+                  onEdit: () {
+                    Navigator.pushNamed(context, '/profile-management');
+                  },
                 ),
 
-                const SizedBox(height: 12),
+                const SizedBox(height: 16),
 
-                // **Display name** (restore this)
+                // **Display name** with better styling
                 Builder(
                   builder: (context) {
                     final name = (user.displayName.trim().isNotEmpty)
@@ -217,7 +218,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       textAlign: TextAlign.center,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                             fontWeight: FontWeight.w700,
                             color: Theme.of(context).colorScheme.onSurface,
                           ),
@@ -227,47 +228,55 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                 const SizedBox(height: 10),
 
-                // Badges under the name (wrap to avoid overflow)
+                // Modern badges under the name
                 Wrap(
-                  spacing: 8,
+                  spacing: 12,
                   runSpacing: 8,
                   alignment: WrapAlignment.center,
                   children: [
                     Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 6),
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                       decoration: BoxDecoration(
-                        color: const Color(
-                            0xFF82D49F), // "Registered User" pill color
-                        borderRadius: BorderRadius.circular(999),
+                        gradient: LinearGradient(
+                          colors: [
+                            const Color(0xFF10B981), // Success green
+                            const Color(0xFF10B981).withOpacity(0.8),
+                          ],
+                        ),
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFF10B981).withOpacity(0.3),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
                       ),
                       child: Text(
                         user.isGuest ? 'Guest User' : 'Registered User',
-                        style:
-                            Theme.of(context).textTheme.labelMedium?.copyWith(
-                                  color: Colors.black,
-                                  fontWeight: FontWeight.w600,
-                                ),
+                        style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w600,
+                            ),
                       ),
                     ),
                     Consumer<UserProvider>(
                       builder: (context, userProvider, child) {
-                        final currentCredits =
-                            userProvider.currentUser?.credits ?? 0;
+                        final currentCredits = userProvider.currentUser?.credits ?? 0;
                         return Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 6),
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.18),
-                            borderRadius: BorderRadius.circular(999),
+                            color: Theme.of(context).colorScheme.primary.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: Theme.of(context).colorScheme.primary.withOpacity(0.3),
+                              width: 1,
+                            ),
                           ),
                           child: Text(
                             'Credits: $currentCredits',
-                            style: Theme.of(context)
-                                .textTheme
-                                .labelMedium
-                                ?.copyWith(
-                                  color: Colors.white,
+                            style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                                  color: Theme.of(context).colorScheme.primary,
                                   fontWeight: FontWeight.w600,
                                 ),
                           ),
@@ -279,20 +288,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                 const SizedBox(height: 14),
 
-                // Profile Preview
+                // Profile Preview Button with Animation
                 SizedBox(
                   width: double.infinity,
-                  child: OutlinedButton.icon(
+                  child: AnimatedButton(
                     onPressed: () {
                       Navigator.pushNamed(context, '/profile-preview');
                     },
-                    icon: const Icon(Icons.visibility),
-                    label: const Text('Preview Profile'),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      foregroundColor: theme.colorScheme.onSurface,
-                      side: BorderSide(
-                          color: theme.colorScheme.onSurface.withOpacity(0.2)),
+                    child: GradientOutlinedButton(
+                      onPressed: null, // Handled by AnimatedButton
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.visibility,
+                            size: 20,
+                          ),
+                          const SizedBox(width: 8),
+                          const Text('Preview Profile'),
+                        ],
+                      ),
                     ),
                   ),
                 ),
@@ -301,19 +316,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
             const SizedBox(height: 16),
 
-            // Settings Section
-            Container(
-              decoration: BoxDecoration(
-                color: theme.colorScheme.surface,
-                borderRadius: BorderRadius.circular(12),
-              ),
+            // Settings Section with Modern Card
+            ModernCard(
               child: Column(
                 children: [
                   // Verification CTA
                   if (!user.isVerified) ...[
                     ListTile(
                       leading: Icon(Icons.verified_outlined,
-                          color: Colors.blue.shade700),
+                          color: const Color(0xFF8B5CF6)),
                       title: Text('Get Verified',
                           style: TextStyle(color: theme.colorScheme.onSurface)),
                       subtitle: Text(
@@ -428,84 +439,64 @@ class _ProfileScreenState extends State<ProfileScreen> {
               builder: (context, snapshot) {
                 final isBoosted = snapshot.data ?? false;
 
-                return Column(
-                  children: [
-                    Container(
-                      width: double.infinity,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(8),
-                        gradient: isBoosted
-                            ? LinearGradient(
-                                colors: [
-                                  Colors.amber.shade400,
-                                  Colors.orange.shade600,
-                                ],
-                              )
-                            : null,
-                        color: isBoosted ? null : Colors.blue.shade600,
-                      ),
-                      child: ElevatedButton(
-                        onPressed: () => _showBoostProfileDialog(),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.transparent,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          elevation: 0,
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              isBoosted ? Icons.star : Icons.rocket_launch,
-                              size: 20,
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              isBoosted ? 'Profile Boosted!' : 'Boost Profile',
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            if (isBoosted) ...[
-                              const SizedBox(width: 8),
-                              Icon(
-                                Icons.timer,
-                                size: 16,
-                              ),
+                return AnimatedButton(
+                  onPressed: () => _showBoostProfileDialog(),
+                  child: GradientButton(
+                    onPressed: null, // Handled by AnimatedButton
+                    gradient: isBoosted
+                        ? LinearGradient(
+                            colors: [
+                              Colors.amber.shade400,
+                              Colors.orange.shade600,
                             ],
-                          ],
+                          )
+                        : null,
+                    backgroundColor: isBoosted ? null : const Color(0xFF8B5CF6),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          isBoosted ? Icons.star : Icons.rocket_launch,
+                          size: 20,
                         ),
-                      ),
+                        const SizedBox(width: 8),
+                        Text(
+                          isBoosted ? 'Profile Boosted!' : 'Boost Profile',
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        if (isBoosted) ...[
+                          const SizedBox(width: 8),
+                          Icon(
+                            Icons.timer,
+                            size: 16,
+                          ),
+                        ],
+                      ],
                     ),
-                  ],
+                  ),
                 );
               },
             ),
 
             const SizedBox(height: 16),
 
-            // Logout Button
+            // Logout Button with Animation
             SizedBox(
               width: double.infinity,
-              child: ElevatedButton(
+              child: AnimatedButton(
                 onPressed: () => _handleLogout(),
-                style: ElevatedButton.styleFrom(
+                child: GradientButton(
+                  onPressed: null, // Handled by AnimatedButton
                   backgroundColor: Colors.red,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-                child: const Text(
-                  'Logout',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
+                  child: const Text(
+                    'Logout',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
               ),
@@ -625,7 +616,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               children: [
                 Icon(
                   isBoosted ? Icons.star : Icons.rocket_launch,
-                  color: isBoosted ? Colors.amber : Colors.blue,
+                  color: isBoosted ? Colors.amber : const Color(0xFF8B5CF6),
                   size: 24,
                 ),
                 const SizedBox(width: 8),
@@ -689,10 +680,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Colors.blue.withOpacity(0.1),
+                      color: const Color(0xFF8B5CF6).withOpacity(0.1),
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(
-                        color: Colors.blue.withOpacity(0.3),
+                        color: const Color(0xFF8B5CF6).withOpacity(0.3),
                       ),
                     ),
                     child: Column(
@@ -702,14 +693,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           children: [
                             Icon(
                               Icons.star,
-                              color: Colors.blue.shade700,
+                              color: const Color(0xFF8B5CF6),
                               size: 20,
                             ),
                             const SizedBox(width: 8),
                             Text(
                               'Boost Benefits:',
                               style: TextStyle(
-                                color: Colors.blue.shade700,
+                                color: const Color(0xFF8B5CF6),
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
@@ -772,7 +763,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     await _purchaseBoost();
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue,
+                    backgroundColor: const Color(0xFF8B5CF6),
                     foregroundColor: Colors.white,
                   ),
                   child: const Text('Boost Now'),

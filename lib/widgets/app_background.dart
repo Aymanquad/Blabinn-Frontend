@@ -11,7 +11,7 @@ enum BackgroundVariant {
   settings,
 }
 
-/// Global background widget that provides purple aurora background
+/// Modern gradient background widget with vibrant purple theme
 class AppBackground extends StatelessWidget {
   final Widget child;
   final BackgroundVariant variant;
@@ -24,44 +24,71 @@ class AppBackground extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final String base = switch (variant) {
-      BackgroundVariant.home => 'assets/images/wallpaper roxo.jpeg',
-      BackgroundVariant.shop => 'assets/images/violettoblack_bg.png',
-      BackgroundVariant.media => 'assets/images/violettoblack_bg.png',
-      BackgroundVariant.discover => 'assets/images/wallpaper roxo.jpeg',
-      BackgroundVariant.chats => 'assets/images/wallpaper roxo.jpeg',
-      BackgroundVariant.settings => 'assets/images/wallpaper roxo.jpeg',
-      _ => 'assets/images/wallpaper roxo.jpeg',
-    };
-
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        // Base image background
-        DecoratedBox(
-          decoration: BoxDecoration(
-            image: DecorationImage(
-              image: AssetImage(base),
-              fit: BoxFit.cover,
-            ),
-          ),
-        ),
-        // Subtle radial depth overlay
-        IgnorePointer(
-          child: Container(
-            decoration: const BoxDecoration(
-              gradient: RadialGradient(
-                center: Alignment(0.1, -0.2),
-                radius: 1.0,
-                colors: [Color(0x803C1E75), Colors.transparent],
-                stops: [0.0, 1.0],
-              ),
-            ),
-          ),
-        ),
-        // Child content
-        child,
-      ],
+    return Container(
+      decoration: _getBackgroundDecoration(variant),
+      child: child,
     );
+  }
+
+  BoxDecoration _getBackgroundDecoration(BackgroundVariant variant) {
+    switch (variant) {
+      case BackgroundVariant.home:
+        return const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color(0xFF0F0B2E), // Very dark purple
+              Color(0xFF1A0F3A), // Dark purple
+              Color(0xFF2D1B4E), // Medium dark purple
+              Color(0xFF1A0F3A), // Dark purple
+              Color(0xFF0F0B2E), // Very dark purple
+            ],
+            stops: [0.0, 0.25, 0.5, 0.75, 1.0],
+          ),
+        );
+      
+      case BackgroundVariant.chats:
+        return const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Color(0xFF0F0B2E), // Very dark purple
+              Color(0xFF1A0F3A), // Dark purple
+              Color(0xFF0F0B2E), // Very dark purple
+            ],
+            stops: [0.0, 0.5, 1.0],
+          ),
+        );
+      
+      case BackgroundVariant.discover:
+        return const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color(0xFF1A0F3A), // Dark purple
+              Color(0xFF2D1B4E), // Medium dark purple
+              Color(0xFF0F0B2E), // Very dark purple
+            ],
+            stops: [0.0, 0.6, 1.0],
+          ),
+        );
+      
+      default:
+        return const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color(0xFF0F0B2E), // Very dark purple
+              Color(0xFF1A0F3A), // Dark purple
+              Color(0xFF0F0B2E), // Very dark purple
+            ],
+            stops: [0.0, 0.5, 1.0],
+          ),
+        );
+    }
   }
 }

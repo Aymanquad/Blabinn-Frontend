@@ -1,52 +1,52 @@
 import 'package:flutter/material.dart';
 import '../tokens.dart';
 
-/// V1 Theme Colors - Current dark theme with purple/teal palette
+/// V1 Theme Colors - Enhanced dark theme with vibrant purple palette
 class V1Colors {
-  // Primary palette - Purple theme
-  static const Color primary = Color(0xFFA259FF);
+  // Primary palette - Vibrant purple theme
+  static const Color primary = Color(0xFF8B5CF6); // More vibrant purple
   static const Color onPrimary = Color(0xFFFFFFFF);
-  static const Color primaryContainer = Color(0xFF7B2CBF);
+  static const Color primaryContainer = Color(0xFF5B21B6); // Darker purple for containers
   static const Color onPrimaryContainer = Color(0xFFFFFFFF);
 
-  // Secondary palette - Teal accent
-  static const Color secondary = Color(0xFF4DD4C9);
-  static const Color onSecondary = Color(0xFF000000);
-  static const Color secondaryContainer = Color(0xFF36A3A0);
+  // Secondary palette - Light purple accent
+  static const Color secondary = Color(0xFFC4B5FD); // Light purple for accents
+  static const Color onSecondary = Color(0xFF1E1B4B); // Dark text on light purple
+  static const Color secondaryContainer = Color(0xFF7C3AED); // Medium purple
   static const Color onSecondaryContainer = Color(0xFFFFFFFF);
 
-  // Surface colors - Dark backgrounds
-  static const Color surface = Color(0xFF1E1B2E);
-  static const Color onSurface = Color(0xFFFDFCFB);
-  static const Color surfaceVariant = Color(0xFF2A2A3E);
-  static const Color onSurfaceVariant = Color(0xFFB8B8B8);
+  // Surface colors - Enhanced dark backgrounds
+  static const Color surface = Color(0xFF0F172A); // Very dark blue-gray
+  static const Color onSurface = Color(0xFFF8FAFC); // Almost white text
+  static const Color surfaceVariant = Color(0xFF1E293B); // Slightly lighter surface
+  static const Color onSurfaceVariant = Color(0xFF94A3B8); // Better contrast gray
 
   // Additional surfaces
-  static const Color surfaceContainer = Color(0xFF3A3A4E);
-  static const Color surfaceContainerHigh = Color(0xFF4A4A5E);
+  static const Color surfaceContainer = Color(0xFF334155); // Better contrast
+  static const Color surfaceContainerHigh = Color(0xFF475569); // Lighter variant
 
-  // Status colors
-  static const Color success = Color(0xFF27AE60);
-  static const Color warning = Color(0xFFF39C12);
-  static const Color error = Color(0xFFE74C3C);
+  // Status colors - Modern vibrant colors
+  static const Color success = Color(0xFF10B981); // Vibrant green
+  static const Color warning = Color(0xFFF59E0B); // Vibrant amber
+  static const Color error = Color(0xFFEF4444); // Vibrant red
 
-  // Accent color
-  static const Color accent = Color(0xFFFF6F91);
+  // Accent color - Purple accent
+  static const Color accent = Color(0xFFA855F7); // Purple accent
 
-  // Text colors
-  static const Color textPrimary = Color(0xFFFDFCFB);
-  static const Color textSecondary = Color(0xFFB8B8B8);
-  static const Color textMuted = Color(0xFF8A8A8A);
+  // Text colors - Better contrast
+  static const Color textPrimary = Color(0xFFF8FAFC); // Almost white
+  static const Color textSecondary = Color(0xFF94A3B8); // Better gray
+  static const Color textMuted = Color(0xFF64748B); // Muted gray
 
   // Chat specific colors
   static const Color chatSent = primary;
-  static const Color chatReceived = Color(0xFF4A4A5E);
+  static const Color chatReceived = Color(0xFF334155); // Better contrast
   static const Color chatSentText = Color(0xFFFFFFFF);
   static const Color chatReceivedText = textPrimary;
 
   // Status indicator colors
-  static const Color online = Color(0xFF4CAF50);
-  static const Color offline = Color(0xFF9E9E9E);
+  static const Color online = Color(0xFF10B981); // Vibrant green
+  static const Color offline = Color(0xFF64748B); // Better gray
 }
 
 /// V1 Brand Colors Extension

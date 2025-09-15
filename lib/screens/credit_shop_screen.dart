@@ -338,7 +338,7 @@ class _HeaderBalance extends StatelessWidget {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text('Daily credits already claimed today'),
-                      backgroundColor: Colors.blue,
+                      backgroundColor: const Color(0xFF8B5CF6),
                     ),
                   );
                   print('ℹ️ Claim Daily: Already claimed today');

@@ -3,6 +3,8 @@ import 'dart:async';
 import '../widgets/banner_ad_widget.dart';
 import '../widgets/glass_container.dart';
 import '../widgets/skeleton_list.dart';
+import '../widgets/modern_card.dart';
+import '../widgets/gradient_button.dart';
 import '../core/theme_extensions.dart';
 import '../core/constants.dart';
 import 'random_chat_screen.dart';
@@ -77,7 +79,7 @@ class _HomeScreenState extends State<HomeScreen>
           'title': 'Random Chat',
           'subtitle': 'Start a new conversation',
           'icon': Icons.chat_bubble_outline,
-          'color': Colors.blue,
+          'color': const Color(0xFF8B5CF6),
           'onTap': _navigateToRandomChatDirect,
         },
         {
@@ -128,7 +130,7 @@ class _HomeScreenState extends State<HomeScreen>
             RepaintBoundary(child: _buildHeader(context, tokens)),
 
             // Main Content
-            Expanded(
+            Flexible(
               child: _isLoading
                   ? _buildLoadingState(context, tokens)
                   : _buildMainContent(context, tokens),
@@ -144,25 +146,27 @@ class _HomeScreenState extends State<HomeScreen>
 
   Widget _buildHeader(BuildContext context, AppThemeTokens? tokens) {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(24),
       child: Column(
         children: [
-          // Welcome Text
+          // Enhanced Welcome Text
           Text(
             'Welcome to Chatify',
-            style: Theme.of(context).textTheme.displaySmall?.copyWith(
+            style: Theme.of(context).textTheme.displayMedium?.copyWith(
                   color: Colors.white,
                   fontWeight: FontWeight.bold,
+                  letterSpacing: -0.5,
                 ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
           Text(
             'Connect, chat, and make new friends',
             style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  color: Colors.white70,
+                  color: Colors.white.withOpacity(0.9),
+                  fontWeight: FontWeight.w500,
                 ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 32),
         ],
       ),
     );
@@ -171,11 +175,10 @@ class _HomeScreenState extends State<HomeScreen>
   Widget _buildLoadingState(BuildContext context, AppThemeTokens? tokens) {
     return SkeletonList(
       itemCount: 4,
-      itemBuilder: (context, index) => GlassCard(
-        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      itemBuilder: (context, index) => ModernCard(
         child: SkeletonItem(
           height: 80,
-          borderRadius: BorderRadius.circular(tokens?.radiusMedium ?? 16.0),
+          borderRadius: BorderRadius.circular(tokens?.radiusMedium ?? 20.0),
         ),
       ),
     );
@@ -452,7 +455,7 @@ class _HomeScreenState extends State<HomeScreen>
 
   Widget _buildBottomSection(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
       child: Column(
         children: [
           // Connect Button

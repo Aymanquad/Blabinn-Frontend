@@ -6,6 +6,9 @@ import '../../core/constants.dart';
 import '../../core/theme_extensions.dart';
 import '../../widgets/banner_ad_widget.dart';
 import '../../widgets/glass_container.dart';
+import '../../widgets/modern_card.dart';
+import '../../widgets/gradient_button.dart';
+import '../../widgets/animated_button.dart';
 import '../../services/premium_service.dart';
 import 'connect_state_manager.dart';
 
@@ -462,22 +465,30 @@ class ConnectUIComponents {
           ? 'Stop matching with people' 
           : 'Start matching with people',
         button: true,
-        child: ElevatedButton(
+        child: AnimatedButton(
           onPressed: stateManager.isMatching ? stateManager.stopMatching : stateManager.startMatching,
-          style: ElevatedButton.styleFrom(
-            padding: const EdgeInsets.symmetric(vertical: 18),
-            backgroundColor: stateManager.isMatching ? Colors.red : AppColors.primary,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-            elevation: 2,
-          ),
-          child: Text(
-            stateManager.isMatching ? 'Stop Matching' : 'Start Matching',
-            style: Theme.of(context).textTheme.labelLarge?.copyWith(
-              color: Colors.white,
-              fontWeight: FontWeight.w600,
-              fontSize: 16,
+          child: GradientButton(
+            onPressed: null, // Handled by AnimatedButton
+            backgroundColor: stateManager.isMatching ? Colors.red : null,
+            padding: const EdgeInsets.symmetric(vertical: 20),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  stateManager.isMatching ? Icons.stop : Icons.play_arrow,
+                  size: 24,
+                  color: Colors.white,
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  stateManager.isMatching ? 'Stop Matching' : 'Start Matching',
+                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 18,
+                  ),
+                ),
+              ],
             ),
           ),
         ),
@@ -490,7 +501,7 @@ class ConnectUIComponents {
       appBar: null,
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 100, 16, 100),
+          padding: const EdgeInsets.fromLTRB(16, 100, 16, 20),
           child: Column(
             children: [
               Expanded(

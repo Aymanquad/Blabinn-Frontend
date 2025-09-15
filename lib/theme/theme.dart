@@ -279,44 +279,50 @@ class AppTheme {
   /// Build consistent text theme
   static TextTheme _buildTextTheme(ColorScheme colorScheme) {
     return TextTheme(
-      // Display styles
+      // Display styles - Enhanced for better hierarchy
       displayLarge: TextStyle(
-        fontSize: BrandTokens.fontSizeHero,
+        fontSize: 40, // Increased from 32
         fontWeight: BrandTokens.fontWeightBold,
         color: colorScheme.onSurface,
         letterSpacing: -0.5,
+        height: 1.2,
       ),
       displayMedium: TextStyle(
-        fontSize: 28,
+        fontSize: 32, // Increased from 28
         fontWeight: BrandTokens.fontWeightBold,
         color: colorScheme.onSurface,
         letterSpacing: -0.25,
+        height: 1.2,
       ),
       displaySmall: TextStyle(
-        fontSize: BrandTokens.fontSizeDisplay,
+        fontSize: 28, // Increased from 24
         fontWeight: BrandTokens.fontWeightBold,
         color: colorScheme.onSurface,
         letterSpacing: 0,
+        height: 1.3,
       ),
 
-      // Headline styles
+      // Headline styles - Enhanced for better contrast
       headlineLarge: TextStyle(
-        fontSize: BrandTokens.fontSizeXxl,
-        fontWeight: BrandTokens.fontWeightSemiBold,
+        fontSize: 24, // Increased from 20
+        fontWeight: BrandTokens.fontWeightBold, // Changed to bold
         color: colorScheme.onSurface,
         letterSpacing: 0,
+        height: 1.3,
       ),
       headlineMedium: TextStyle(
-        fontSize: BrandTokens.fontSizeXl,
-        fontWeight: BrandTokens.fontWeightSemiBold,
+        fontSize: 22, // Increased from 18
+        fontWeight: BrandTokens.fontWeightBold, // Changed to bold
         color: colorScheme.onSurface,
         letterSpacing: 0.15,
+        height: 1.3,
       ),
       headlineSmall: TextStyle(
-        fontSize: BrandTokens.fontSizeLg,
+        fontSize: 20, // Increased from 16
         fontWeight: BrandTokens.fontWeightSemiBold,
         color: colorScheme.onSurface,
         letterSpacing: 0.1,
+        height: 1.4,
       ),
 
       // Title styles
@@ -339,24 +345,27 @@ class AppTheme {
         letterSpacing: 0.1,
       ),
 
-      // Body styles
+      // Body styles - Enhanced for better readability
       bodyLarge: TextStyle(
-        fontSize: BrandTokens.fontSizeLg,
+        fontSize: 18, // Increased from 16
         fontWeight: BrandTokens.fontWeightRegular,
         color: colorScheme.onSurface,
-        letterSpacing: 0.5,
+        letterSpacing: 0.15, // Reduced from 0.5
+        height: 1.5,
       ),
       bodyMedium: TextStyle(
-        fontSize: BrandTokens.fontSizeMd,
+        fontSize: 16, // Increased from 14
         fontWeight: BrandTokens.fontWeightRegular,
         color: colorScheme.onSurface,
         letterSpacing: 0.25,
+        height: 1.5,
       ),
       bodySmall: TextStyle(
-        fontSize: BrandTokens.fontSizeSm,
+        fontSize: 14, // Increased from 12
         fontWeight: BrandTokens.fontWeightRegular,
         color: colorScheme.onSurfaceVariant,
         letterSpacing: 0.4,
+        height: 1.4,
       ),
 
       // Label styles
