@@ -72,12 +72,12 @@ class _ChatifyBannerAdState extends State<ChatifyBannerAd> {
                 color: Colors.white.withOpacity(0.2),
                 width: 1,
               ),
-              borderRadius: BorderRadius.circular(tokens.radiusS),
+              borderRadius: BorderRadius.circular(tokens.radiusSmall),
             )
           : null,
       child: ClipRRect(
         borderRadius: widget.showBorder
-            ? BorderRadius.circular(tokens.radiusS)
+            ? BorderRadius.circular(tokens.radiusSmall)
             : BorderRadius.zero,
         child: SizedBox(
           width: _bannerAd!.size.width.toDouble(),
@@ -209,12 +209,12 @@ class _AdaptiveBannerAdState extends State<AdaptiveBannerAd> {
                 color: Colors.white.withOpacity(0.2),
                 width: 1,
               ),
-              borderRadius: BorderRadius.circular(tokens.radiusS),
+              borderRadius: BorderRadius.circular(tokens.radiusSmall),
             )
           : null,
       child: ClipRRect(
         borderRadius: widget.showBorder
-            ? BorderRadius.circular(tokens.radiusS)
+            ? BorderRadius.circular(tokens.radiusSmall)
             : BorderRadius.zero,
         child: SizedBox(
           width: _bannerAd!.size.width.toDouble(),

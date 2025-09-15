@@ -25,7 +25,7 @@ import 'screens/profile_preview_screen.dart';
 import 'screens/chat_list_screen.dart';
 import 'screens/friends_list_screen.dart';
 import 'screens/account_settings_screen.dart';
-import 'screens/media_folder_screen.dart';
+import 'screens/likes_matches_screen.dart';
 import 'services/socket_service.dart';
 import 'models/chat.dart'; // Added import for Chat model
 import 'screens/chat_screen.dart'; // Added import for ChatScreen
@@ -38,6 +38,7 @@ import 'screens/credit_shop_screen.dart';
 import 'services/api_service.dart';
 import 'widgets/custom_bottom_nav.dart';
 import 'widgets/app_background.dart';
+import 'utils/logger.dart';
 
 // Global navigator key for navigation from anywhere
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
@@ -49,13 +50,13 @@ void navigateToChatFromNotification(Map<String, dynamic> notificationData) {
     final senderName = notificationData['senderName'] ?? 'Unknown';
     final chatId = notificationData['chatId'] ?? '';
 
-    // print('🔔 [NAVIGATION DEBUG] Navigating to chat from notification');
-    // print('   👤 Sender ID: $senderId');
-    // print('   👤 Sender Name: $senderName');
-    // print('   💬 Chat ID: $chatId');
+    Logger.notification('Navigating to chat from notification');
+    Logger.debug('Sender ID: $senderId');
+    Logger.debug('Sender Name: $senderName');
+    Logger.debug('Chat ID: $chatId');
 
     if (senderId.isEmpty) {
-      // print('❌ [NAVIGATION DEBUG] Sender ID is empty, cannot navigate to chat');
+      Logger.warning('Sender ID is empty, cannot navigate to chat');
       return;
     }
 
@@ -79,9 +80,9 @@ void navigateToChatFromNotification(Map<String, dynamic> notificationData) {
       ),
     );
 
-    // print('✅ [NAVIGATION DEBUG] Successfully navigated to chat screen');
+    Logger.notification('Successfully navigated to chat screen');
   } catch (e) {
-    // print('❌ [NAVIGATION DEBUG] Error navigating to chat: $e');
+    Logger.error('Error navigating to chat', error: e);
   }
 }
 
@@ -497,7 +498,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
       const ChatListScreen(),
       HomeScreen(onNavigateToTab: _onTabTapped),
       const CreditShopScreen(),
-      const MediaFolderScreen(),
+      const LikesMatchesScreen(),
     ];
   }
 
@@ -524,56 +525,55 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
       if (user != null) {
         final token = await user.getIdToken();
         if (token != null && token.isNotEmpty) {
-          // print(
-          //     '🚀 [APP DEBUG] Initializing socket connection with Firebase token');
+          Logger.socket('Initializing socket connection with Firebase token');
           await _socketService.connect(token);
 
           // Send join event after connection
           await Future.delayed(const Duration(seconds: 1));
-          // print('✅ [APP DEBUG] Socket connection completed');
+          Logger.socket('Socket connection completed');
         } else {
-          // print('❌ [APP DEBUG] Failed to get Firebase token');
+          Logger.warning('Failed to get Firebase token');
         }
       } else {
-        // print('❌ [APP DEBUG] No Firebase user found, cannot connect socket');
+        Logger.warning('No Firebase user found, cannot connect socket');
       }
     } catch (e) {
-      // print('❌ [APP DEBUG] Socket connection failed: $e');
+      Logger.error('Socket connection failed', error: e);
     }
   }
 
   Future<void> _initializeNotifications() async {
     try {
       await _notificationService.initialize();
-      // print('✅ [APP DEBUG] Notifications initialized');
+      Logger.notification('Notifications initialized');
     } catch (e) {
-      // print('❌ [APP DEBUG] Failed to initialize notifications: $e');
+      Logger.error('Failed to initialize notifications', error: e);
     }
   }
 
   void _setupInAppNotificationListener() {
-    // print('🔔 [APP DEBUG] Setting up in-app notification listener');
+    Logger.notification('Setting up in-app notification listener');
 
     _notificationService.inAppNotificationStream.listen(
       (notificationData) {
-        // print('🔔 [APP DEBUG] *** NOTIFICATION RECEIVED IN STREAM ***');
-        // print('   📦 Notification data: $notificationData');
-        // print('   📱 Widget mounted: $mounted');
+        Logger.notification('Notification received in stream');
+        Logger.debug('Notification data: $notificationData');
+        Logger.debug('Widget mounted: $mounted');
 
         // Check if user is currently in a chat with the sender
         final senderId = notificationData['senderId'] ?? '';
         final currentChatUserId = _socketService.currentChatWithUserId;
 
-        // print('   👤 Sender ID: $senderId');
-        // print('   👤 Current chat user: $currentChatUserId');
+        Logger.debug('Sender ID: $senderId');
+        Logger.debug('Current chat user: $currentChatUserId');
 
         if (currentChatUserId == senderId) {
-          // print('🔔 [APP DEBUG] Skipping notification - user is in chat with sender');
+          Logger.notification('Skipping notification - user is in chat with sender');
           return;
         }
 
         if (mounted) {
-          // print('🔔 [APP DEBUG] Showing in-app notification widget');
+          Logger.notification('Showing in-app notification widget');
 
           showInAppNotification(
             context: context,
@@ -582,25 +582,25 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
             senderId: senderId,
             chatId: notificationData['chatId'],
             onTap: () {
-              // print('🔔 [APP DEBUG] In-app notification tapped');
+              Logger.notification('In-app notification tapped');
               navigateToChatFromNotification(notificationData);
             },
           );
 
-          // print('✅ [APP DEBUG] showInAppNotification called');
+          Logger.notification('showInAppNotification called');
         } else {
-          // print('❌ [APP DEBUG] Widget not mounted, cannot show notification');
+          Logger.warning('Widget not mounted, cannot show notification');
         }
       },
       onError: (error) {
-        // print('❌ [APP DEBUG] Error in notification stream: $error');
+        Logger.error('Error in notification stream', error: error);
       },
       onDone: () {
-        // print('🔔 [APP DEBUG] Notification stream closed');
+        Logger.notification('Notification stream closed');
       },
     );
 
-    // print('✅ [APP DEBUG] In-app notification listener setup complete');
+    Logger.notification('In-app notification listener setup complete');
   }
 
   @override
@@ -620,13 +620,13 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
       case AppLifecycleState.resumed:
         _enableScreenProtection();
         _notificationService.setAppForegroundState(true);
-        // print('🔔 [APP DEBUG] App resumed - foreground notifications enabled');
+        Logger.notification('App resumed - foreground notifications enabled');
         break;
       case AppLifecycleState.paused:
       case AppLifecycleState.inactive:
         // Keep security features active even when app is paused/inactive
         _notificationService.setAppForegroundState(false);
-        // print('🔔 [APP DEBUG] App paused/inactive - background notifications enabled');
+        Logger.notification('App paused/inactive - background notifications enabled');
         break;
       case AppLifecycleState.detached:
         _disableScreenProtection();
@@ -641,9 +641,9 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
     try {
       await ScreenProtector.preventScreenshotOn();
       await ScreenProtector.protectDataLeakageOn();
-      // print('🔒 Screen protection enabled');
+      Logger.info('Screen protection enabled');
     } catch (e) {
-      // print('⚠️ Failed to enable screen protection: $e');
+      Logger.warning('Failed to enable screen protection', error: e);
     }
   }
 
@@ -651,9 +651,9 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
     try {
       await ScreenProtector.preventScreenshotOff();
       await ScreenProtector.protectDataLeakageOff();
-      // print('🔓 Screen protection disabled');
+      Logger.info('Screen protection disabled');
     } catch (e) {
-      // print('⚠️ Failed to disable screen protection: $e');
+      Logger.warning('Failed to disable screen protection', error: e);
     }
   }
 
@@ -817,7 +817,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
                         title: AppStrings.logout,
                         onTap: () {
                           Navigator.pop(context);
-                          // TODO: Implement logout logic
+                          _showLogoutDialog(context);
                         },
                       ),
                     ],
@@ -1007,6 +1007,75 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
     );
   }
 
+  void _showLogoutDialog(BuildContext context) {
+    final theme = Theme.of(context);
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(
+          'Logout',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: theme.colorScheme.onSurface,
+          ),
+        ),
+        content: const Text('Are you sure you want to logout?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              'Cancel',
+              style: TextStyle(color: theme.colorScheme.primary),
+            ),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              await _performLogout(context);
+            },
+            child: Text(
+              'Logout',
+              style: TextStyle(color: theme.colorScheme.error),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _performLogout(BuildContext context) async {
+    try {
+      Logger.auth('User logging out');
+      
+      // Disconnect socket
+      _socketService.disconnect();
+      
+      // Sign out from Firebase
+      await FirebaseAuth.instance.signOut();
+      
+      // Navigate to login screen
+      Navigator.pushNamedAndRemoveUntil(
+        context,
+        '/login',
+        (route) => false,
+      );
+      
+      Logger.auth('Logout completed successfully');
+    } catch (e) {
+      Logger.error('Error during logout', error: e);
+      // Show error message to user
+      if (context.mounted) {
+        final theme = Theme.of(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error during logout: ${e.toString()}'),
+            backgroundColor: theme.colorScheme.error,
+          ),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -1112,8 +1181,8 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
             label: 'Credit Shop',
           ),
           BottomNavigationBarItem(
-            icon: Icon(AppIcons.media),
-            label: AppStrings.media,
+            icon: Icon(Icons.favorite),
+            label: 'Likes',
           ),
         ],
       ),

@@ -7,6 +7,7 @@ import 'app.dart';
 import 'services/background_image_service.dart';
 import 'services/ad_service.dart';
 import 'utils/logger.dart';
+import 'utils/global_error_handler.dart';
 import 'utils/ad_debug_helper.dart';
 
 // Background message handler
@@ -31,48 +32,50 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // Initialize global error handler first
+  GlobalErrorHandler.initialize();
+
   // Initialize security features - allow screenshots by default
   await _initializeSecurity();
 
   // Try to initialize Firebase, but don't crash if it fails
   try {
-    // print('🔍 DEBUG: Initializing Firebase...');
+    Logger.info('Initializing Firebase...');
     await Firebase.initializeApp();
-    // print('✅ DEBUG: Firebase initialized successfully');
+    Logger.info('Firebase initialized successfully');
 
     // Set up background message handler
     FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
-    // print('✅ DEBUG: Firebase messaging background handler set up');
+    Logger.info('Firebase messaging background handler set up');
   } catch (e) {
-    // print('❌ DEBUG: Firebase initialization failed: $e');
-    // print('❌ DEBUG: Error type: ${e.runtimeType}');
-    // print('⚠️ DEBUG: Running without Firebase - some features may not work');
+    Logger.error('Firebase initialization failed', error: e);
+    Logger.warning('Running without Firebase - some features may not work');
   }
 
   // Initialize AdMob
   try {
-    // print('🔍 DEBUG: Initializing AdMob...');
+    Logger.ads('Initializing AdMob...');
 
     // Print debug information
     AdDebugHelper.printAdConfig();
     AdDebugHelper.validateAdConfig();
 
     await MobileAds.instance.initialize();
-    // print('✅ DEBUG: AdMob initialized successfully');
+    Logger.ads('AdMob initialized successfully');
   } catch (e) {
-    // print('❌ DEBUG: AdMob initialization failed: $e');
-    // print('⚠️ DEBUG: Running without AdMob - ads will not be displayed');
-    // print('💡 DEBUG: Make sure you have internet connection and valid AdMob IDs');
+    Logger.error('AdMob initialization failed', error: e);
+    Logger.warning('Running without AdMob - ads will not be displayed');
+    Logger.info('Make sure you have internet connection and valid AdMob IDs');
   }
 
   // Initialize Billing Service
   try {
-    // print('🔍 DEBUG: Initializing Billing Service...');
+    Logger.billing('Initializing Billing Service...');
     // Billing service is now initialized per screen, not globally
-    // print('✅ DEBUG: Billing Service will be initialized when needed');
+    Logger.billing('Billing Service will be initialized when needed');
   } catch (e) {
-    // print('❌ DEBUG: Billing Service initialization failed: $e');
-    // print('⚠️ DEBUG: Running without billing - purchases will not work');
+    Logger.error('Billing Service initialization failed', error: e);
+    Logger.warning('Running without billing - purchases will not work');
   }
 
   runApp(const ChatApp());
@@ -83,8 +86,8 @@ Future<void> _initializeSecurity() async {
     // Allow screenshots by default; selective screens will enable protection
     await ScreenProtector.preventScreenshotOff();
     await ScreenProtector.protectDataLeakageOff();
-    // print('🔓 Screenshots enabled globally; protected per-screen where needed');
+    Logger.info('Screenshots enabled globally; protected per-screen where needed');
   } catch (e) {
-    // print('⚠️ Failed to initialize security features: $e');
+    Logger.warning('Failed to initialize security features', error: e);
   }
 }

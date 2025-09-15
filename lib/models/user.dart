@@ -192,178 +192,21 @@ class User {
   }
 
   factory User.fromJson(Map<String, dynamic> json) {
-    // Add debugging to see what data we're receiving
-    // print('🔍 DEBUG: User.fromJson called with: $json');
-
-    // Handle backend response format (uid, displayName, photoURL)
-    // vs the expected model format (id, username, profileImage)
-
     try {
-      final String? userIdRaw = json['uid'] ?? json['id'] ?? json['userId'];
-      if (userIdRaw == null || userIdRaw.isEmpty) {
-        throw Exception('User ID is required but not provided in JSON: $json');
-      }
-      final String userId = userIdRaw;
+      // Extract basic user information
+      final userId = _extractUserId(json);
+      final userName = _extractUserName(json, userId);
+      final userEmail = _extractUserEmail(json);
+      final userProfileImage = _extractUserProfileImage(json);
 
-      // Safely extract string values with fallbacks
-      String userName = 'Guest User';
-      if (json['displayName'] != null && json['displayName'] is String) {
-        userName = json['displayName'] as String;
-      } else if (json['username'] != null && json['username'] is String) {
-        userName = json['username'] as String;
-      } else if (json['userType'] == 'guest' || json['isAnonymous'] == true) {
-        // Generate a more meaningful guest username
-        final userId = json['uid'] ?? json['id'] ?? '';
-        if (userId.isNotEmpty) {
-          userName = 'Guest_${userId.substring(0, 6)}';
-        } else {
-          userName = 'Guest User';
-        }
-      }
-
-      String? userEmail;
-      if (json['email'] != null && json['email'] is String) {
-        userEmail = json['email'] as String;
-      }
-
-      String? userProfileImage;
-      if (json['photoURL'] != null && json['photoURL'] is String) {
-        userProfileImage = json['photoURL'] as String;
-      } else if (json['profileImage'] != null &&
-          json['profileImage'] is String) {
-        userProfileImage = json['profileImage'] as String;
-      } else if (json['profilePicture'] != null &&
-          json['profilePicture'] is String) {
-        userProfileImage = json['profilePicture'] as String;
-      }
-
-      // print('🔍 DEBUG: Profile image URL extracted: $userProfileImage');
-
-      // Keep for future use if needed
-      // final bool isAnonymousUser = json['isAnonymous'] as bool? ?? false;
-
-      // print(
-      //     '🔍 DEBUG: Extracted user data - ID: $userId, Name: $userName, Email: $userEmail');
-
-      // Handle DateTime fields that might be Firestore timestamps
-      DateTime createdAtDate = DateTime.now();
-      if (json['createdAt'] != null) {
-        // print(
-        //     '🔍 DEBUG: createdAt type: ${json['createdAt'].runtimeType}, value: ${json['createdAt']}');
-        if (json['createdAt'] is String) {
-          createdAtDate = DateTime.parse(json['createdAt'] as String);
-        } else if (json['createdAt'] is Map) {
-          // Handle Firestore timestamp format
-          final timestamp = json['createdAt'] as Map<String, dynamic>;
-          final seconds = timestamp['_seconds'] as int?;
-          if (seconds != null) {
-            createdAtDate = DateTime.fromMillisecondsSinceEpoch(seconds * 1000);
-            // print('🔍 DEBUG: Converted createdAt timestamp: $createdAtDate');
-          }
-        }
-      }
-
-      DateTime updatedAtDate = DateTime.now();
-      if (json['updatedAt'] != null) {
-        // print(
-        //     '🔍 DEBUG: updatedAt type: ${json['updatedAt'].runtimeType}, value: ${json['updatedAt']}');
-        if (json['updatedAt'] is String) {
-          updatedAtDate = DateTime.parse(json['updatedAt'] as String);
-        } else if (json['updatedAt'] is Map) {
-          // Handle Firestore timestamp format
-          final timestamp = json['updatedAt'] as Map<String, dynamic>;
-          final seconds = timestamp['_seconds'] as int?;
-          if (seconds != null) {
-            updatedAtDate = DateTime.fromMillisecondsSinceEpoch(seconds * 1000);
-            // print('🔍 DEBUG: Converted updatedAt timestamp: $updatedAtDate');
-          }
-        }
-      }
-
-      // Handle lastSeen which might also be a timestamp
-      DateTime? lastSeenDate;
-      if (json['lastSeen'] != null) {
-        // print(
-        //     '🔍 DEBUG: lastSeen type: ${json['lastSeen'].runtimeType}, value: ${json['lastSeen']}');
-        if (json['lastSeen'] is String) {
-          lastSeenDate = DateTime.parse(json['lastSeen'] as String);
-        } else if (json['lastSeen'] is Map) {
-          // Handle Firestore timestamp format
-          final timestamp = json['lastSeen'] as Map<String, dynamic>;
-          final seconds = timestamp['_seconds'] as int?;
-          if (seconds != null) {
-            lastSeenDate = DateTime.fromMillisecondsSinceEpoch(seconds * 1000);
-            // print('🔍 DEBUG: Converted lastSeen timestamp: $lastSeenDate');
-          }
-        }
-      }
-
-      // Handle lastLoginAt which might also be a timestamp
-      if (json['lastLoginAt'] != null) {
-        // print(
-        //     '🔍 DEBUG: lastLoginAt type: ${json['lastLoginAt'].runtimeType}, value: ${json['lastLoginAt']}');
-        // We don't store lastLoginAt in the User model, but we should handle it gracefully
-      }
-
-      // Handle new user type fields
-      DateTime? verificationDate;
-      if (json['verificationDate'] != null) {
-        if (json['verificationDate'] is String) {
-          verificationDate = DateTime.parse(json['verificationDate'] as String);
-        } else if (json['verificationDate'] is Map) {
-          final timestamp = json['verificationDate'] as Map<String, dynamic>;
-          final seconds = timestamp['_seconds'] as int?;
-          if (seconds != null) {
-            verificationDate =
-                DateTime.fromMillisecondsSinceEpoch(seconds * 1000);
-          }
-        }
-      }
-
-      DateTime? lastPageSwitchTime;
-      if (json['lastPageSwitchTime'] != null) {
-        if (json['lastPageSwitchTime'] is String) {
-          lastPageSwitchTime =
-              DateTime.parse(json['lastPageSwitchTime'] as String);
-        } else if (json['lastPageSwitchTime'] is Map) {
-          final timestamp = json['lastPageSwitchTime'] as Map<String, dynamic>;
-          final seconds = timestamp['_seconds'] as int?;
-          if (seconds != null) {
-            lastPageSwitchTime =
-                DateTime.fromMillisecondsSinceEpoch(seconds * 1000);
-          }
-        }
-      }
-
-      DateTime? lastAdViewDate;
-      if (json['lastAdViewDate'] != null) {
-        if (json['lastAdViewDate'] is String) {
-          lastAdViewDate = DateTime.parse(json['lastAdViewDate'] as String);
-        } else if (json['lastAdViewDate'] is Map) {
-          final timestamp = json['lastAdViewDate'] as Map<String, dynamic>;
-          final seconds = timestamp['_seconds'] as int?;
-          if (seconds != null) {
-            lastAdViewDate =
-                DateTime.fromMillisecondsSinceEpoch(seconds * 1000);
-          }
-        }
-      }
-
-      DateTime? lastWhoLikedViewDate;
-      if (json['lastWhoLikedViewDate'] != null) {
-        if (json['lastWhoLikedViewDate'] is String) {
-          lastWhoLikedViewDate =
-              DateTime.parse(json['lastWhoLikedViewDate'] as String);
-        } else if (json['lastWhoLikedViewDate'] is Map) {
-          final timestamp =
-              json['lastWhoLikedViewDate'] as Map<String, dynamic>;
-          final seconds = timestamp['_seconds'] as int?;
-          if (seconds != null) {
-            lastWhoLikedViewDate =
-                DateTime.fromMillisecondsSinceEpoch(seconds * 1000);
-          }
-        }
-      }
+      // Extract DateTime fields
+      final createdAtDate = _extractDateTime(json['createdAt']) ?? DateTime.now();
+      final updatedAtDate = _extractDateTime(json['updatedAt']) ?? DateTime.now();
+      final lastSeenDate = _extractDateTime(json['lastSeen']);
+      final verificationDate = _extractDateTime(json['verificationDate']);
+      final lastPageSwitchTime = _extractDateTime(json['lastPageSwitchTime']);
+      final lastAdViewDate = _extractDateTime(json['lastAdViewDate']);
+      final lastWhoLikedViewDate = _extractDateTime(json['lastWhoLikedViewDate']);
 
       return User(
         id: userId,
@@ -379,9 +222,8 @@ class User {
         isOnline: json['isOnline'] as bool? ?? false,
         lastSeen: lastSeenDate,
         isPremium: json['isPremium'] as bool? ?? false,
-        adsFree: json['adsFree'] as bool? ?? false, // Default to showing ads
-        credits:
-            json['credits'] as int? ?? 100, // Default 100 credits for all users
+        adsFree: json['adsFree'] as bool? ?? false,
+        credits: json['credits'] as int? ?? 100,
         createdAt: createdAtDate,
         updatedAt: updatedAtDate,
         isBlocked: json['isBlocked'] as bool? ?? false,
@@ -404,10 +246,81 @@ class User {
         lastWhoLikedViewDate: lastWhoLikedViewDate,
       );
     } catch (e) {
-      // print('❌ ERROR: User.fromJson failed - $e');
-      // print('🔍 DEBUG: JSON data was: $json');
       rethrow;
     }
+  }
+
+  /// Extracts and validates user ID from JSON
+  static String _extractUserId(Map<String, dynamic> json) {
+    final String? userIdRaw = json['uid'] ?? json['id'] ?? json['userId'];
+    if (userIdRaw == null || userIdRaw.isEmpty) {
+      throw Exception('User ID is required but not provided in JSON: $json');
+    }
+    return userIdRaw;
+  }
+
+  /// Extracts username with fallback logic for different user types
+  static String _extractUserName(Map<String, dynamic> json, String userId) {
+    // Try displayName first (Firebase format)
+    if (json['displayName'] != null && json['displayName'] is String) {
+      return json['displayName'] as String;
+    }
+    
+    // Try username (custom format)
+    if (json['username'] != null && json['username'] is String) {
+      return json['username'] as String;
+    }
+    
+    // Handle guest users
+    if (json['userType'] == 'guest' || json['isAnonymous'] == true) {
+      if (userId.isNotEmpty) {
+        return 'Guest_${userId.substring(0, 6)}';
+      }
+      return 'Guest User';
+    }
+    
+    return 'Guest User';
+  }
+
+  /// Extracts user email from JSON
+  static String? _extractUserEmail(Map<String, dynamic> json) {
+    if (json['email'] != null && json['email'] is String) {
+      return json['email'] as String;
+    }
+    return null;
+  }
+
+  /// Extracts profile image URL from JSON with multiple fallback options
+  static String? _extractUserProfileImage(Map<String, dynamic> json) {
+    // Try different possible keys for profile image
+    final possibleKeys = ['photoURL', 'profileImage', 'profilePicture'];
+    
+    for (final key in possibleKeys) {
+      if (json[key] != null && json[key] is String) {
+        return json[key] as String;
+      }
+    }
+    
+    return null;
+  }
+
+  /// Extracts DateTime from various formats (String, Firestore timestamp, etc.)
+  static DateTime? _extractDateTime(dynamic dateValue) {
+    if (dateValue == null) return null;
+    
+    if (dateValue is String) {
+      return DateTime.parse(dateValue);
+    }
+    
+    if (dateValue is Map) {
+      final timestamp = dateValue as Map<String, dynamic>;
+      final seconds = timestamp['_seconds'] as int?;
+      if (seconds != null) {
+        return DateTime.fromMillisecondsSinceEpoch(seconds * 1000);
+      }
+    }
+    
+    return null;
   }
 
   @override

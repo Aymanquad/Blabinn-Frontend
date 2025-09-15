@@ -131,15 +131,6 @@ class PremiumService {
     );
   }
 
-  /// Show premium popup for media storage
-  static Future<bool> checkMediaStorage(BuildContext context) {
-    return checkPremiumOrShowPopup(
-      context: context,
-      feature: 'Media Storage',
-      description:
-          'Keep your shared images and media files stored safely in your account.',
-    );
-  }
 
   /// Get premium features list
   static List<String> getPremiumFeatures() {
@@ -147,7 +138,6 @@ class PremiumService {
       'Upload profile pictures',
       'Send & receive images in chats',
       'Gender preferences for random connections',
-      'Store images in media folder',
     ];
   }
 
@@ -284,10 +274,6 @@ mixin PremiumCheckMixin<T extends StatefulWidget> on State<T> {
     return PremiumService.checkGenderPreferences(context);
   }
 
-  /// Check premium for media storage
-  Future<bool> checkMediaStorage() {
-    return PremiumService.checkMediaStorage(context);
-  }
 
   /// Check if user has premium
   bool get hasActivePremium =>

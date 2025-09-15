@@ -60,8 +60,11 @@ class _HomeScreenState extends State<HomeScreen>
     _stateManager.initializeFilters();
     _stateManager.setupSocketListeners();
     _stateManager.loadUserInterests();
-    // TODO(perf): Consider exposing granular ValueNotifiers/Selectors from state manager
-    // and rebuilding only dependent subtrees (e.g., the match button) via ValueListenableBuilder.
+    
+    // Performance Note: Currently using setState() for all state changes.
+    // Future optimization: Consider exposing granular ValueNotifiers/Selectors from state manager
+    // and rebuilding only dependent subtrees (e.g., the match button) via ValueListenableBuilder
+    // to reduce unnecessary widget rebuilds and improve performance.
   }
 
   Future<void> _loadQuickActions() async {

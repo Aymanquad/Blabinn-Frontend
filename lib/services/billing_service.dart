@@ -8,18 +8,18 @@ import '../services/api_service.dart';
 
 class BillingService {
   static const bool _kAutoConsume = true;
-  // Cross border products (8248-1325-3123-2424)
-  static const String _kCredit70 = '8248-1325-3123-2424-credits-70';
-  static const String _kCredit150 = '8248-1325-3123-2424-credits-150';
-  static const String _kCredit400 = '8248-1325-3123-2424-credits-400';
-  static const String _kCredit900 = '8248-1325-3123-2424-credits-900';
-  static const String _kCredit2000 = '8248-1325-3123-2424-credits-2000';
-  static const String _kPremiumWeekly = '8248-1325-3123-2424-premium-weekly';
-  static const String _kPremiumMonthly = '8248-1325-3123-2424-premium-monthly';
-  static const String _kPremium3Months = '8248-1325-3123-2424-premium-3months';
-  static const String _kPremium6Months = '8248-1325-3123-2424-premium-6months';
-  static const String _kPremiumYearly = '8248-1325-3123-2424-premium-yearly';
-  static const String _kPremiumLifetime = '8248-1325-3123-2424-premium-lifetime';
+  // Using existing Google Play Console products
+  static const String _kCredit70 = 'credits_70';
+  static const String _kCredit150 = 'credits_150';
+  static const String _kCredit400 = 'credits_400';
+  static const String _kCredit900 = 'credits_900';
+  static const String _kCredit2000 = 'credits_2000';
+  static const String _kPremiumWeekly = 'premium_weekly';
+  static const String _kPremiumMonthly = 'premium_monthly';
+  static const String _kPremium3Months = 'premium_3months';
+  static const String _kPremium6Months = 'premium_6months';
+  static const String _kPremiumYearly = 'premium_yearly';
+  static const String _kPremiumLifetime = 'premium_lifetime';
 
   static const Set<String> _kIds = <String>{
     _kCredit70,

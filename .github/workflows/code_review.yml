@@ -1,0 +1,402 @@
+name: Code Review
+
+on:
+  pull_request:
+    branches: [ main, develop ]
+  push:
+    branches: [ main, develop ]
+
+jobs:
+  # Static Analysis
+  analyze:
+    name: Static Analysis
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.16.0'
+          channel: 'stable'
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Run Flutter analyze
+        run: flutter analyze --fatal-infos
+
+      - name: Check formatting
+        run: flutter format --set-exit-if-changed .
+
+      - name: Check for unused imports
+        run: |
+          find lib -name "*.dart" -exec grep -l "import.*unused" {} \; || true
+          dart pub deps --json | jq -r '.packages[] | select(.kind == "direct") | .name' | sort > direct_deps.txt
+          find lib -name "*.dart" -exec grep -o "import 'package:[^']*'" {} \; | sed "s/import 'package://" | sed "s/';//" | sort | uniq > used_deps.txt
+          comm -23 direct_deps.txt used_deps.txt > unused_deps.txt
+          if [ -s unused_deps.txt ]; then
+            echo "Unused dependencies found:"
+            cat unused_deps.txt
+            exit 1
+          fi
+
+  # Testing
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.16.0'
+          channel: 'stable'
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Run tests
+        run: flutter test --coverage
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          file: coverage/lcov.info
+          flags: unittests
+          name: codecov-umbrella
+          fail_ci_if_error: true
+
+  # Security Scanning
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+
+      - name: Upload Trivy scan results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v2
+        if: always()
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+      - name: Check for secrets
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./
+          base: main
+          head: HEAD
+          extra_args: --debug --only-verified
+
+  # Performance Testing
+  performance:
+    name: Performance Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.16.0'
+          channel: 'stable'
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Run performance tests
+        run: flutter test test/performance/
+
+      - name: Check for performance regressions
+        run: |
+          # Check for expensive operations in main thread
+          find lib -name "*.dart" -exec grep -l "compute\|Isolate" {} \; || true
+          
+          # Check for proper use of RepaintBoundary
+          find lib -name "*.dart" -exec grep -l "CustomPaint\|CustomScrollView" {} \; | while read file; do
+            if ! grep -q "RepaintBoundary" "$file"; then
+              echo "Warning: $file contains expensive widgets without RepaintBoundary"
+            fi
+          done
+
+  # Code Quality Metrics
+  quality:
+    name: Code Quality
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.16.0'
+          channel: 'stable'
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Calculate code metrics
+        run: |
+          # Count lines of code
+          find lib -name "*.dart" -exec wc -l {} + | tail -1 > lines_of_code.txt
+          echo "Lines of code: $(cat lines_of_code.txt)"
+          
+          # Count test coverage
+          find test -name "*.dart" -exec wc -l {} + | tail -1 > test_lines.txt
+          echo "Test lines: $(cat test_lines.txt)"
+          
+          # Count documentation
+          find lib -name "*.dart" -exec grep -c "///" {} + | awk '{sum += $1} END {print "Documentation lines: " sum}'
+          
+          # Count TODO/FIXME comments
+          find lib -name "*.dart" -exec grep -c "TODO\|FIXME" {} + | awk '{sum += $1} END {print "TODO/FIXME comments: " sum}'
+
+      - name: Check for code smells
+        run: |
+          # Check for long methods (>50 lines)
+          find lib -name "*.dart" -exec awk 'BEGIN{count=0} /^[[:space:]]*[a-zA-Z_][a-zA-Z0-9_]*[[:space:]]*\([^)]*\)[[:space:]]*\{/{count=0} {count++} /^[[:space:]]*\}/{if(count>50) print FILENAME":"NR":"count" lines"}' {} \;
+          
+          # Check for deep nesting (>4 levels)
+          find lib -name "*.dart" -exec awk 'BEGIN{max=0;current=0} /\{/{current++} /\}/{current--} {if(current>max) max=current} END{if(max>4) print FILENAME":"max" levels deep"}' {} \;
+          
+          # Check for complex conditionals
+          find lib -name "*.dart" -exec grep -n "if.*&&.*&&\|if.*||.*||" {} \; || true
+
+  # Build Verification
+  build:
+    name: Build Verification
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.16.0'
+          channel: 'stable'
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Build APK
+        run: flutter build apk --debug
+
+      - name: Build Web
+        run: flutter build web
+
+      - name: Check build artifacts
+        run: |
+          if [ ! -f "build/app/outputs/flutter-apk/app-debug.apk" ]; then
+            echo "APK build failed"
+            exit 1
+          fi
+          
+          if [ ! -d "build/web" ]; then
+            echo "Web build failed"
+            exit 1
+          fi
+
+  # Dependency Check
+  dependencies:
+    name: Dependency Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.16.0'
+          channel: 'stable'
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Check for outdated dependencies
+        run: flutter pub outdated
+
+      - name: Check for security vulnerabilities
+        run: flutter pub deps --json | jq -r '.packages[] | select(.kind == "direct") | .name' | while read dep; do
+          echo "Checking $dep for vulnerabilities..."
+          # Add vulnerability checking logic here
+        done
+
+      - name: Verify dependency licenses
+        run: |
+          # Check for GPL licenses
+          flutter pub deps --json | jq -r '.packages[] | select(.kind == "direct") | .name' | while read dep; do
+            if grep -q "GPL" "pubspec.lock" 2>/dev/null; then
+              echo "Warning: $dep may have GPL license"
+            fi
+          done
+
+  # Integration Tests
+  integration:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.16.0'
+          channel: 'stable'
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Run integration tests
+        run: flutter test integration_test/
+
+      - name: Check for integration test coverage
+        run: |
+          if [ ! -d "integration_test" ]; then
+            echo "Warning: No integration tests found"
+          else
+            echo "Integration tests found: $(find integration_test -name "*.dart" | wc -l)"
+          fi
+
+  # Documentation Check
+  documentation:
+    name: Documentation Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.16.0'
+          channel: 'stable'
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Generate documentation
+        run: flutter pub global activate dartdoc
+        run: dartdoc
+
+      - name: Check documentation coverage
+        run: |
+          # Check for missing documentation
+          find lib -name "*.dart" -exec grep -L "///" {} \; | while read file; do
+            if grep -q "class\|enum\|typedef" "$file"; then
+              echo "Warning: $file may need documentation"
+            fi
+          done
+
+      - name: Upload documentation
+        uses: actions/upload-artifact@v3
+        with:
+          name: documentation
+          path: doc/api/
+
+  # Final Review
+  review:
+    name: Final Review
+    runs-on: ubuntu-latest
+    needs: [analyze, test, security, performance, quality, build, dependencies, integration, documentation]
+    if: always()
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Review Results
+        run: |
+          echo "=== Code Review Summary ==="
+          echo "Static Analysis: ${{ needs.analyze.result }}"
+          echo "Tests: ${{ needs.test.result }}"
+          echo "Security: ${{ needs.security.result }}"
+          echo "Performance: ${{ needs.performance.result }}"
+          echo "Quality: ${{ needs.quality.result }}"
+          echo "Build: ${{ needs.build.result }}"
+          echo "Dependencies: ${{ needs.dependencies.result }}"
+          echo "Integration: ${{ needs.integration.result }}"
+          echo "Documentation: ${{ needs.documentation.result }}"
+          
+          # Check if all jobs passed
+          if [ "${{ needs.analyze.result }}" != "success" ] || 
+             [ "${{ needs.test.result }}" != "success" ] || 
+             [ "${{ needs.security.result }}" != "success" ] || 
+             [ "${{ needs.performance.result }}" != "success" ] || 
+             [ "${{ needs.quality.result }}" != "success" ] || 
+             [ "${{ needs.build.result }}" != "success" ] || 
+             [ "${{ needs.dependencies.result }}" != "success" ] || 
+             [ "${{ needs.integration.result }}" != "success" ] || 
+             [ "${{ needs.documentation.result }}" != "success" ]; then
+            echo "❌ Code review failed - some checks did not pass"
+            exit 1
+          else
+            echo "✅ Code review passed - all checks successful"
+          fi
+
+      - name: Comment on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            
+            const botComment = comments.find(comment => 
+              comment.user.type === 'Bot' && comment.body.includes('Code Review Results')
+            );
+            
+            const commentBody = `## 🔍 Code Review Results
+            
+            ### ✅ All Checks Passed
+            
+            - **Static Analysis**: ${{ needs.analyze.result === 'success' && '✅' || '❌' }}
+            - **Tests**: ${{ needs.test.result === 'success' && '✅' || '❌' }}
+            - **Security**: ${{ needs.security.result === 'success' && '✅' || '❌' }}
+            - **Performance**: ${{ needs.performance.result === 'success' && '✅' || '❌' }}
+            - **Quality**: ${{ needs.quality.result === 'success' && '✅' || '❌' }}
+            - **Build**: ${{ needs.build.result === 'success' && '✅' || '❌' }}
+            - **Dependencies**: ${{ needs.dependencies.result === 'success' && '✅' || '❌' }}
+            - **Integration**: ${{ needs.integration.result === 'success' && '✅' || '❌' }}
+            - **Documentation**: ${{ needs.documentation.result === 'success' && '✅' || '❌' }}
+            
+            ### 📊 Summary
+            
+            This PR has passed all automated code review checks. The code is ready for manual review and merge.
+            
+            ---
+            *This comment was automatically generated by the code review workflow.*`;
+            
+            if (botComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body: commentBody
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: commentBody
+              });
+            }

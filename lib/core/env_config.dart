@@ -39,9 +39,8 @@ class EnvConfig {
   // Physical Device IP (for Android physical devices)
   // static const String physicalDeviceIp = '192.168.1.5';  // Updated to correct IP
 
-  // ===== LOCAL BACKEND CONFIG =====
+  // ===== RENDER BACKEND CONFIG =====
   // API Configuration
-  // Android emulator uses 10.0.2.2 to reach host machine's localhost
   static const String apiBaseUrlAndroid = 'https://blabbin-backend.onrender.com';
   static const String apiBaseUrlIos = 'https://blabbin-backend.onrender.com';
   static const String apiBaseUrlWeb = 'https://blabbin-backend.onrender.com';

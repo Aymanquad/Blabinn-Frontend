@@ -7,7 +7,6 @@ import 'dart:io';
 import 'dart:convert';
 import '../core/constants.dart';
 import '../services/api_service.dart';
-import '../services/premium_service.dart';
 import '../utils/permission_helper.dart';
 import '../widgets/banner_ad_widget.dart';
 import '../widgets/empty_state.dart';
@@ -234,12 +233,6 @@ class _MediaFolderScreenState extends State<MediaFolderScreen>
   }
 
   Future<void> _takePhoto() async {
-    // Check if user has premium
-    final hasPremium = await PremiumService.checkMediaStorage(context);
-    if (!hasPremium) {
-      return; // User doesn't have premium, popup already shown
-    }
-
     try {
       // Request camera permission
       final hasPermission =
@@ -356,8 +349,84 @@ class _MediaFolderScreenState extends State<MediaFolderScreen>
   }
 
   Future<void> _shareImageWithFriend(File imageFile) async {
-    // TODO: Implement friend selection and image sharing
-    _showError('Image sharing feature coming soon!');
+    try {
+      // Show friend selection dialog
+      final selectedFriend = await _showFriendSelectionDialog();
+      if (selectedFriend != null) {
+        await _sendImageToFriend(imageFile, selectedFriend);
+      }
+    } catch (e) {
+      _showError('Error sharing image: ${e.toString()}');
+    }
+  }
+
+  Future<Map<String, dynamic>?> _showFriendSelectionDialog() async {
+    try {
+      final apiService = ApiService();
+      final friends = await apiService.getFriends();
+      
+      if (friends.isEmpty) {
+        _showError('No friends to share with');
+        return null;
+      }
+
+      return await showDialog<Map<String, dynamic>>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Select Friend'),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: ListView.builder(
+              shrinkWrap: true,
+              itemCount: friends.length,
+              itemBuilder: (context, index) {
+                final friend = friends[index];
+                return ListTile(
+                  leading: CircleAvatar(
+                    backgroundImage: friend['profileImage'] != null
+                        ? NetworkImage(friend['profileImage'])
+                        : null,
+                    child: friend['profileImage'] == null
+                        ? const Icon(Icons.person)
+                        : null,
+                  ),
+                  title: Text(friend['username'] ?? 'Unknown'),
+                  onTap: () => Navigator.pop(context, friend),
+                );
+              },
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+          ],
+        ),
+      );
+    } catch (e) {
+      _showError('Error loading friends: ${e.toString()}');
+      return null;
+    }
+  }
+
+  Future<void> _sendImageToFriend(File imageFile, Map<String, dynamic> friend) async {
+    try {
+      final apiService = ApiService();
+      
+      // Upload image first
+      final imageUrl = await apiService.uploadChatImage(imageFile);
+      
+      // Send message with image
+      await apiService.sendDirectMessage(
+        friend['id'],
+        'Check out this image!',
+      );
+      
+      _showSuccess('Image shared with ${friend['username']} successfully!');
+    } catch (e) {
+      _showError('Error sending image: ${e.toString()}');
+    }
   }
 
   void _showImageDetails(File imageFile) {
@@ -758,62 +827,6 @@ class _MediaFolderScreenState extends State<MediaFolderScreen>
 
   @override
   Widget build(BuildContext context) {
-    // Check if user has premium for media folder access
-    if (!PremiumService.hasActivePremiumFromContext(context)) {
-      return Scaffold(
-        appBar: AppBar(
-          title: const Text('Media Folder'),
-          centerTitle: true,
-          elevation: 0,
-          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-          foregroundColor: Theme.of(context).textTheme.titleLarge?.color,
-        ),
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(
-                Icons.lock,
-                size: 64,
-                color: Colors.grey,
-              ),
-              const SizedBox(height: 16),
-              const Text(
-                'Premium Feature',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.grey,
-                ),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'Media folder is only available for premium users',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.grey,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 24),
-              ElevatedButton(
-                onPressed: () {
-                  PremiumService.checkMediaStorage(context);
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.white,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
-                ),
-                child: const Text('Upgrade to Premium'),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
     return Scaffold(
       appBar: null,
       body: Padding(

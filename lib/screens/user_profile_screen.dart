@@ -339,14 +339,8 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                 label: 'Accept friend request',
                 button: true,
                 child: ElevatedButton.icon(
-                  onPressed: () {
-                    // TODO: Accept friend request
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Accept request feature coming soon!'),
-                        backgroundColor: AppColors.primary,
-                      ),
-                    );
+                  onPressed: () async {
+                    await _acceptFriendRequest(context);
                   },
                   icon: const Icon(Icons.check),
                   label: const Text('Accept'),
@@ -363,14 +357,8 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                 label: 'Reject friend request',
                 button: true,
                 child: OutlinedButton.icon(
-                  onPressed: () {
-                    // TODO: Reject friend request
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Reject request feature coming soon!'),
-                        backgroundColor: Colors.red,
-                      ),
-                    );
+                  onPressed: () async {
+                    await _rejectFriendRequest(context);
                   },
                   icon: const Icon(Icons.close),
                   label: const Text('Reject'),
@@ -1088,13 +1076,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
             title: const Text('Block User'),
             onTap: () {
               Navigator.pop(context);
-              // TODO: Block user
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Block feature coming soon!'),
-                  backgroundColor: Colors.red,
-                ),
-              );
+              _showBlockUserDialog(context);
             },
           ),
           ListTile(
@@ -1105,17 +1087,178 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
             title: const Text('Report User'),
             onTap: () {
               Navigator.pop(context);
-              // TODO: Report user
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Report feature coming soon!'),
-                  backgroundColor: Colors.orange,
-                ),
-              );
+              _showReportUserDialog(context);
             },
           ),
         ],
       ),
     );
+  }
+
+  Future<void> _acceptFriendRequest(BuildContext context) async {
+    try {
+      // For now, we'll use a placeholder connection ID
+      // In a real implementation, you'd get this from the friend request data
+      const connectionId = 'placeholder_connection_id';
+      
+      final apiService = ApiService();
+      await apiService.acceptFriendRequest(connectionId);
+      
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Friend request accepted!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        // Update UI state to reflect the change
+        setState(() {
+          // Update connection status or remove friend request buttons
+        });
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error accepting friend request: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _rejectFriendRequest(BuildContext context) async {
+    try {
+      // For now, we'll use a placeholder connection ID
+      // In a real implementation, you'd get this from the friend request data
+      const connectionId = 'placeholder_connection_id';
+      
+      final apiService = ApiService();
+      await apiService.rejectFriendRequest(connectionId);
+      
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Friend request rejected'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+        // Update UI state to reflect the change
+        setState(() {
+          // Update connection status or remove friend request buttons
+        });
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error rejecting friend request: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  void _showBlockUserDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Block User'),
+        content: const Text('Are you sure you want to block this user? You won\'t be able to see their profile or receive messages from them.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              await _blockUser(context);
+            },
+            child: const Text(
+              'Block',
+              style: TextStyle(color: Colors.red),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showReportUserDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Report User'),
+        content: const Text('Please select a reason for reporting this user:'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              await _reportUser(context, 'Inappropriate behavior');
+            },
+            child: const Text('Report'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _blockUser(BuildContext context) async {
+    try {
+      final apiService = ApiService();
+      await apiService.blockUser(widget.userId);
+      
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('User blocked successfully'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        // Navigate back or update UI
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error blocking user: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _reportUser(BuildContext context, String reason) async {
+    try {
+      final apiService = ApiService();
+      await apiService.reportUser(widget.userId, reason);
+      
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('User reported successfully'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error reporting user: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 }
