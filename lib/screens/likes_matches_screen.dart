@@ -5,8 +5,10 @@ import '../models/chat.dart';
 import '../services/matching_service.dart';
 import '../services/chatify_ad_service.dart';
 import '../services/api_service.dart';
+import '../services/premium_service.dart';
 import '../widgets/user_type_badge.dart';
 import '../widgets/chatify_banner_ad.dart';
+import '../widgets/blurred_profile_card.dart';
 import '../core/theme_extensions.dart';
 import '../providers/user_provider.dart';
 import '../screens/profile_preview_screen.dart';
@@ -260,6 +262,15 @@ class _LikesMatchesScreenState extends State<LikesMatchesScreen>
       final currentUser = Provider.of<UserProvider>(context, listen: false).currentUser;
       if (currentUser == null) return;
 
+      // Check if user has premium access to chat with matches
+      final hasAccess = await PremiumService.checkPremiumOrShowPopup(
+        context: context,
+        feature: 'Chat with Matches',
+        description: 'Start conversations with your matches. Premium users get unlimited access to chat with all their matches.',
+      );
+
+      if (!hasAccess) return;
+
       // Create a Chat object for the navigation
       final chat = Chat(
         id: match['connectionId'] as String,
@@ -431,23 +442,9 @@ class _LikesMatchesScreenState extends State<LikesMatchesScreen>
       itemCount: _whoLikedYou.length,
       itemBuilder: (context, index) {
         final likedUser = _whoLikedYou[index];
-        return _buildUserCard(
-          user: likedUser,
-          theme: theme,
-          tokens: tokens,
+        return BlurredProfileListItem(
+          profile: likedUser,
           onTap: () => _viewUserProfile(likedUser),
-          actions: [
-            IconButton(
-              onPressed: () => _likeBack(likedUser),
-              icon: const Icon(Icons.favorite),
-              style: IconButton.styleFrom(
-                backgroundColor: Colors.red.withOpacity(0.8),
-                foregroundColor: Colors.white,
-              ),
-            ),
-          ],
-          subtitle: 'Liked you ${_formatDate(likedUser['requestDate'])}',
-          message: likedUser['requestMessage'],
         );
       },
     );
@@ -476,23 +473,9 @@ class _LikesMatchesScreenState extends State<LikesMatchesScreen>
       itemCount: _yourMatches.length,
       itemBuilder: (context, index) {
         final match = _yourMatches[index];
-        return _buildUserCard(
-          user: match,
-          theme: theme,
-          tokens: tokens,
+        return BlurredProfileListItem(
+          profile: match,
           onTap: () => _startChat(match),
-          actions: [
-            IconButton(
-              onPressed: () => _startChat(match),
-              icon: const Icon(Icons.chat),
-              style: IconButton.styleFrom(
-                backgroundColor: Colors.blue.withOpacity(0.8),
-                foregroundColor: Colors.white,
-              ),
-            ),
-          ],
-          subtitle: 'Matched ${_formatDate(match['matchedAt'])}',
-          isMatch: true,
         );
       },
     );
@@ -521,13 +504,9 @@ class _LikesMatchesScreenState extends State<LikesMatchesScreen>
       itemCount: _likedProfiles.length,
       itemBuilder: (context, index) {
         final likedProfile = _likedProfiles[index];
-        return _buildUserCard(
-          user: likedProfile,
-          theme: theme,
-          tokens: tokens,
+        return BlurredProfileListItem(
+          profile: likedProfile,
           onTap: () => _viewUserProfile(likedProfile),
-          subtitle: 'Liked ${_formatDate(likedProfile['likedAt'])}',
-          isLiked: true,
         );
       },
     );
