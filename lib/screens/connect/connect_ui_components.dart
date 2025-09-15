@@ -451,6 +451,44 @@ class ConnectUIComponents {
             textAlign: TextAlign.center,
           ),
           
+          const SizedBox(height: 40),
+          
+          // Stop Matching Button
+          Container(
+            width: 200,
+            height: 48,
+            decoration: BoxDecoration(
+              color: Colors.red.withOpacity(0.8),
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.red.withOpacity(0.3),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(24),
+                onTap: () {
+                  stateManager.stopMatching();
+                },
+                child: const Center(
+                  child: Text(
+                    'Stop Matching',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          
         ],
       ),
     );

@@ -11,6 +11,7 @@ import 'random_chat_screen.dart';
 import 'connect/connect_state_manager.dart';
 import 'connect/connect_ui_components.dart';
 import 'connect/connect_dialog_components.dart';
+import 'connect/connect_filter_components.dart';
 
 class HomeScreen extends StatefulWidget {
   final Function(int)? onNavigateToTab;
@@ -25,16 +26,15 @@ class _HomeScreenState extends State<HomeScreen>
     with SingleTickerProviderStateMixin {
   late ConnectStateManager _stateManager;
   bool _isLoading = true;
-  List<Map<String, dynamic>> _quickActions = [];
+  bool _showRadiusSelection = false;
 
   @override
   void initState() {
     super.initState();
     _initializeStateManager();
     _setupStateManager();
-    // Defer non-critical work until after first frame to improve startup
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _loadQuickActions();
+      _loadContent();
     });
   }
 
@@ -69,28 +69,10 @@ class _HomeScreenState extends State<HomeScreen>
     // to reduce unnecessary widget rebuilds and improve performance.
   }
 
-  Future<void> _loadQuickActions() async {
-    // Simulate loading quick actions
-    await Future.delayed(const Duration(milliseconds: 800));
+  Future<void> _loadContent() async {
+    await Future.delayed(const Duration(milliseconds: 500));
     setState(() {
       _isLoading = false;
-      _quickActions = [
-        {
-          'title': 'Random Chat',
-          'subtitle': 'Start a new conversation',
-          'icon': Icons.chat_bubble_outline,
-          'color': const Color(0xFF8B5CF6),
-          'onTap': _navigateToRandomChatDirect,
-        },
-        {
-          'title': 'Find Friends',
-          'subtitle': 'Discover new people',
-          'icon': Icons.people_outline,
-          'color': Colors.green,
-          'onTap': () =>
-              widget.onNavigateToTab?.call(1), // Navigate to Connect tab
-        },
-      ];
     });
   }
 
@@ -123,380 +105,203 @@ class _HomeScreenState extends State<HomeScreen>
 
     return Scaffold(
       body: SafeArea(
+        child: _isLoading
+            ? _buildLoadingState(context, tokens)
+            : _buildMainContent(context, tokens),
+      ),
+    );
+  }
+
+
+  Widget _buildLoadingState(BuildContext context, AppThemeTokens? tokens) {
+    return const Center(
+      child: CircularProgressIndicator(
+        color: Colors.white,
+      ),
+    );
+  }
+
+  Widget _buildMainContent(BuildContext context, AppThemeTokens? tokens) {
+    // Show matching screen if currently matching
+    if (_stateManager.isMatching) {
+      return ConnectUIComponents.buildMatchingScreen(context, _stateManager);
+    }
+
+    // Show radius selection if user clicked connect
+    if (_showRadiusSelection) {
+      return _buildRadiusSelection(context);
+    }
+
+    // Show hero section by default
+    return _buildHeroSection(context);
+  }
+
+  Widget _buildHeroSection(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 32),
         child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Enhanced Header Section
-            // Isolate static header paints from dynamic content
-            RepaintBoundary(child: _buildHeader(context, tokens)),
-
-            // Main Content
-            Flexible(
-              child: _isLoading
-                  ? _buildLoadingState(context, tokens)
-                  : _buildMainContent(context, tokens),
+            // Hero Image
+            Container(
+              width: 250,
+              height: 300,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(20),
+                image: const DecorationImage(
+                  image: AssetImage('assets/images/Girl.png'),
+                  fit: BoxFit.contain,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.3),
+                    blurRadius: 20,
+                    offset: const Offset(0, 10),
+                  ),
+                ],
+              ),
             ),
-
-            // Bottom Section with Connect Button and Ad
-            _buildBottomSection(context),
+            
+            const SizedBox(height: 40),
+            
+            // Main Question
+            const Text(
+              'Ready to meet new people?',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 28,
+                fontWeight: FontWeight.bold,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            
+            const SizedBox(height: 30),
+            
+            // Connect Button
+            Container(
+              width: double.infinity,
+              height: 56,
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF8B5CF6), Color(0xFF7C3AED)],
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
+                ),
+                borderRadius: BorderRadius.circular(28),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF8B5CF6).withOpacity(0.3),
+                    blurRadius: 15,
+                    offset: const Offset(0, 5),
+                  ),
+                ],
+              ),
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(28),
+                  onTap: () {
+                    setState(() {
+                      _showRadiusSelection = true;
+                    });
+                  },
+                  child: const Center(
+                    child: Text(
+                      'Connect Now',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            
+            const SizedBox(height: 20),
+            
+            // Tagline
+            const Text(
+              'Find and chat with people around the world',
+              style: TextStyle(
+                color: Colors.white70,
+                fontSize: 16,
+              ),
+              textAlign: TextAlign.center,
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildHeader(BuildContext context, AppThemeTokens? tokens) {
-    return Container(
+  Widget _buildRadiusSelection(BuildContext context) {
+    return Padding(
       padding: const EdgeInsets.all(24),
       child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          // Enhanced Welcome Text
-          Text(
-            'Welcome to Chatify',
-            style: Theme.of(context).textTheme.displayMedium?.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: -0.5,
-                ),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            'Connect, chat, and make new friends',
-            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  color: Colors.white.withOpacity(0.9),
-                  fontWeight: FontWeight.w500,
-                ),
-          ),
-          const SizedBox(height: 32),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildLoadingState(BuildContext context, AppThemeTokens? tokens) {
-    return SkeletonList(
-      itemCount: 4,
-      itemBuilder: (context, index) => ModernCard(
-        child: SkeletonItem(
-          height: 80,
-          borderRadius: BorderRadius.circular(tokens?.radiusMedium ?? 20.0),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildMainContent(BuildContext context, AppThemeTokens? tokens) {
-    if (_stateManager.isMatching) {
-      return ConnectUIComponents.buildMatchingScreen(context, _stateManager);
-    }
-
-    return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Quick Actions Section
-          _buildQuickActionsSection(context, tokens),
-
-          const SizedBox(height: 24),
-
-          // Recent Activity Section
-          // Static, unlikely to change frequently – isolate paints
-          RepaintBoundary(child: _buildRecentActivitySection(context, tokens)),
-
-          const SizedBox(height: 24),
-
-          // Tips Section
-          // Static tips – isolate paints
-          RepaintBoundary(child: _buildTipsSection(context, tokens)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildQuickActionsSection(
-      BuildContext context, AppThemeTokens? tokens) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Quick Actions',
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-              ),
-        ),
-        const SizedBox(height: 16),
-        LayoutBuilder(
-          builder: (context, constraints) {
-            // Keep 2-column grid for the remaining two actions
-            const crossAxisCount = 2;
-            // Adjust aspect ratio to prevent overflow - make cards taller
-            const childAspectRatio = 0.85;
-
-            return RepaintBoundary(
-              child: GridView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: crossAxisCount,
-                  crossAxisSpacing: 16,
-                  mainAxisSpacing: 16,
-                  childAspectRatio: childAspectRatio,
-                ),
-                itemCount: _quickActions.length,
-                itemBuilder: (context, index) {
-                  final action = _quickActions[index];
-                  return _buildQuickActionCard(context, action, tokens);
+          // Back button
+          Row(
+            children: [
+              IconButton(
+                icon: const Icon(Icons.arrow_back, color: Colors.white),
+                onPressed: () {
+                  setState(() {
+                    _showRadiusSelection = false;
+                  });
                 },
               ),
-            );
-          },
-        ),
-      ],
-    );
-  }
-
-  Widget _buildQuickActionCard(BuildContext context,
-      Map<String, dynamic> action, AppThemeTokens? tokens) {
-    return GlassCard(
-      onTap: action['onTap'],
-      child: Semantics(
-        label: '${action['title']} - ${action['subtitle']}',
-        button: true,
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: (action['color'] as Color).withOpacity(0.2),
-                  shape: BoxShape.circle,
+              const Text(
+                'Select Distance',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
                 ),
-                child: Icon(
-                  action['icon'],
-                  color: action['color'],
-                  size: 28,
-                  semanticLabel: action['title'],
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                action['title'],
-                style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 14,
-                    ),
-                textAlign: TextAlign.center,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                softWrap: true,
-              ),
-              const SizedBox(height: 4),
-              Text(
-                action['subtitle'],
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Colors.white70,
-                      fontSize: 11,
-                    ),
-                textAlign: TextAlign.center,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                softWrap: true,
               ),
             ],
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildRecentActivitySection(
-      BuildContext context, AppThemeTokens? tokens) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Recent Activity',
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-              ),
-        ),
-        const SizedBox(height: 16),
-        GlassCard(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              children: [
-                Row(
-                  children: [
-                    const Icon(
-                      Icons.history,
-                      color: AppColors.accent,
-                      size: 24,
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        'No recent activity',
-                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                              color: Colors.white70,
-                            ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  'Start chatting to see your activity here',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Colors.white54,
-                      ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildTipsSection(BuildContext context, AppThemeTokens? tokens) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Tips for Better Connections',
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-              ),
-        ),
-        const SizedBox(height: 16),
-        GlassCard(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildTipItem(
-                  context,
-                  Icons.verified_user,
-                  'Complete your profile',
-                  'Add photos and interests to get more matches',
-                ),
-                const SizedBox(height: 16),
-                _buildTipItem(
-                  context,
-                  Icons.location_on,
-                  'Set your location',
-                  'Enable location to find people nearby',
-                ),
-                const SizedBox(height: 16),
-                _buildTipItem(
-                  context,
-                  Icons.chat_bubble,
-                  'Start conversations',
-                  'Be friendly and respectful in your messages',
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildTipItem(
-      BuildContext context, IconData icon, String title, String description) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: AppColors.primary.withOpacity(0.2),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Icon(
-            icon,
-            color: AppColors.primary,
-            size: 20,
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w600,
-                    ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                description,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Colors.white70,
-                    ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildBottomSection(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-      child: Column(
-        children: [
-          // Connect Button
-          SizedBox(
+          
+          const SizedBox(height: 40),
+          
+          // Distance selection
+          ConnectFilterComponents.buildDistanceFilter(context, _stateManager),
+          
+          const SizedBox(height: 40),
+          
+          // Start Matching Button
+          Container(
             width: double.infinity,
-            child: Semantics(
-              label: _stateManager.isMatching
-                  ? 'Stop matching with people'
-                  : 'Start matching with people',
-              button: true,
-              child: ElevatedButton(
-                onPressed: _stateManager.isMatching
-                    ? _stateManager.stopMatching
-                    : _stateManager.startMatching,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor:
-                      _stateManager.isMatching ? Colors.red : AppColors.primary,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+            height: 56,
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFF8B5CF6), Color(0xFF7C3AED)],
+                begin: Alignment.centerLeft,
+                end: Alignment.centerRight,
+              ),
+              borderRadius: BorderRadius.circular(28),
+            ),
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(28),
+                onTap: () {
+                  _stateManager.startMatching();
+                },
+                child: const Center(
+                  child: Text(
+                    'Start Matching',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
-                child: Text(
-                  _stateManager.isMatching ? 'Stop Matching' : 'Start Matching',
-                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w600,
-                      ),
-                ),
               ),
-            ),
-          ),
-
-          const SizedBox(height: 16),
-
-          // Banner Ad
-          // Ads can be expensive to repaint; isolate them
-          const RepaintBoundary(
-            child: BannerAdWidget(
-              height: 50,
-              margin: EdgeInsets.only(bottom: 8),
             ),
           ),
         ],
