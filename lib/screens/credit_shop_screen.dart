@@ -82,6 +82,17 @@ class _CreditShopScreenState extends State<CreditShopScreen> {
 
   Future<void> _initializeBilling() async {
     await _billingService.initialize();
+    
+    // Debug: Print available products
+    print('🔍 CreditShop: Available products: ${_billingService.products.length}');
+    for (final product in _billingService.products) {
+      print('📦 CreditShop: ${product.id} - ${product.title} - ${product.price}');
+    }
+    
+    if (_billingService.products.isEmpty) {
+      print('⚠️ CreditShop: No products available. Check Google Play Console setup.');
+    }
+    
     if (mounted) {
       setState(() {});
     }
@@ -270,21 +281,79 @@ class _HeaderBalance extends StatelessWidget {
           TextButton.icon(
             onPressed: () async {
               try {
+                print('🎯 Claim Daily: Starting process...');
+                
                 // Show two rewarded ads to claim daily bonus
+                print('🎯 Claim Daily: Showing first rewarded ad...');
                 final adOk1 = await ChatifyAdService().showRewardedAd();
-                final adOk2 =
-                    adOk1 ? await ChatifyAdService().showRewardedAd() : false;
-                if (!adOk2) return;
+                print('🎯 Claim Daily: First ad result: $adOk1');
+                
+                if (!adOk1) {
+                  print('❌ Claim Daily: First ad failed, stopping process');
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('First ad failed. Please try again.'),
+                        backgroundColor: Colors.orange,
+                      ),
+                    );
+                  }
+                  return;
+                }
+                
+                print('🎯 Claim Daily: Showing second rewarded ad...');
+                final adOk2 = await ChatifyAdService().showRewardedAd();
+                print('🎯 Claim Daily: Second ad result: $adOk2');
+                
+                if (!adOk2) {
+                  print('❌ Claim Daily: Second ad failed, stopping process');
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Second ad failed. Please try again.'),
+                        backgroundColor: Colors.orange,
+                      ),
+                    );
+                  }
+                  return;
+                }
 
+                print('✅ Claim Daily: Both ads successful, claiming credits...');
                 final api = ApiService();
                 final result = await api.claimDailyCredits();
+                print('🎯 Claim Daily: API result: $result');
+                
                 final awarded = (result['awarded'] as int?) ?? 0;
+                final credits = (result['credits'] as int?) ?? 0;
+                
                 if (awarded > 0 && context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Daily bonus claimed: +$awarded')),
+                    SnackBar(
+                      content: Text('Daily bonus claimed: +$awarded credits! Total: $credits'),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                  print('✅ Claim Daily: Successfully claimed $awarded credits');
+                } else if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Daily credits already claimed today'),
+                      backgroundColor: Colors.blue,
+                    ),
+                  );
+                  print('ℹ️ Claim Daily: Already claimed today');
+                }
+              } catch (e) {
+                print('❌ Claim Daily: Error occurred: $e');
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Error claiming daily credits: $e'),
+                      backgroundColor: Colors.red,
+                    ),
                   );
                 }
-              } catch (_) {}
+              }
             },
             icon: const Icon(Icons.redeem_outlined),
             label: const Text('Claim Daily'),
@@ -339,7 +408,10 @@ class _CreditBundleCardState extends State<_CreditBundleCard> {
     try {
       // Find the product in billing service
       final product = widget.billingService.products
-          .firstWhere((p) => p.id == widget.productId);
+          .firstWhere(
+            (p) => p.id == widget.productId,
+            orElse: () => throw Exception('Product not found: ${widget.productId}'),
+          );
 
       // Initiate purchase through billing service
       await widget.billingService.buyProduct(product);
@@ -351,8 +423,18 @@ class _CreditBundleCardState extends State<_CreditBundleCard> {
       }
     } catch (e) {
       if (mounted) {
+        String errorMessage = 'Purchase failed: $e';
+        if (e.toString().contains('Product not found')) {
+          errorMessage = 'Product not available. Please check Google Play Console setup.';
+        } else if (e.toString().contains('Bad state: No element')) {
+          errorMessage = 'Product not found. Please ensure products are created in Google Play Console.';
+        }
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Purchase failed: $e')),
+          SnackBar(
+            content: Text(errorMessage),
+            backgroundColor: Colors.red,
+            duration: Duration(seconds: 5),
+          ),
         );
       }
     } finally {
@@ -474,7 +556,10 @@ class _PremiumPlanCardState extends State<_PremiumPlanCard> {
     try {
       // Find the product in billing service
       final product = widget.billingService.products
-          .firstWhere((p) => p.id == widget.productId);
+          .firstWhere(
+            (p) => p.id == widget.productId,
+            orElse: () => throw Exception('Product not found: ${widget.productId}'),
+          );
 
       // Initiate purchase through billing service
       await widget.billingService.buyProduct(product);
@@ -486,8 +571,18 @@ class _PremiumPlanCardState extends State<_PremiumPlanCard> {
       }
     } catch (e) {
       if (mounted) {
+        String errorMessage = 'Purchase failed: $e';
+        if (e.toString().contains('Product not found')) {
+          errorMessage = 'Product not available. Please check Google Play Console setup.';
+        } else if (e.toString().contains('Bad state: No element')) {
+          errorMessage = 'Product not found. Please ensure products are created in Google Play Console.';
+        }
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Purchase failed: $e')),
+          SnackBar(
+            content: Text(errorMessage),
+            backgroundColor: Colors.red,
+            duration: Duration(seconds: 5),
+          ),
         );
       }
     } finally {

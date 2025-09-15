@@ -390,7 +390,29 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
           validator: validator,
           decoration: InputDecoration(
             hintText: hint,
-            border: const OutlineInputBorder(),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: BorderSide(color: AppColors.textMuted),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: BorderSide(color: AppColors.textMuted),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: BorderSide(color: AppColors.primary, width: 2),
+            ),
+            errorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: BorderSide(color: AppColors.error),
+            ),
+            focusedErrorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: BorderSide(color: AppColors.error, width: 2),
+            ),
+            filled: true,
+            fillColor: AppColors.inputBackground,
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
             counterText: maxLength != null ? null : '',
           ),
         ),
@@ -417,7 +439,29 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
                 controller: _usernameController,
                 decoration: InputDecoration(
                   hintText: 'Enter username',
-                  border: const OutlineInputBorder(),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: BorderSide(color: AppColors.textMuted),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: BorderSide(color: AppColors.textMuted),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: BorderSide(color: AppColors.primary, width: 2),
+                  ),
+                  errorBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: BorderSide(color: AppColors.error),
+                  ),
+                  focusedErrorBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: BorderSide(color: AppColors.error, width: 2),
+                  ),
+                  filled: true,
+                  fillColor: AppColors.inputBackground,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                   errorText: _usernameError,
                   suffixIcon: _isCheckingUsername
                       ? const SizedBox(
@@ -426,7 +470,7 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
                       : _isUsernameAvailable
-                          ? const Icon(Icons.check, color: Colors.green)
+                          ? const Icon(Icons.check, color: AppColors.success)
                           : null,
                 ),
                 validator: (value) {
@@ -448,8 +492,12 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
               onPressed:
                   _isCheckingUsername ? null : _checkUsernameAvailability,
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.grey[700],
-                foregroundColor: Colors.white,
+                backgroundColor: AppColors.cardBackground,
+                foregroundColor: AppColors.text,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               ),
               child: const Text('Check Availability'),
             ),
@@ -485,9 +533,31 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
         TextFormField(
           controller: _ageController,
           keyboardType: TextInputType.number,
-          decoration: const InputDecoration(
+          decoration: InputDecoration(
             hintText: 'Enter your age',
-            border: OutlineInputBorder(),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: BorderSide(color: AppColors.textMuted),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: BorderSide(color: AppColors.textMuted),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: BorderSide(color: AppColors.primary, width: 2),
+            ),
+            errorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: BorderSide(color: AppColors.error),
+            ),
+            focusedErrorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: BorderSide(color: AppColors.error, width: 2),
+            ),
+            filled: true,
+            fillColor: AppColors.inputBackground,
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
           ),
           validator: (value) {
             if (value == null || value.isEmpty) {
@@ -520,9 +590,13 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
                 child: ElevatedButton(
                   onPressed: _isLoading ? null : _createProfile,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green,
+                    backgroundColor: AppColors.success,
                     foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    padding: const EdgeInsets.symmetric(vertical: 18),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    elevation: 3,
                   ),
                   child: _isLoading
                       ? const SizedBox(
@@ -538,9 +612,13 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
                 child: ElevatedButton(
                   onPressed: _isLoading ? null : _updateProfile,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue,
+                    backgroundColor: AppColors.primary,
                     foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    padding: const EdgeInsets.symmetric(vertical: 18),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    elevation: 3,
                   ),
                   child: _isLoading
                       ? const SizedBox(
@@ -562,9 +640,13 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
                           Navigator.of(context).pop();
                         },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.grey,
+                    backgroundColor: AppColors.textMuted,
                     foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    padding: const EdgeInsets.symmetric(vertical: 18),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    elevation: 3,
                   ),
                   child: const Text('Cancel'),
                 ),
@@ -576,9 +658,13 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
                 child: ElevatedButton(
                   onPressed: _isLoading ? null : _loadExistingProfile,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.orange,
+                    backgroundColor: AppColors.warning,
                     foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    padding: const EdgeInsets.symmetric(vertical: 18),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    elevation: 3,
                   ),
                   child: const Text('Reset to Original'),
                 ),
@@ -833,8 +919,9 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
               child: Container(
                 height: 50,
                 decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey),
-                  borderRadius: BorderRadius.circular(4),
+                  border: Border.all(color: AppColors.textMuted),
+                  borderRadius: BorderRadius.circular(16),
+                  color: AppColors.inputBackground,
                 ),
                 child: Center(
                   child: Text(
@@ -852,8 +939,12 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
             ElevatedButton(
               onPressed: _pickProfilePicture,
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.green,
+                backgroundColor: AppColors.success,
                 foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               ),
               child: Text(_existingProfilePictureUrl != null
                   ? 'Change Picture'
@@ -868,11 +959,11 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
             height: 100,
             width: 100,
             decoration: BoxDecoration(
-              border: Border.all(color: Colors.grey),
-              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: AppColors.textMuted),
+              borderRadius: BorderRadius.circular(16),
             ),
             child: ClipRRect(
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(16),
               child: _profilePicture != null
                   ? Image.file(_profilePicture!, fit: BoxFit.cover)
                   : (_existingProfilePictureUrl != null
@@ -926,8 +1017,9 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
               child: Container(
                 height: 50,
                 decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey),
-                  borderRadius: BorderRadius.circular(4),
+                  border: Border.all(color: AppColors.textMuted),
+                  borderRadius: BorderRadius.circular(16),
+                  color: AppColors.inputBackground,
                 ),
                 child: Center(
                   child: Text(
@@ -943,8 +1035,12 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
             ElevatedButton(
               onPressed: canAddMore ? _pickGalleryImages : null,
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.green,
+                backgroundColor: AppColors.success,
                 foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               ),
               child: Text(canAddMore ? 'Add to Gallery' : 'Gallery Full'),
             ),
@@ -1137,13 +1233,36 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
         const SizedBox(height: 8),
         DropdownButtonFormField<String>(
           value: _selectedGender,
-          decoration: const InputDecoration(
-            border: OutlineInputBorder(),
+          decoration: InputDecoration(
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: BorderSide(color: AppColors.textMuted),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: BorderSide(color: AppColors.textMuted),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: BorderSide(color: AppColors.primary, width: 2),
+            ),
+            errorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: BorderSide(color: AppColors.error),
+            ),
+            focusedErrorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: BorderSide(color: AppColors.error, width: 2),
+            ),
+            filled: true,
+            fillColor: AppColors.inputBackground,
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
             hintText: 'Select gender',
           ),
           items: const [
             DropdownMenuItem(value: 'male', child: Text('Male')),
             DropdownMenuItem(value: 'female', child: Text('Female')),
+            DropdownMenuItem(value: 'prefer-not-to-say', child: Text('Prefer not to say')),
           ],
           validator: (value) {
             if (value == null || value.isEmpty) {
@@ -1205,10 +1324,20 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
               },
               selectedColor: AppColors.primary.withOpacity(0.2),
               checkmarkColor: AppColors.primary,
-              labelStyle: TextStyle(
-                color: isSelected ? AppColors.primary : null,
-                fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+              backgroundColor: AppColors.inputBackground,
+              side: BorderSide(
+                color: isSelected ? AppColors.primary : AppColors.textMuted,
+                width: isSelected ? 2 : 1,
               ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              labelStyle: TextStyle(
+                color: isSelected ? AppColors.primary : AppColors.text,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                fontSize: 14,
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             );
           }).toList(),
         ),

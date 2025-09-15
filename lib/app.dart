@@ -14,6 +14,7 @@ import 'screens/splash_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/profile_screen.dart';
 import 'screens/profile_management_screen.dart';
+import 'screens/onboarding_screen.dart';
 import 'screens/connect_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/search_screen.dart';
@@ -110,6 +111,7 @@ class ChatApp extends StatelessWidget {
                 '/profile': (context) => const ProfileScreen(),
                 '/profile-management': (context) =>
                     const ProfileManagementScreen(),
+                '/onboarding': (context) => const OnboardingScreen(),
                 '/account-settings': (context) => const AccountSettingsScreen(),
                 '/connect': (context) => const ConnectScreen(),
                 '/login': (context) => const LoginScreen(),

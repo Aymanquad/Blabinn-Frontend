@@ -80,9 +80,13 @@ class BillingService {
 
     if (productResponse.notFoundIDs.isNotEmpty) {
       print('❌ BillingService: Product IDs not found: ${productResponse.notFoundIDs}');
+      print('🔍 BillingService: This means these products need to be created in Google Play Console');
     }
 
     print('✅ BillingService: Found ${productResponse.productDetails.length} products');
+    for (final product in productResponse.productDetails) {
+      print('📦 BillingService: Available product: ${product.id} - ${product.title} - ${product.price}');
+    }
     _products = productResponse.productDetails;
     _queryProductError = productResponse.error?.message;
     _isAvailable = available;
@@ -172,7 +176,7 @@ class BillingService {
       }
 
       // Determine purchase type
-      final String purchaseType = purchaseDetails.productID.startsWith('premium_')
+      final String purchaseType = purchaseDetails.productID.startsWith('8248-1325-3123-2424-premium-')
           ? 'subscription'
           : 'consumable';
 

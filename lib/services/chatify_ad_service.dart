@@ -275,11 +275,19 @@ class ChatifyAdService {
 
   /// Load rewarded ad
   Future<void> _loadRewardedAd() async {
+    print('🎯 _loadRewardedAd: Starting...');
+    print('🎯 _loadRewardedAd: _shouldShowAds() = ${_shouldShowAds()}');
+    print('🎯 _loadRewardedAd: _isRewardedAdLoading = $_isRewardedAdLoading');
+    print('🎯 _loadRewardedAd: _rewardedAd != null = ${_rewardedAd != null}');
+    print('🎯 _loadRewardedAd: rewardedAdUnitId = $rewardedAdUnitId');
+    
     if (!_shouldShowAds() || _isRewardedAdLoading || _rewardedAd != null) {
+      print('🎯 _loadRewardedAd: Skipping load (conditions not met)');
       return;
     }
 
     _isRewardedAdLoading = true;
+    print('🎯 _loadRewardedAd: Loading ad...');
 
     try {
       await RewardedAd.load(
@@ -312,6 +320,8 @@ class ChatifyAdService {
           },
           onAdFailedToLoad: (LoadAdError error) {
             print('❌ Rewarded ad failed to load: ${error.message}');
+            print('❌ Error code: ${error.code}');
+            print('❌ Error domain: ${error.domain}');
             _isRewardedAdLoading = false;
             _rewardedAd = null;
           },
@@ -325,15 +335,39 @@ class ChatifyAdService {
 
   /// Show rewarded ad
   Future<bool> showRewardedAd() async {
-    if (!_shouldShowAds() || _rewardedAd == null || _isRewardedAdShowing) {
+    print('🎯 showRewardedAd: Starting...');
+    print('🎯 showRewardedAd: _shouldShowAds() = ${_shouldShowAds()}');
+    print('🎯 showRewardedAd: _rewardedAd != null = ${_rewardedAd != null}');
+    print('🎯 showRewardedAd: _isRewardedAdShowing = $_isRewardedAdShowing');
+    print('🎯 showRewardedAd: _isRewardedAdLoading = $_isRewardedAdLoading');
+    
+    if (!_shouldShowAds()) {
+      print('❌ showRewardedAd: Ads disabled or user is premium');
+      return false;
+    }
+    
+    if (_rewardedAd == null) {
+      print('❌ showRewardedAd: No rewarded ad loaded');
+      // Try to load a new ad
+      await _loadRewardedAd();
+      if (_rewardedAd == null) {
+        print('❌ showRewardedAd: Failed to load rewarded ad');
+        return false;
+      }
+    }
+    
+    if (_isRewardedAdShowing) {
+      print('❌ showRewardedAd: Ad already showing');
       return false;
     }
 
     try {
+      print('🎯 showRewardedAd: Showing ad...');
       await _rewardedAd!.show(onUserEarnedReward: (AdWithoutView ad, RewardItem reward) {
         print('🎁 User earned reward: ${reward.amount} ${reward.type}');
         _onRewardEarned(reward);
       });
+      print('✅ showRewardedAd: Ad shown successfully');
       return true;
     } catch (e) {
       print('❌ Failed to show rewarded ad: $e');

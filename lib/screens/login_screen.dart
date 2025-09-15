@@ -360,8 +360,7 @@ class _LoginScreenState extends State<LoginScreen> {
             ElevatedButton(
               onPressed: () {
                 Navigator.of(context).pop();
-                Navigator.pushReplacementNamed(context, '/profile-management',
-                    arguments: {'isGuestUser': true});
+                Navigator.pushReplacementNamed(context, '/onboarding');
               },
               child: const Text('Create Profile'),
             ),
@@ -379,8 +378,8 @@ class _LoginScreenState extends State<LoginScreen> {
 
       // Navigate based on user status
       if (isNewUser) {
-        // New user - go to profile creation or onboarding
-        Navigator.pushReplacementNamed(context, '/profile-management');
+        // New user - go to onboarding
+        Navigator.pushReplacementNamed(context, '/onboarding');
       } else {
         // Existing user - go to main app
         Navigator.pushReplacementNamed(context, '/home');

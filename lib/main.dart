@@ -6,25 +6,25 @@ import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'app.dart';
 import 'services/background_image_service.dart';
 import 'services/ad_service.dart';
-
+import 'utils/logger.dart';
 import 'utils/ad_debug_helper.dart';
 
 // Background message handler
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp();
-  // print('🔔 [BACKGROUND NOTIFICATION] Handling background message: ${message.messageId}');
-  // print('   📦 Title: ${message.notification?.title}');
-  // print('   📦 Body: ${message.notification?.body}');
-  // print('   📦 Data: ${message.data}');
+  Logger.notification('Handling background message: ${message.messageId}');
+  Logger.debug('Title: ${message.notification?.title}');
+  Logger.debug('Body: ${message.notification?.body}');
+  Logger.debug('Data: ${message.data}');
 
   try {
     // Handle image messages for auto-save even when app is closed
     final backgroundImageService = BackgroundImageService();
     await backgroundImageService.handleImageFromPushNotification(message.data);
-    // print('✅ [BACKGROUND NOTIFICATION] Image processing completed');
+    Logger.notification('Image processing completed');
   } catch (e) {
-    // print('❌ [BACKGROUND NOTIFICATION] Error processing image: $e');
+    Logger.error('Error processing image', error: e);
   }
 }
 
