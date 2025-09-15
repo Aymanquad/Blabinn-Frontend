@@ -106,4 +106,8 @@ dependencies {
     
     // Required for AD_ID permission and AdMob functionality
     implementation("com.google.android.gms:play-services-ads:22.6.0")
+    
+    // Firebase BOM for consistent versions
+    implementation(platform("com.google.firebase:firebase-bom:33.7.0"))
+    implementation("com.google.firebase:firebase-analytics")
 }

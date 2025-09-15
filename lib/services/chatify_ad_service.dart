@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'package:firebase_analytics/firebase_analytics.dart';
 import 'dart:io';
 import 'dart:async';
 import '../core/ad_config.dart';
@@ -34,6 +35,7 @@ class ChatifyAdService {
   // User reference
   User? _currentUser;
   final ApiService _apiService = ApiService();
+  final FirebaseAnalytics _analytics = FirebaseAnalytics.instance;
 
   /// Initialize the Chatify Ad Service
   Future<void> initialize(User? user) async {
@@ -48,7 +50,16 @@ class ChatifyAdService {
     }
 
     try {
-      await MobileAds.instance.initialize();
+      // Initialize Mobile Ads with proper configuration
+      final initializationStatus = await MobileAds.instance.initialize();
+      
+      // Log initialization status
+      for (final adapterStatus in initializationStatus.adapterStatuses.entries) {
+        final name = adapterStatus.key;
+        final status = adapterStatus.value;
+        print('🔧 Adapter $name: ${status.description}');
+      }
+      
       _isInitialized = true;
       
       // Load initial ads
@@ -57,6 +68,8 @@ class ChatifyAdService {
       
       // Reset daily counters if needed
       _resetDailyCountersIfNeeded();
+      
+      print('✅ Chatify Ad Service initialized successfully');
       
     } catch (e) {
       print('❌ Failed to initialize Chatify Ad Service: $e');
@@ -292,12 +305,23 @@ class ChatifyAdService {
     try {
       await RewardedAd.load(
         adUnitId: rewardedAdUnitId,
-        request: const AdRequest(),
+        request: const AdRequest(
+          keywords: <String>['social', 'chat', 'dating'],
+        ),
         rewardedAdLoadCallback: RewardedAdLoadCallback(
           onAdLoaded: (RewardedAd ad) {
             _rewardedAd = ad;
             _isRewardedAdLoading = false;
             print('✅ Rewarded ad loaded successfully');
+            
+            // Log ad loaded event to Firebase Analytics
+            _analytics.logEvent(
+              name: 'rewarded_ad_loaded',
+              parameters: {
+                'ad_unit_id': rewardedAdUnitId,
+                'user_type': _currentUser?.isPremium == true ? 'premium' : 'free',
+              },
+            );
 
             ad.fullScreenContentCallback = FullScreenContentCallback(
               onAdDismissedFullScreenContent: (ad) {
@@ -315,6 +339,15 @@ class ChatifyAdService {
               onAdShowedFullScreenContent: (ad) {
                 print('🔓 Rewarded ad showed');
                 _isRewardedAdShowing = true;
+                
+                // Log ad shown event to Firebase Analytics
+                _analytics.logEvent(
+                  name: 'rewarded_ad_shown',
+                  parameters: {
+                    'ad_unit_id': rewardedAdUnitId,
+                    'user_type': _currentUser?.isPremium == true ? 'premium' : 'free',
+                  },
+                );
               },
             );
           },
@@ -324,12 +357,40 @@ class ChatifyAdService {
             print('❌ Error domain: ${error.domain}');
             _isRewardedAdLoading = false;
             _rewardedAd = null;
+            
+            // Log ad load failure to Firebase Analytics
+            _analytics.logEvent(
+              name: 'rewarded_ad_load_failed',
+              parameters: {
+                'error_code': error.code,
+                'error_domain': error.domain,
+                'error_message': error.message,
+                'ad_unit_id': rewardedAdUnitId,
+              },
+            );
+            
+            // Retry loading after a delay
+            Timer(const Duration(seconds: 30), () {
+              if (_shouldShowAds() && _rewardedAd == null && !_isRewardedAdLoading) {
+                print('🔄 Retrying rewarded ad load...');
+                _loadRewardedAd();
+              }
+            });
           },
         ),
       );
     } catch (e) {
       print('❌ Failed to load rewarded ad: $e');
       _isRewardedAdLoading = false;
+      
+      // Log exception to Firebase Analytics
+      _analytics.logEvent(
+        name: 'rewarded_ad_load_exception',
+        parameters: {
+          'exception': e.toString(),
+          'ad_unit_id': rewardedAdUnitId,
+        },
+      );
     }
   }
 
@@ -365,12 +426,34 @@ class ChatifyAdService {
       print('🎯 showRewardedAd: Showing ad...');
       await _rewardedAd!.show(onUserEarnedReward: (AdWithoutView ad, RewardItem reward) {
         print('🎁 User earned reward: ${reward.amount} ${reward.type}');
+        
+        // Log reward earned event to Firebase Analytics
+        _analytics.logEvent(
+          name: 'reward_earned',
+          parameters: {
+            'reward_amount': reward.amount,
+            'reward_type': reward.type,
+            'ad_unit_id': rewardedAdUnitId,
+            'user_type': _currentUser?.isPremium == true ? 'premium' : 'free',
+          },
+        );
+        
         _onRewardEarned(reward);
       });
       print('✅ showRewardedAd: Ad shown successfully');
       return true;
     } catch (e) {
       print('❌ Failed to show rewarded ad: $e');
+      
+      // Log show failure to Firebase Analytics
+      _analytics.logEvent(
+        name: 'rewarded_ad_show_failed',
+        parameters: {
+          'exception': e.toString(),
+          'ad_unit_id': rewardedAdUnitId,
+        },
+      );
+      
       _rewardedAd = null;
       _isRewardedAdShowing = false;
       return false;

@@ -5,7 +5,7 @@ import '../providers/user_provider.dart';
 class AdConfig {
   // TEMPORARY AD DISABLE FLAG
   // Set this to false to disable all ads temporarily
-  static const bool adsEnabled = false; // Set to false to disable ads
+  static const bool adsEnabled = true; // Set to true to enable ads
 
   /// Check if ads should be shown for the current user
   /// Returns false if user has premium (ads-free) or if ads are globally disabled

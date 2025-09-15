@@ -93,6 +93,11 @@ class _CreditShopScreenState extends State<CreditShopScreen> {
       print('⚠️ CreditShop: No products available. Check Google Play Console setup.');
     }
     
+    // Debug: Print billing service state
+    print('🔍 CreditShop: Billing available: ${_billingService.isAvailable}');
+    print('🔍 CreditShop: Billing loading: ${_billingService.loading}');
+    print('🔍 CreditShop: Billing error: ${_billingService.queryProductError}');
+    
     if (mounted) {
       setState(() {});
     }
@@ -197,17 +202,17 @@ class _CreditShopScreenState extends State<CreditShopScreen> {
   List<Widget> _buildPremiumPlans(ThemeData theme) {
     // Desired order and fallback pricing with new Google Play product IDs
     final desired = [
-      {'id': '8248-1325-3123-2424-premium-weekly', 'title': '1 Week', 'price': '₹299'},
-      {'id': '8248-1325-3123-2424-premium-monthly', 'title': '1 Month', 'price': '₹599'},
-      {'id': '8248-1325-3123-2424-premium-3months', 'title': '3 Months', 'price': '₹1499'},
-      {'id': '8248-1325-3123-2424-premium-6months', 'title': '6 Months', 'price': '₹1999'},
-      {'id': '8248-1325-3123-2424-premium-yearly', 'title': '12 Months', 'price': '₹2500'},
-      {'id': '8248-1325-3123-2424-premium-lifetime', 'title': 'Lifetime', 'price': '₹4999'},
+      {'id': '8248_1325_3123_2424_premium_wee', 'title': '1 Week', 'price': '₹299'},
+      {'id': 'premium_monthly', 'title': '1 Month', 'price': '₹599'},
+      {'id': '8248_1325_3123_2424_premium_3mc', 'title': '3 Months', 'price': '₹1499'},
+      {'id': '8248_1325_3123_2424_premium_6mc', 'title': '6 Months', 'price': '₹1999'},
+      {'id': 'premium_yearly', 'title': '12 Months', 'price': '₹2500'},
+      {'id': '8248_1325_3123_2424_premium_lifetimesub', 'title': 'Lifetime', 'price': '₹4999'},
     ];
 
     final byId = {
       for (final p
-          in _billingService.products.where((p) => p.id.startsWith('8248-1325-3123-2424-premium-')))
+          in _billingService.products.where((p) => p.id.startsWith('8248_1325_3123_2424_premium_') || p.id == 'premium_monthly' || p.id == 'premium_yearly'))
         p.id: p
     };
 
@@ -425,7 +430,7 @@ class _CreditBundleCardState extends State<_CreditBundleCard> {
       if (mounted) {
         String errorMessage = 'Purchase failed: $e';
         if (e.toString().contains('Product not found')) {
-          errorMessage = 'Product not available. Please check Google Play Console setup.';
+          errorMessage = 'Development Mode: Google Play Billing requires signed APK uploaded to Play Console for testing. Available products: ${widget.billingService.products.map((p) => p.id).join(", ")}';
         } else if (e.toString().contains('Bad state: No element')) {
           errorMessage = 'Product not found. Please ensure products are created in Google Play Console.';
         }
@@ -573,7 +578,7 @@ class _PremiumPlanCardState extends State<_PremiumPlanCard> {
       if (mounted) {
         String errorMessage = 'Purchase failed: $e';
         if (e.toString().contains('Product not found')) {
-          errorMessage = 'Product not available. Please check Google Play Console setup.';
+          errorMessage = 'Development Mode: Google Play Billing requires signed APK uploaded to Play Console for testing. Available products: ${widget.billingService.products.map((p) => p.id).join(", ")}';
         } else if (e.toString().contains('Bad state: No element')) {
           errorMessage = 'Product not found. Please ensure products are created in Google Play Console.';
         }
