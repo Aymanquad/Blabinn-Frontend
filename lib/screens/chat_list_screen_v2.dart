@@ -39,7 +39,7 @@ class _ChatListScreenV2State extends State<ChatListScreenV2>
     try {
       // Simulate loading friends data
       await Future.delayed(const Duration(milliseconds: 500));
-      
+
       // Mock data for demonstration
       final mockFriends = [
         {
@@ -180,15 +180,15 @@ class _ChatListScreenV2State extends State<ChatListScreenV2>
           Text(
             'No chats yet',
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
-              color: Colors.white,
-            ),
+                  color: Colors.white,
+                ),
           ),
           const SizedBox(height: 8),
           Text(
             'Start a conversation to see your chats here',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: Colors.white70,
-            ),
+                  color: Colors.white70,
+                ),
             textAlign: TextAlign.center,
           ),
         ],
@@ -350,7 +350,7 @@ class _GalleryScreenV2State extends State<GalleryScreenV2>
     try {
       // Simulate loading images
       await Future.delayed(const Duration(milliseconds: 500));
-      
+
       // Mock image URLs
       final mockImages = [
         'https://example.com/image1.jpg',
@@ -420,8 +420,7 @@ class ChatScreenV2 extends StatefulWidget {
   State<ChatScreenV2> createState() => _ChatScreenV2State();
 }
 
-class _ChatScreenV2State extends State<ChatScreenV2>
-    with ImagePreloadingMixin {
+class _ChatScreenV2State extends State<ChatScreenV2> with ImagePreloadingMixin {
   List<Map<String, dynamic>> _messages = [];
   final TextEditingController _messageController = TextEditingController();
 
@@ -441,7 +440,7 @@ class _ChatScreenV2State extends State<ChatScreenV2>
     try {
       // Simulate loading messages
       await Future.delayed(const Duration(milliseconds: 300));
-      
+
       // Mock messages with images
       final mockMessages = [
         {
@@ -476,7 +475,7 @@ class _ChatScreenV2State extends State<ChatScreenV2>
           .where((msg) => msg['type'] == 'image')
           .map((msg) => msg['content'] as String)
           .toList();
-      
+
       if (imageUrls.isNotEmpty) {
         await preloadImages(imageUrls, type: ImageType.chat);
       }

@@ -1,20 +1,13 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
-import '../widgets/banner_ad_widget.dart';
-import '../widgets/glass_container.dart';
-import '../widgets/skeleton_list.dart';
-import '../widgets/modern_card.dart';
-import '../widgets/gradient_button.dart';
 import '../core/theme_extensions.dart';
-import '../core/constants.dart';
 import 'random_chat_screen.dart';
 import 'connect/connect_state_manager.dart';
 import 'connect/connect_ui_components.dart';
 import 'connect/connect_dialog_components.dart';
-import 'connect/connect_filter_components.dart';
 
 class HomeScreen extends StatefulWidget {
-  final Function(int)? onNavigateToTab;
+  final void Function(int)? onNavigateToTab;
 
   const HomeScreen({super.key, this.onNavigateToTab});
 
@@ -26,7 +19,6 @@ class _HomeScreenState extends State<HomeScreen>
     with SingleTickerProviderStateMixin {
   late ConnectStateManager _stateManager;
   bool _isLoading = true;
-  bool _showRadiusSelection = false;
 
   @override
   void initState() {
@@ -40,19 +32,26 @@ class _HomeScreenState extends State<HomeScreen>
 
   void _initializeStateManager() {
     _stateManager = ConnectStateManager(
-      // Avoid triggering rebuilds after dispose
       onStateChanged: () {
-        if (!mounted) return;
-        setState(() {});
+        if (mounted) setState(() {});
       },
       onNavigateToChat: _navigateToRandomChat,
-      onShowTimeoutDialog: () =>
-          ConnectDialogComponents.showTimeoutDialog(context, _stateManager),
-      onShowWarningSnackBar: (message, color) =>
-          ConnectDialogComponents.showWarningSnackBar(context, message, color),
-      onShowClearSessionDialog: () =>
+      onShowTimeoutDialog: () {
+        if (mounted) {
+          ConnectDialogComponents.showTimeoutDialog(context, _stateManager);
+        }
+      },
+      onShowWarningSnackBar: (message, color) {
+        if (mounted) {
+          ConnectDialogComponents.showWarningSnackBar(context, message, color);
+        }
+      },
+      onShowClearSessionDialog: () {
+        if (mounted) {
           ConnectDialogComponents.showClearSessionDialog(
-              context, _stateManager),
+              context, _stateManager);
+        }
+      },
     );
   }
 
@@ -62,18 +61,15 @@ class _HomeScreenState extends State<HomeScreen>
     _stateManager.initializeFilters();
     _stateManager.setupSocketListeners();
     _stateManager.loadUserInterests();
-    
-    // Performance Note: Currently using setState() for all state changes.
-    // Future optimization: Consider exposing granular ValueNotifiers/Selectors from state manager
-    // and rebuilding only dependent subtrees (e.g., the match button) via ValueListenableBuilder
-    // to reduce unnecessary widget rebuilds and improve performance.
   }
 
   Future<void> _loadContent() async {
-    await Future.delayed(const Duration(milliseconds: 500));
-    setState(() {
-      _isLoading = false;
-    });
+    await Future<void>.delayed(const Duration(milliseconds: 500));
+    if (mounted) {
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 
   @override
@@ -83,20 +79,17 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   void _navigateToRandomChat(String sessionId, String chatRoomId) {
-    // This method is used as a callback for ConnectStateManager
-    // For direct navigation, use _navigateToRandomChatDirect
-  }
-
-  void _navigateToRandomChatDirect() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => const RandomChatScreen(
-          sessionId: 'demo_session',
-          chatRoomId: 'demo_chat_room',
+    if (mounted) {
+      Navigator.push(
+        context,
+        MaterialPageRoute<void>(
+          builder: (context) => RandomChatScreen(
+            sessionId: sessionId,
+            chatRoomId: chatRoomId,
+          ),
         ),
-      ),
-    );
+      );
+    }
   }
 
   @override
@@ -112,7 +105,6 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
-
   Widget _buildLoadingState(BuildContext context, AppThemeTokens? tokens) {
     return const Center(
       child: CircularProgressIndicator(
@@ -122,188 +114,173 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   Widget _buildMainContent(BuildContext context, AppThemeTokens? tokens) {
-    // Show matching screen if currently matching
     if (_stateManager.isMatching) {
       return ConnectUIComponents.buildMatchingScreen(context, _stateManager);
     }
 
-    // Show radius selection if user clicked connect
-    if (_showRadiusSelection) {
-      return _buildRadiusSelection(context);
-    }
-
-    // Show hero section by default
     return _buildHeroSection(context);
   }
 
   Widget _buildHeroSection(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 32),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // Hero Image
-            Container(
-              width: 250,
-              height: 300,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(20),
-                image: const DecorationImage(
-                  image: AssetImage('assets/images/Girl.png'),
-                  fit: BoxFit.contain,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.3),
-                    blurRadius: 20,
-                    offset: const Offset(0, 10),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          // Hero Image Section with Stacked Layout
+          Expanded(
+            flex: 5,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                // Background image container
+                Positioned.fill(
+                  child: Center(
+                    child: Image.asset(
+                      'assets/images/Girl.png',
+                      fit: BoxFit.contain,
+                      height: MediaQuery.of(context).size.height * 0.6,
+                      errorBuilder: (context, error, stackTrace) {
+                        print('Image Error: $error');
+                        // Try fallback image
+                        return Image.asset(
+                          'assets/images/girl_new_use_nobg.jpg',
+                          fit: BoxFit.contain,
+                          height: MediaQuery.of(context).size.height * 0.6,
+                          errorBuilder: (context, error, stackTrace) {
+                            print('Fallback Image Error: $error');
+                            // Try another fallback
+                            return Image.asset(
+                              'assets/images/girl_new-removebg-preview.png',
+                              fit: BoxFit.contain,
+                              height: MediaQuery.of(context).size.height * 0.6,
+                              errorBuilder: (context, error, stackTrace) {
+                                print('Second Fallback Image Error: $error');
+                                return Center(
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(
+                                        Icons.image_not_supported,
+                                        color: const Color(0x80FFFFFF),
+                                        size: 64,
+                                      ),
+                                      const SizedBox(height: 16),
+                                      Text(
+                                        'Failed to load image',
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .bodyMedium!
+                                            .copyWith(
+                                              color: const Color(0x80FFFFFF),
+                                            ),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              },
+                            );
+                          },
+                        );
+                      },
+                    ),
                   ),
-                ],
-              ),
-            ),
-            
-            const SizedBox(height: 40),
-            
-            // Main Question
-            const Text(
-              'Ready to meet new people?',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            
-            const SizedBox(height: 30),
-            
-            // Connect Button
-            Container(
-              width: double.infinity,
-              height: 56,
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF8B5CF6), Color(0xFF7C3AED)],
-                  begin: Alignment.centerLeft,
-                  end: Alignment.centerRight,
                 ),
-                borderRadius: BorderRadius.circular(28),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFF8B5CF6).withOpacity(0.3),
-                    blurRadius: 15,
-                    offset: const Offset(0, 5),
+
+                // Text overlay positioned above the waist area
+                Positioned(
+                  bottom: MediaQuery.of(context).size.height * 0.08,
+                  left: 0,
+                  right: 0,
+                  child: Text(
+                    'Ready to meet new people?',
+                    style: Theme.of(context).textTheme.headlineMedium!.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 28,
+                      shadows: [
+                        Shadow(
+                          color: Colors.black.withValues(alpha: 0.5),
+                          blurRadius: 4,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    textAlign: TextAlign.center,
                   ),
-                ],
-              ),
-              child: Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(28),
-                  onTap: () {
-                    setState(() {
-                      _showRadiusSelection = true;
-                    });
-                  },
-                  child: const Center(
-                    child: Text(
-                      'Connect Now',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
+                ),
+              ],
+            ),
+          ),
+
+          // Button and subtitle section
+          Expanded(
+            flex: 1,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.start,
+              children: [
+                const SizedBox(height: 8),
+
+                // Connect Button
+                Container(
+                  width: double.infinity,
+                  height: 56,
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF8B5CF6), Color(0xFF7C3AED)],
+                      begin: Alignment.centerLeft,
+                      end: Alignment.centerRight,
+                    ),
+                    borderRadius: BorderRadius.circular(28),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Color(0x4D8B5CF6),
+                        blurRadius: 15,
+                        offset: Offset(0, 5),
+                      ),
+                    ],
+                  ),
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(28),
+                      onTap: () {
+                        if (mounted) {
+                          _stateManager.startMatching();
+                        }
+                      },
+                      child: Center(
+                        child: Text(
+                          'Connect Now',
+                          style:
+                              Theme.of(context).textTheme.titleLarge!.copyWith(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w500,
+                                    fontSize: 20,
+                                  ),
+                        ),
                       ),
                     ),
                   ),
                 ),
-              ),
-            ),
-            
-            const SizedBox(height: 20),
-            
-            // Tagline
-            const Text(
-              'Find and chat with people around the world',
-              style: TextStyle(
-                color: Colors.white70,
-                fontSize: 16,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 
-  Widget _buildRadiusSelection(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          // Back button
-          Row(
-            children: [
-              IconButton(
-                icon: const Icon(Icons.arrow_back, color: Colors.white),
-                onPressed: () {
-                  setState(() {
-                    _showRadiusSelection = false;
-                  });
-                },
-              ),
-              const Text(
-                'Select Distance',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
+                const SizedBox(height: 16),
+
+                // Descriptive text
+                Text(
+                  'Find and chat with people around the world',
+                  style: Theme.of(context).textTheme.bodyLarge!.copyWith(
+                        color: Colors.white.withValues(alpha: 0.8),
+                        fontSize: 16,
+                      ),
+                  textAlign: TextAlign.center,
                 ),
-              ),
-            ],
-          ),
-          
-          const SizedBox(height: 40),
-          
-          // Distance selection
-          ConnectFilterComponents.buildDistanceFilter(context, _stateManager),
-          
-          const SizedBox(height: 40),
-          
-          // Start Matching Button
-          Container(
-            width: double.infinity,
-            height: 56,
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFF8B5CF6), Color(0xFF7C3AED)],
-                begin: Alignment.centerLeft,
-                end: Alignment.centerRight,
-              ),
-              borderRadius: BorderRadius.circular(28),
-            ),
-            child: Material(
-              color: Colors.transparent,
-              child: InkWell(
-                borderRadius: BorderRadius.circular(28),
-                onTap: () {
-                  _stateManager.startMatching();
-                },
-                child: const Center(
-                  child: Text(
-                    'Start Matching',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ),
+              ],
             ),
           ),
+
+          // Bottom spacing for navigation bar
+          const SizedBox(height: 100),
         ],
       ),
     );

@@ -199,25 +199,32 @@ ThemeData _buildDarkTheme() {
     scaffoldBackgroundColor: Colors.transparent,
 
     // Enhanced TextTheme with consistent hierarchy
+    fontFamily: 'LeagueSpartan',
     textTheme: const TextTheme(
-      // Display styles for hero text
+      // Display styles for hero text and main headings
       displayLarge: TextStyle(
-        fontSize: 32,
-        fontWeight: FontWeight.bold,
-        color: AppColors.text,
+        fontSize: 36, // Increased size
+        fontWeight: FontWeight.w900, // Maximum weight for main headlines
+        color: Colors.white, // Pure white for maximum contrast
         letterSpacing: -0.5,
+        fontFamily: 'LeagueSpartan',
+        height: 1.2,
       ),
       displayMedium: TextStyle(
-        fontSize: 28,
-        fontWeight: FontWeight.bold,
-        color: AppColors.text,
+        fontSize: 32, // Increased size
+        fontWeight: FontWeight.w800, // Extra bold for secondary headlines
+        color: Colors.white,
         letterSpacing: -0.25,
+        fontFamily: 'LeagueSpartan',
+        height: 1.3,
       ),
       displaySmall: TextStyle(
-        fontSize: 24,
-        fontWeight: FontWeight.bold,
-        color: AppColors.text,
+        fontSize: 28, // Increased size
+        fontWeight: FontWeight.w800, // Extra bold for tertiary headlines
+        color: Colors.white,
         letterSpacing: 0,
+        fontFamily: 'LeagueSpartan',
+        height: 1.3,
       ),
 
       // Title styles for section headers
@@ -226,58 +233,70 @@ ThemeData _buildDarkTheme() {
         fontWeight: FontWeight.w600,
         color: AppColors.text,
         letterSpacing: 0,
+        fontFamily: 'LeagueSpartan',
       ),
       titleMedium: TextStyle(
         fontSize: 18,
         fontWeight: FontWeight.w600,
         color: AppColors.text,
         letterSpacing: 0.15,
+        fontFamily: 'LeagueSpartan',
       ),
       titleSmall: TextStyle(
         fontSize: 16,
         fontWeight: FontWeight.w600,
         color: AppColors.text,
+        fontFamily: 'LeagueSpartan',
         letterSpacing: 0.1,
       ),
 
       // Body styles for content
       bodyLarge: TextStyle(
-        fontSize: 16,
-        fontWeight: FontWeight.normal,
-        color: AppColors.text,
+        fontSize: 18, // Increased size
+        fontWeight: FontWeight.w700, // Bold for primary content
+        color: Colors.white, // Pure white for better contrast
         letterSpacing: 0.5,
+        fontFamily: 'LeagueSpartan',
+        height: 1.5,
       ),
       bodyMedium: TextStyle(
-        fontSize: 14,
-        fontWeight: FontWeight.normal,
-        color: AppColors.text,
+        fontSize: 16, // Increased size
+        fontWeight: FontWeight.w600, // Semi-bold for regular text
+        color: const Color(0xF2FFFFFF), // White with 95% opacity
         letterSpacing: 0.25,
+        fontFamily: 'LeagueSpartan',
+        height: 1.5,
       ),
       bodySmall: TextStyle(
-        fontSize: 12,
-        fontWeight: FontWeight.normal,
-        color: AppColors.textSecondary,
+        fontSize: 14, // Increased size
+        fontWeight: FontWeight.w600, // Semi-bold for small text
+        color: const Color(0xE6FFFFFF), // White with 90% opacity
         letterSpacing: 0.4,
+        fontFamily: 'LeagueSpartan',
+        height: 1.4,
       ),
 
       // Label styles for buttons and inputs
       labelLarge: TextStyle(
-        fontSize: 14,
-        fontWeight: FontWeight.w500,
-        color: AppColors.text,
+        fontSize: 16, // Increased size
+        fontWeight: FontWeight.w700, // Bold for buttons
+        color: Colors.white,
         letterSpacing: 0.1,
+        fontFamily: 'LeagueSpartan',
       ),
       labelMedium: TextStyle(
-        fontSize: 12,
-        fontWeight: FontWeight.w500,
-        color: AppColors.textSecondary,
+        fontSize: 14, // Increased size
+        fontWeight: FontWeight.w600, // Semi-bold for medium labels
+        color: const Color(0xF2FFFFFF), // White with 95% opacity
         letterSpacing: 0.5,
+        fontFamily: 'LeagueSpartan',
       ),
       labelSmall: TextStyle(
-        fontSize: 10,
-        fontWeight: FontWeight.w500,
-        color: AppColors.textMuted,
+        fontSize: 12, // Increased size
+        fontWeight: FontWeight.w600, // Semi-bold for small labels
+        color: const Color(0xE6FFFFFF), // White with 90% opacity
         letterSpacing: 0.5,
+        fontFamily: 'LeagueSpartan',
       ),
     ),
 
@@ -569,7 +588,8 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
         Logger.debug('Current chat user: $currentChatUserId');
 
         if (currentChatUserId == senderId) {
-          Logger.notification('Skipping notification - user is in chat with sender');
+          Logger.notification(
+              'Skipping notification - user is in chat with sender');
           return;
         }
 
@@ -627,7 +647,8 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
       case AppLifecycleState.inactive:
         // Keep security features active even when app is paused/inactive
         _notificationService.setAppForegroundState(false);
-        Logger.notification('App paused/inactive - background notifications enabled');
+        Logger.notification(
+            'App paused/inactive - background notifications enabled');
         break;
       case AppLifecycleState.detached:
         _disableScreenProtection();
@@ -1047,20 +1068,20 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
   Future<void> _performLogout(BuildContext context) async {
     try {
       Logger.auth('User logging out');
-      
+
       // Disconnect socket
       _socketService.disconnect();
-      
+
       // Sign out from Firebase
       await FirebaseAuth.instance.signOut();
-      
+
       // Navigate to login screen
       Navigator.pushNamedAndRemoveUntil(
         context,
         '/login',
         (route) => false,
       );
-      
+
       Logger.auth('Logout completed successfully');
     } catch (e) {
       Logger.error('Error during logout', error: e);

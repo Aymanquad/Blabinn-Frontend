@@ -82,22 +82,25 @@ class _CreditShopScreenState extends State<CreditShopScreen> {
 
   Future<void> _initializeBilling() async {
     await _billingService.initialize();
-    
+
     // Debug: Print available products
-    print('🔍 CreditShop: Available products: ${_billingService.products.length}');
+    print(
+        '🔍 CreditShop: Available products: ${_billingService.products.length}');
     for (final product in _billingService.products) {
-      print('📦 CreditShop: ${product.id} - ${product.title} - ${product.price}');
+      print(
+          '📦 CreditShop: ${product.id} - ${product.title} - ${product.price}');
     }
-    
+
     if (_billingService.products.isEmpty) {
-      print('⚠️ CreditShop: No products available. Check Google Play Console setup.');
+      print(
+          '⚠️ CreditShop: No products available. Check Google Play Console setup.');
     }
-    
+
     // Debug: Print billing service state
     print('🔍 CreditShop: Billing available: ${_billingService.isAvailable}');
     print('🔍 CreditShop: Billing loading: ${_billingService.loading}');
     print('🔍 CreditShop: Billing error: ${_billingService.queryProductError}');
-    
+
     if (mounted) {
       setState(() {});
     }
@@ -177,12 +180,17 @@ class _CreditShopScreenState extends State<CreditShopScreen> {
 
   List<Widget> _buildCreditBundles() {
     final creditProducts = _billingService.products
-        .where((product) => product.id.startsWith('8248-1325-3123-2424-credits-'))
+        .where(
+            (product) => product.id.startsWith('8248-1325-3123-2424-credits-'))
         .toList()
       ..sort((a, b) {
         // Extract credit amount and sort
-        final aCredits = int.tryParse(a.id.replaceAll('8248-1325-3123-2424-credits-', '')) ?? 0;
-        final bCredits = int.tryParse(b.id.replaceAll('8248-1325-3123-2424-credits-', '')) ?? 0;
+        final aCredits =
+            int.tryParse(a.id.replaceAll('8248-1325-3123-2424-credits-', '')) ??
+                0;
+        final bCredits =
+            int.tryParse(b.id.replaceAll('8248-1325-3123-2424-credits-', '')) ??
+                0;
         return aCredits.compareTo(bCredits);
       });
 
@@ -190,7 +198,8 @@ class _CreditShopScreenState extends State<CreditShopScreen> {
       final isMostPopular = product.id == '8248-1325-3123-2424-credits-150';
       final displayPrice = _displayCreditPrices[product.id] ?? product.price;
       return _CreditBundleCard(
-        title: '${product.id.replaceAll('8248-1325-3123-2424-credits-', '')} credits',
+        title:
+            '${product.id.replaceAll('8248-1325-3123-2424-credits-', '')} credits',
         price: displayPrice,
         productId: product.id,
         isMostPopular: isMostPopular,
@@ -202,17 +211,35 @@ class _CreditShopScreenState extends State<CreditShopScreen> {
   List<Widget> _buildPremiumPlans(ThemeData theme) {
     // Desired order and fallback pricing with new Google Play product IDs
     final desired = [
-      {'id': '8248_1325_3123_2424_premium_wee', 'title': '1 Week', 'price': '₹299'},
+      {
+        'id': '8248_1325_3123_2424_premium_wee',
+        'title': '1 Week',
+        'price': '₹299'
+      },
       {'id': 'premium_monthly', 'title': '1 Month', 'price': '₹599'},
-      {'id': '8248_1325_3123_2424_premium_3mc', 'title': '3 Months', 'price': '₹1499'},
-      {'id': '8248_1325_3123_2424_premium_6mc', 'title': '6 Months', 'price': '₹1999'},
+      {
+        'id': '8248_1325_3123_2424_premium_3mc',
+        'title': '3 Months',
+        'price': '₹1499'
+      },
+      {
+        'id': '8248_1325_3123_2424_premium_6mc',
+        'title': '6 Months',
+        'price': '₹1999'
+      },
       {'id': 'premium_yearly', 'title': '12 Months', 'price': '₹2500'},
-      {'id': '8248_1325_3123_2424_premium_lifetimesub', 'title': 'Lifetime', 'price': '₹4999'},
+      {
+        'id': '8248_1325_3123_2424_premium_lifetimesub',
+        'title': 'Lifetime',
+        'price': '₹4999'
+      },
     ];
 
     final byId = {
-      for (final p
-          in _billingService.products.where((p) => p.id.startsWith('8248_1325_3123_2424_premium_') || p.id == 'premium_monthly' || p.id == 'premium_yearly'))
+      for (final p in _billingService.products.where((p) =>
+          p.id.startsWith('8248_1325_3123_2424_premium_') ||
+          p.id == 'premium_monthly' ||
+          p.id == 'premium_yearly'))
         p.id: p
     };
 
@@ -287,12 +314,12 @@ class _HeaderBalance extends StatelessWidget {
             onPressed: () async {
               try {
                 print('🎯 Claim Daily: Starting process...');
-                
+
                 // Show two rewarded ads to claim daily bonus
                 print('🎯 Claim Daily: Showing first rewarded ad...');
                 final adOk1 = await ChatifyAdService().showRewardedAd();
                 print('🎯 Claim Daily: First ad result: $adOk1');
-                
+
                 if (!adOk1) {
                   print('❌ Claim Daily: First ad failed, stopping process');
                   if (context.mounted) {
@@ -305,11 +332,11 @@ class _HeaderBalance extends StatelessWidget {
                   }
                   return;
                 }
-                
+
                 print('🎯 Claim Daily: Showing second rewarded ad...');
                 final adOk2 = await ChatifyAdService().showRewardedAd();
                 print('🎯 Claim Daily: Second ad result: $adOk2');
-                
+
                 if (!adOk2) {
                   print('❌ Claim Daily: Second ad failed, stopping process');
                   if (context.mounted) {
@@ -323,18 +350,20 @@ class _HeaderBalance extends StatelessWidget {
                   return;
                 }
 
-                print('✅ Claim Daily: Both ads successful, claiming credits...');
+                print(
+                    '✅ Claim Daily: Both ads successful, claiming credits...');
                 final api = ApiService();
                 final result = await api.claimDailyCredits();
                 print('🎯 Claim Daily: API result: $result');
-                
+
                 final awarded = (result['awarded'] as int?) ?? 0;
                 final credits = (result['credits'] as int?) ?? 0;
-                
+
                 if (awarded > 0 && context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text('Daily bonus claimed: +$awarded credits! Total: $credits'),
+                      content: Text(
+                          'Daily bonus claimed: +$awarded credits! Total: $credits'),
                       backgroundColor: Colors.green,
                     ),
                   );
@@ -412,11 +441,10 @@ class _CreditBundleCardState extends State<_CreditBundleCard> {
     setState(() => _loading = true);
     try {
       // Find the product in billing service
-      final product = widget.billingService.products
-          .firstWhere(
-            (p) => p.id == widget.productId,
-            orElse: () => throw Exception('Product not found: ${widget.productId}'),
-          );
+      final product = widget.billingService.products.firstWhere(
+        (p) => p.id == widget.productId,
+        orElse: () => throw Exception('Product not found: ${widget.productId}'),
+      );
 
       // Initiate purchase through billing service
       await widget.billingService.buyProduct(product);
@@ -430,9 +458,11 @@ class _CreditBundleCardState extends State<_CreditBundleCard> {
       if (mounted) {
         String errorMessage = 'Purchase failed: $e';
         if (e.toString().contains('Product not found')) {
-          errorMessage = 'Development Mode: Google Play Billing requires signed APK uploaded to Play Console for testing. Available products: ${widget.billingService.products.map((p) => p.id).join(", ")}';
+          errorMessage =
+              'Development Mode: Google Play Billing requires signed APK uploaded to Play Console for testing. Available products: ${widget.billingService.products.map((p) => p.id).join(", ")}';
         } else if (e.toString().contains('Bad state: No element')) {
-          errorMessage = 'Product not found. Please ensure products are created in Google Play Console.';
+          errorMessage =
+              'Product not found. Please ensure products are created in Google Play Console.';
         }
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -560,11 +590,10 @@ class _PremiumPlanCardState extends State<_PremiumPlanCard> {
     setState(() => _loading = true);
     try {
       // Find the product in billing service
-      final product = widget.billingService.products
-          .firstWhere(
-            (p) => p.id == widget.productId,
-            orElse: () => throw Exception('Product not found: ${widget.productId}'),
-          );
+      final product = widget.billingService.products.firstWhere(
+        (p) => p.id == widget.productId,
+        orElse: () => throw Exception('Product not found: ${widget.productId}'),
+      );
 
       // Initiate purchase through billing service
       await widget.billingService.buyProduct(product);
@@ -578,9 +607,11 @@ class _PremiumPlanCardState extends State<_PremiumPlanCard> {
       if (mounted) {
         String errorMessage = 'Purchase failed: $e';
         if (e.toString().contains('Product not found')) {
-          errorMessage = 'Development Mode: Google Play Billing requires signed APK uploaded to Play Console for testing. Available products: ${widget.billingService.products.map((p) => p.id).join(", ")}';
+          errorMessage =
+              'Development Mode: Google Play Billing requires signed APK uploaded to Play Console for testing. Available products: ${widget.billingService.products.map((p) => p.id).join(", ")}';
         } else if (e.toString().contains('Bad state: No element')) {
-          errorMessage = 'Product not found. Please ensure products are created in Google Play Console.';
+          errorMessage =
+              'Product not found. Please ensure products are created in Google Play Console.';
         }
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -640,7 +671,7 @@ class _PremiumPlanCardState extends State<_PremiumPlanCard> {
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
                           ))
-                      : const Text('Activate'),
+                      : const Text('Buy'),
                 ),
               ],
             )

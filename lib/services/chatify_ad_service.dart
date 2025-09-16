@@ -40,7 +40,7 @@ class ChatifyAdService {
   /// Initialize the Chatify Ad Service
   Future<void> initialize(User? user) async {
     _currentUser = user;
-    
+
     if (_isInitialized) return;
 
     // Check if ads are enabled and user should see ads
@@ -52,25 +52,25 @@ class ChatifyAdService {
     try {
       // Initialize Mobile Ads with proper configuration
       final initializationStatus = await MobileAds.instance.initialize();
-      
+
       // Log initialization status
-      for (final adapterStatus in initializationStatus.adapterStatuses.entries) {
+      for (final adapterStatus
+          in initializationStatus.adapterStatuses.entries) {
         final name = adapterStatus.key;
         final status = adapterStatus.value;
         print('🔧 Adapter $name: ${status.description}');
       }
-      
+
       _isInitialized = true;
-      
+
       // Load initial ads
       await _loadInterstitialAd();
       await _loadRewardedAd();
-      
+
       // Reset daily counters if needed
       _resetDailyCountersIfNeeded();
-      
+
       print('✅ Chatify Ad Service initialized successfully');
-      
     } catch (e) {
       print('❌ Failed to initialize Chatify Ad Service: $e');
     }
@@ -80,10 +80,10 @@ class ChatifyAdService {
   bool _shouldShowAds() {
     if (!AdConfig.adsEnabled) return false;
     if (_currentUser == null) return true; // Show ads for unauthenticated users
-    
+
     // Premium users with ads-free don't see ads
     if (_currentUser!.isPremiumUser && _currentUser!.adsFree) return false;
-    
+
     // Women get all features free but still see ads (special rule)
     return true;
   }
@@ -147,7 +147,9 @@ class ChatifyAdService {
 
   /// Load interstitial ad
   Future<void> _loadInterstitialAd() async {
-    if (!_shouldShowAds() || _isInterstitialAdLoading || _interstitialAd != null) {
+    if (!_shouldShowAds() ||
+        _isInterstitialAdLoading ||
+        _interstitialAd != null) {
       return;
     }
 
@@ -197,7 +199,9 @@ class ChatifyAdService {
 
   /// Show interstitial ad if available
   Future<void> showInterstitialAd() async {
-    if (!_shouldShowAds() || _interstitialAd == null || _isInterstitialAdShowing) {
+    if (!_shouldShowAds() ||
+        _interstitialAd == null ||
+        _isInterstitialAdShowing) {
       return;
     }
 
@@ -216,10 +220,10 @@ class ChatifyAdService {
   /// Trigger: Before match when clicking Connect
   Future<void> onConnectClick() async {
     if (!_shouldShowAds()) return;
-    
+
     _connectCount++;
     await _updateConnectCount();
-    
+
     // Show interstitial before match
     await showInterstitialAd();
   }
@@ -227,7 +231,7 @@ class ChatifyAdService {
   /// Trigger: After every 2 Connects
   Future<void> onConnectComplete() async {
     if (!_shouldShowAds()) return;
-    
+
     if (_connectCount % 2 == 0) {
       await showInterstitialAd();
     }
@@ -236,19 +240,19 @@ class ChatifyAdService {
   /// Trigger: After switching pages 3 times
   Future<void> onPageSwitch() async {
     if (!_shouldShowAds()) return;
-    
+
     final now = DateTime.now();
-    
+
     // Reset counter if more than 1 hour has passed
-    if (_lastPageSwitchTime != null && 
+    if (_lastPageSwitchTime != null &&
         now.difference(_lastPageSwitchTime!).inHours >= 1) {
       _pageSwitchCount = 0;
     }
-    
+
     _pageSwitchCount++;
     _lastPageSwitchTime = now;
     await _updatePageSwitchCount();
-    
+
     if (_pageSwitchCount % 3 == 0) {
       await showInterstitialAd();
     }
@@ -265,7 +269,7 @@ class ChatifyAdService {
   /// Trigger: After every Connect
   Future<void> onConnectCompletePopUp() async {
     if (!_shouldShowAds()) return;
-    
+
     // Show pop-up ad after connect
     _showPopUpAd('Great connection! Check out our premium features!');
   }
@@ -273,7 +277,7 @@ class ChatifyAdService {
   /// Trigger: When clicking on profile
   Future<void> onProfileClick() async {
     if (!_shouldShowAds()) return;
-    
+
     // Show pop-up ad when viewing profile
     _showPopUpAd('Upgrade to Premium for unlimited profile views!');
   }
@@ -293,7 +297,7 @@ class ChatifyAdService {
     print('🎯 _loadRewardedAd: _isRewardedAdLoading = $_isRewardedAdLoading');
     print('🎯 _loadRewardedAd: _rewardedAd != null = ${_rewardedAd != null}');
     print('🎯 _loadRewardedAd: rewardedAdUnitId = $rewardedAdUnitId');
-    
+
     if (!_shouldShowAds() || _isRewardedAdLoading || _rewardedAd != null) {
       print('🎯 _loadRewardedAd: Skipping load (conditions not met)');
       return;
@@ -307,19 +311,21 @@ class ChatifyAdService {
         adUnitId: rewardedAdUnitId,
         request: const AdRequest(
           keywords: <String>['social', 'chat', 'dating'],
+          nonPersonalizedAds: true,
         ),
         rewardedAdLoadCallback: RewardedAdLoadCallback(
           onAdLoaded: (RewardedAd ad) {
             _rewardedAd = ad;
             _isRewardedAdLoading = false;
             print('✅ Rewarded ad loaded successfully');
-            
+
             // Log ad loaded event to Firebase Analytics
             _analytics.logEvent(
               name: 'rewarded_ad_loaded',
               parameters: {
                 'ad_unit_id': rewardedAdUnitId,
-                'user_type': _currentUser?.isPremium == true ? 'premium' : 'free',
+                'user_type':
+                    _currentUser?.isPremium == true ? 'premium' : 'free',
               },
             );
 
@@ -339,13 +345,14 @@ class ChatifyAdService {
               onAdShowedFullScreenContent: (ad) {
                 print('🔓 Rewarded ad showed');
                 _isRewardedAdShowing = true;
-                
+
                 // Log ad shown event to Firebase Analytics
                 _analytics.logEvent(
                   name: 'rewarded_ad_shown',
                   parameters: {
                     'ad_unit_id': rewardedAdUnitId,
-                    'user_type': _currentUser?.isPremium == true ? 'premium' : 'free',
+                    'user_type':
+                        _currentUser?.isPremium == true ? 'premium' : 'free',
                   },
                 );
               },
@@ -357,7 +364,7 @@ class ChatifyAdService {
             print('❌ Error domain: ${error.domain}');
             _isRewardedAdLoading = false;
             _rewardedAd = null;
-            
+
             // Log ad load failure to Firebase Analytics
             _analytics.logEvent(
               name: 'rewarded_ad_load_failed',
@@ -368,11 +375,13 @@ class ChatifyAdService {
                 'ad_unit_id': rewardedAdUnitId,
               },
             );
-            
-            // Retry loading after a delay
-            Timer(const Duration(seconds: 30), () {
-              if (_shouldShowAds() && _rewardedAd == null && !_isRewardedAdLoading) {
-                print('🔄 Retrying rewarded ad load...');
+
+            // Retry loading with shorter initial delay
+            Timer(const Duration(seconds: 5), () {
+              if (_shouldShowAds() &&
+                  _rewardedAd == null &&
+                  !_isRewardedAdLoading) {
+                print('🔄 Retrying rewarded ad load immediately...');
                 _loadRewardedAd();
               }
             });
@@ -382,7 +391,7 @@ class ChatifyAdService {
     } catch (e) {
       print('❌ Failed to load rewarded ad: $e');
       _isRewardedAdLoading = false;
-      
+
       // Log exception to Firebase Analytics
       _analytics.logEvent(
         name: 'rewarded_ad_load_exception',
@@ -401,12 +410,12 @@ class ChatifyAdService {
     print('🎯 showRewardedAd: _rewardedAd != null = ${_rewardedAd != null}');
     print('🎯 showRewardedAd: _isRewardedAdShowing = $_isRewardedAdShowing');
     print('🎯 showRewardedAd: _isRewardedAdLoading = $_isRewardedAdLoading');
-    
+
     if (!_shouldShowAds()) {
       print('❌ showRewardedAd: Ads disabled or user is premium');
       return false;
     }
-    
+
     if (_rewardedAd == null) {
       print('❌ showRewardedAd: No rewarded ad loaded');
       // Try to load a new ad
@@ -416,7 +425,7 @@ class ChatifyAdService {
         return false;
       }
     }
-    
+
     if (_isRewardedAdShowing) {
       print('❌ showRewardedAd: Ad already showing');
       return false;
@@ -424,9 +433,17 @@ class ChatifyAdService {
 
     try {
       print('🎯 showRewardedAd: Showing ad...');
-      await _rewardedAd!.show(onUserEarnedReward: (AdWithoutView ad, RewardItem reward) {
+      await _rewardedAd!.show(
+          onUserEarnedReward: (AdWithoutView ad, RewardItem reward) async {
         print('🎁 User earned reward: ${reward.amount} ${reward.type}');
-        
+
+        try {
+          await _onRewardEarned(reward);
+          print('✅ Reward processed successfully');
+        } catch (e) {
+          print('❌ Failed to process reward: $e');
+        }
+
         // Log reward earned event to Firebase Analytics
         _analytics.logEvent(
           name: 'reward_earned',
@@ -437,14 +454,14 @@ class ChatifyAdService {
             'user_type': _currentUser?.isPremium == true ? 'premium' : 'free',
           },
         );
-        
+
         _onRewardEarned(reward);
       });
       print('✅ showRewardedAd: Ad shown successfully');
       return true;
     } catch (e) {
       print('❌ Failed to show rewarded ad: $e');
-      
+
       // Log show failure to Firebase Analytics
       _analytics.logEvent(
         name: 'rewarded_ad_show_failed',
@@ -453,7 +470,7 @@ class ChatifyAdService {
           'ad_unit_id': rewardedAdUnitId,
         },
       );
-      
+
       _rewardedAd = null;
       _isRewardedAdShowing = false;
       return false;
@@ -461,10 +478,25 @@ class ChatifyAdService {
   }
 
   /// Handle reward earned
-  void _onRewardEarned(RewardItem reward) {
-    _dailyAdViews++;
-    _lastAdViewDate = DateTime.now();
-    _updateDailyAdViews();
+  Future<void> _onRewardEarned(RewardItem reward) async {
+    try {
+      _dailyAdViews++;
+      _lastAdViewDate = DateTime.now();
+      await _updateDailyAdViews();
+
+      // Grant credits through API
+      final result = await _apiService.grantAdCredits(
+          amount: reward.amount.toInt(), trigger: 'credit_shop_reward');
+
+      // Update user's credits in provider
+      if (_currentUser != null) {
+        _currentUser = _currentUser!.copyWith(
+            credits: (result['credits'] as int?) ?? _currentUser!.credits);
+      }
+    } catch (e) {
+      print('❌ Failed to process reward: $e');
+      rethrow;
+    }
   }
 
   // ==================== REWARDED AD TRIGGERS ====================
@@ -472,7 +504,7 @@ class ChatifyAdService {
   /// Trigger: Accepting friend request → unlocks via reward ad
   Future<bool> onAcceptFriendRequest() async {
     if (!_shouldShowAds()) return true; // Allow without ad for premium users
-    
+
     final success = await showRewardedAd();
     if (success) {
       print('✅ Friend request accepted via reward ad');
@@ -483,7 +515,7 @@ class ChatifyAdService {
   /// Trigger: Collecting daily bonus → 2 reward ads
   Future<bool> onCollectDailyBonus() async {
     if (!_shouldShowAds()) return true; // Allow without ad for premium users
-    
+
     // Show 2 reward ads for daily bonus
     bool success1 = await showRewardedAd();
     if (success1) {
@@ -498,7 +530,7 @@ class ChatifyAdService {
   /// Trigger: Gender filter → watch 3 reward ads = filter unlock for 5 mins
   Future<bool> onGenderFilterUnlock() async {
     if (!_shouldShowAds()) return true; // Allow without ad for premium users
-    
+
     // Show 3 reward ads for gender filter unlock
     bool success1 = await showRewardedAd();
     if (success1) {
@@ -520,13 +552,13 @@ class ChatifyAdService {
   /// Trigger: Viewing who liked you → watch reward ads (max 3 views/day if no plan)
   Future<bool> onViewWhoLikedYou() async {
     if (!_shouldShowAds()) return true; // Allow without ad for premium users
-    
+
     // Check daily limit
     if (_whoLikedViews >= 3) {
       print('❌ Daily limit reached for "Who Liked You" views');
       return false;
     }
-    
+
     final success = await showRewardedAd();
     if (success) {
       _whoLikedViews++;
@@ -542,16 +574,16 @@ class ChatifyAdService {
   /// Reset daily counters if needed
   void _resetDailyCountersIfNeeded() {
     final now = DateTime.now();
-    
+
     // Reset daily ad views
-    if (_lastAdViewDate == null || 
+    if (_lastAdViewDate == null ||
         now.difference(_lastAdViewDate!).inDays >= 1) {
       _dailyAdViews = 0;
       _lastAdViewDate = now;
     }
-    
+
     // Reset who liked views
-    if (_lastWhoLikedViewDate == null || 
+    if (_lastWhoLikedViewDate == null ||
         now.difference(_lastWhoLikedViewDate!).inDays >= 1) {
       _whoLikedViews = 0;
       _lastWhoLikedViewDate = now;
@@ -571,7 +603,7 @@ class ChatifyAdService {
   /// Update connect count in backend
   Future<void> _updateConnectCount() async {
     if (_currentUser == null) return;
-    
+
     try {
       // Use dedicated ad-tracking endpoint
       await _apiService.updateConnectCount(_connectCount);
@@ -583,7 +615,7 @@ class ChatifyAdService {
   /// Update page switch count in backend
   Future<void> _updatePageSwitchCount() async {
     if (_currentUser == null) return;
-    
+
     try {
       // Provide last switch time as required by API
       await _apiService.updatePageSwitchCount(
@@ -598,7 +630,7 @@ class ChatifyAdService {
   /// Update daily ad views in backend
   Future<void> _updateDailyAdViews() async {
     if (_currentUser == null) return;
-    
+
     try {
       await _apiService.updateDailyAdViews(
         _dailyAdViews,
@@ -612,7 +644,7 @@ class ChatifyAdService {
   /// Update who liked views in backend
   Future<void> _updateWhoLikedViews() async {
     if (_currentUser == null) return;
-    
+
     try {
       await _apiService.updateWhoLikedViews(
         _whoLikedViews,
