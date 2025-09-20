@@ -12,11 +12,13 @@ class AppLogo extends StatelessWidget {
       child: Image.asset(
         'assets/images/chatify_purple_logo.png',
         fit: BoxFit.contain,
+        colorBlendMode: BlendMode.dstOver, // Ensures transparency is preserved
         errorBuilder: (context, error, stackTrace) {
           // Fallback to alternate logo if primary is missing
           return Image.asset(
             'assets/images/Chatify_logo.png',
             fit: BoxFit.contain,
+            colorBlendMode: BlendMode.dstOver,
             errorBuilder: (context, error, stackTrace) {
               // Final fallback: branded icon
               return Icon(
@@ -31,4 +33,3 @@ class AppLogo extends StatelessWidget {
     );
   }
 }
-

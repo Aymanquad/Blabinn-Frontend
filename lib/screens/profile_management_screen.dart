@@ -96,7 +96,6 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
     });
 
     // print('🎭 DEBUG: Pre-filled guest user form with default values');
-
   }
 
   Future<void> _initializeApiService() async {
@@ -250,8 +249,8 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
         showBackButton: _hasExistingProfile,
       ),
       body: _currentUser == null
-              ? const Center(child: CircularProgressIndicator())
-              : SingleChildScrollView(
+          ? const Center(child: CircularProgressIndicator())
+          : SingleChildScrollView(
               padding: const EdgeInsets.all(16),
               child: Form(
                 key: _formKey,
@@ -412,7 +411,8 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
             ),
             filled: true,
             fillColor: AppColors.inputBackground,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
             counterText: maxLength != null ? null : '',
           ),
         ),
@@ -461,7 +461,8 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
                   ),
                   filled: true,
                   fillColor: AppColors.inputBackground,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                   errorText: _usernameError,
                   suffixIcon: _isCheckingUsername
                       ? const SizedBox(
@@ -497,7 +498,8 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               ),
               child: const Text('Check Availability'),
             ),
@@ -557,7 +559,8 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
             ),
             filled: true,
             fillColor: AppColors.inputBackground,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
           ),
           validator: (value) {
             if (value == null || value.isEmpty) {
@@ -567,8 +570,8 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
             if (age == null) {
               return 'Please enter a valid number';
             }
-            if (age < 13) {
-              return 'Age must be at least 13';
+            if (age < 18) {
+              return 'Age must be at least 18';
             }
             if (age > 120) {
               return 'Age must be less than 120';
@@ -756,7 +759,25 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
 
       //print('🔄 [PROFILE DEBUG] Creating profile with data: $profileData');
 
-      await _apiService.createProfile(profileData);
+      // Check if profile already exists
+      bool profileExists = false;
+      try {
+        await _apiService.getMyProfile();
+        profileExists = true;
+        print('✅ Profile already exists, updating instead of creating');
+      } catch (e) {
+        print('ℹ️ No existing profile found, creating new one');
+        profileExists = false;
+      }
+
+      // Use updateProfile if profile exists, otherwise createProfile
+      if (profileExists) {
+        await _apiService.updateProfile(profileData);
+        print('✅ Profile updated successfully');
+      } else {
+        await _apiService.createProfile(profileData);
+        print('✅ Profile created successfully');
+      }
 
       // Upload profile picture if selected
       if (_profilePicture != null) {
@@ -779,7 +800,8 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
         });
       }
 
-      _showSuccess('Profile created successfully!');
+      _showSuccess(
+          'Profile ${profileExists ? 'updated' : 'created'} successfully!');
       setState(() {
         _hasExistingProfile = true;
       });
@@ -788,7 +810,8 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
       await Future.delayed(const Duration(seconds: 1));
       Navigator.of(context).pushReplacementNamed('/home');
     } catch (e) {
-      _showError('Error creating profile: $e');
+      print('❌ Error in profile completion: $e');
+      _showError('Error completing profile: $e');
     } finally {
       setState(() {
         _isLoading = false;
@@ -944,7 +967,8 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               ),
               child: Text(_existingProfilePictureUrl != null
                   ? 'Change Picture'
@@ -1040,7 +1064,8 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               ),
               child: Text(canAddMore ? 'Add to Gallery' : 'Gallery Full'),
             ),
@@ -1256,13 +1281,15 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
             ),
             filled: true,
             fillColor: AppColors.inputBackground,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
             hintText: 'Select gender',
           ),
           items: const [
             DropdownMenuItem(value: 'male', child: Text('Male')),
             DropdownMenuItem(value: 'female', child: Text('Female')),
-            DropdownMenuItem(value: 'prefer-not-to-say', child: Text('Prefer not to say')),
+            DropdownMenuItem(
+                value: 'prefer-not-to-say', child: Text('Prefer not to say')),
           ],
           validator: (value) {
             if (value == null || value.isEmpty) {
@@ -1359,7 +1386,8 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
   Future<void> _pickProfilePicture() async {
     try {
       // Request gallery permission
-      final hasPermission = await PermissionHelper.requestGalleryPermission(context);
+      final hasPermission =
+          await PermissionHelper.requestGalleryPermission(context);
       if (!hasPermission) {
         return;
       }
@@ -1396,7 +1424,8 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
 
     try {
       // Request gallery permission
-      final hasPermission = await PermissionHelper.requestGalleryPermission(context);
+      final hasPermission =
+          await PermissionHelper.requestGalleryPermission(context);
       if (!hasPermission) {
         return;
       }
@@ -1738,14 +1767,14 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
 
   void _showBoostProfileDialog() {
     final boostService = BoostProfileService();
-    
+
     showDialog(
       context: context,
       builder: (context) => FutureBuilder<bool>(
         future: boostService.isProfileBoosted(),
         builder: (context, snapshot) {
           final isBoosted = snapshot.data ?? false;
-          
+
           return AlertDialog(
             title: Row(
               children: [
@@ -1762,50 +1791,50 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                                 if (isBoosted) ...[
-                   FutureBuilder<double>(
-                     future: boostService.getRemainingBoostTime(),
-                     builder: (context, timeSnapshot) {
-                       final remainingHours = timeSnapshot.data ?? 0.0;
-                       return Column(
-                         crossAxisAlignment: CrossAxisAlignment.start,
-                         children: [
-                           Container(
-                             padding: const EdgeInsets.all(12),
-                             decoration: BoxDecoration(
-                               color: Colors.amber.withOpacity(0.1),
-                               borderRadius: BorderRadius.circular(8),
-                               border: Border.all(
-                                 color: Colors.amber.withOpacity(0.3),
-                               ),
-                             ),
-                             child: Row(
-                               children: [
-                                 Icon(
-                                   Icons.timer,
-                                   color: Colors.amber,
-                                   size: 20,
-                                 ),
-                                 const SizedBox(width: 8),
-                                 Text(
-                                   'Your profile is currently boosted!',
-                                   style: TextStyle(
-                                     color: Colors.amber.shade700,
-                                     fontWeight: FontWeight.bold,
-                                   ),
-                                 ),
-                               ],
-                             ),
-                           ),
-                           const SizedBox(height: 12),
-                           Text(
-                             'Your profile will appear in the "Popular Profiles" section for ${remainingHours.toStringAsFixed(1)} more hours.',
-                             style: const TextStyle(fontSize: 14),
-                           ),
-                         ],
-                       );
-                     },
-                   ),
+                if (isBoosted) ...[
+                  FutureBuilder<double>(
+                    future: boostService.getRemainingBoostTime(),
+                    builder: (context, timeSnapshot) {
+                      final remainingHours = timeSnapshot.data ?? 0.0;
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.amber.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: Colors.amber.withOpacity(0.3),
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.timer,
+                                  color: Colors.amber,
+                                  size: 20,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'Your profile is currently boosted!',
+                                  style: TextStyle(
+                                    color: Colors.amber.shade700,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            'Your profile will appear in the "Popular Profiles" section for ${remainingHours.toStringAsFixed(1)} more hours.',
+                            style: const TextStyle(fontSize: 14),
+                          ),
+                        ],
+                      );
+                    },
+                  ),
                 ] else ...[
                   Text(
                     'Boost your profile to get more visibility!',
@@ -1912,10 +1941,10 @@ class _ProfileManagementScreenState extends State<ProfileManagementScreen> {
   Future<void> _purchaseBoost() async {
     try {
       setState(() => _isLoading = true);
-      
+
       final boostService = BoostProfileService();
       final result = await boostService.purchaseBoost();
-      
+
       if (result['success'] == true) {
         _showSuccess(result['message']);
         // Update user credits if available

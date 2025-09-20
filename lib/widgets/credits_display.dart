@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/user_provider.dart';
-import '../models/user.dart';
 
 class CreditsDisplay extends StatelessWidget {
   final double? size;
@@ -58,7 +57,8 @@ class CreditsDisplay extends StatelessWidget {
                 'credits',
                 style: TextStyle(
                   fontSize: (size ?? 16) - 2,
-                  color: textColor?.withOpacity(0.7) ?? Colors.green.withOpacity(0.7),
+                  color: textColor?.withOpacity(0.7) ??
+                      Colors.green.withOpacity(0.7),
                 ),
               ),
             ],
@@ -70,14 +70,29 @@ class CreditsDisplay extends StatelessWidget {
 }
 
 class CreditsDisplaySmall extends StatelessWidget {
-  const CreditsDisplaySmall({Key? key}) : super(key: key);
+  final VoidCallback? onTap;
+
+  const CreditsDisplaySmall({Key? key, this.onTap}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    return const CreditsDisplay(
+    Widget child = const CreditsDisplay(
       size: 14,
-      showIcon: false,
+      showIcon: true, // Show icon to make it more obvious it's interactive
     );
+
+    if (onTap != null) {
+      return Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(20),
+          child: child,
+        ),
+      );
+    }
+
+    return child;
   }
 }
 

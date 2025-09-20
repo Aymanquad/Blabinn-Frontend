@@ -4,7 +4,6 @@ import '../core/constants.dart';
 import '../services/socket_service.dart';
 import '../services/api_service.dart';
 import '../services/chat_moderation_service.dart';
-import '../widgets/consistent_app_bar.dart';
 import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart' as FirebaseAuth;
 import '../utils/html_decoder.dart';
@@ -37,7 +36,8 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
   bool _hasShownEndDialog = false; // Prevent multiple dialogs
   bool _isDisposing = false; // Prevent multiple dispose calls
   Timer? _heartbeatTimer;
-  int _timeRemaining = 300; // 5 minutes in seconds
+  Map<String, dynamic>? _partnerInfo;
+  bool _isLoadingPartnerInfo = false;
 
   @override
   void initState() {
@@ -46,9 +46,15 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
     _validateSession();
     _setupSocketListeners();
     _joinChatRoom();
-    _startSessionTimer();
     _startHeartbeat();
     _startSessionTimeout();
+
+    // Load partner info with a delay to ensure session is ready
+    Future.delayed(const Duration(seconds: 2), () {
+      if (mounted) {
+        _loadPartnerInfo();
+      }
+    });
   }
 
   void _validateSession() {
@@ -305,7 +311,7 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
     final messageId =
         message.id ?? DateTime.now().millisecondsSinceEpoch.toString();
     final messageContent =
-        HtmlDecoder.decodeHtmlEntities(message.content ?? '');
+        HtmlDecoder.decodeHtmlEntities(message.content?.toString() ?? '');
     final messageSenderId = message.senderId ?? '';
 
     // Apply moderation to received message content
@@ -372,6 +378,11 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
 
       _scrollToBottom();
 
+      // Load partner info if we haven't already and this is from partner
+      if (!isFromCurrentUser && _partnerInfo == null) {
+        _loadPartnerInfo();
+      }
+
       //print(
       // '✅ [RANDOM CHAT DEBUG] Added new message to UI: $messageContent (from current user: $isFromCurrentUser)');
     }
@@ -410,22 +421,143 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
     }
   }
 
-  void _startSessionTimer() {
-    Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (!mounted || !_isSessionActive) {
-        timer.cancel();
+  /// Get a user-friendly display name for a user ID
+  Future<String> _getUserDisplayName(String userId) async {
+    try {
+      final userProfile = await _apiService.getUserProfile(userId);
+      if (userProfile != null && userProfile['displayName'] != null) {
+        return userProfile['displayName'] as String;
+      }
+    } catch (e) {
+      print('⚠️ Failed to get user profile for $userId: $e');
+    }
+
+    // Fallback: create a friendly name from user ID
+    if (userId.length > 8) {
+      return 'User ${userId.substring(0, 8)}...';
+    }
+    return 'User $userId';
+  }
+
+  Future<void> _loadPartnerInfo() async {
+    if (_isLoadingPartnerInfo) return;
+
+    setState(() {
+      _isLoadingPartnerInfo = true;
+    });
+
+    try {
+      // Get current user ID
+      final currentUserId = FirebaseAuth.FirebaseAuth.instance.currentUser?.uid;
+      if (currentUserId == null) {
+        print('❌ No current user ID found');
         return;
       }
 
-      setState(() {
-        _timeRemaining--;
-      });
+      print('🔍 Loading partner info for user: $currentUserId');
 
-      if (_timeRemaining <= 0) {
-        timer.cancel();
-        _endSession('timeout');
+      // Try multiple methods to get partner ID
+      String? partnerId;
+
+      // Method 1: Try to get partner ID from messages
+      for (final message in _messages) {
+        final senderId = message['senderId'] as String?;
+        if (senderId != null &&
+            senderId != currentUserId &&
+            senderId != 'current_user') {
+          partnerId = senderId;
+          print('🔍 Found partner ID from messages: $partnerId');
+          break;
+        }
       }
-    });
+
+      // Method 2: If no partner found in messages, try to get from active session
+      if (partnerId == null) {
+        print(
+            '🔍 No partner found in messages, trying to get from active session...');
+        try {
+          final sessionData = await _apiService.getActiveRandomChatSession();
+          if (sessionData != null &&
+              sessionData['sessionId'] == widget.sessionId) {
+            partnerId = sessionData['partnerId'] as String?;
+            if (partnerId != null) {
+              print('🔍 Found partner ID from active session: $partnerId');
+            }
+          }
+        } catch (e) {
+          print('⚠️ Failed to get active session: $e');
+        }
+      }
+
+      // Method 3: If still no partner, create a demo partner for testing
+      if (partnerId == null) {
+        print('🔍 No partner found, creating demo partner for testing');
+        setState(() {
+          _partnerInfo = {
+            'id': 'demo_partner_${DateTime.now().millisecondsSinceEpoch}',
+            'displayName': 'Demo User',
+            'profilePictureUrl': null,
+            'age': 25,
+            'gender': 'Other',
+            'bio':
+                'This is a demo user for testing the random chat feature. In a real chat session, you would see the actual user\'s information here.',
+            'isDemo': true, // Mark as demo user
+          };
+        });
+        setState(() {
+          _isLoadingPartnerInfo = false;
+        });
+        return;
+      }
+
+      // Get partner profile
+      print('🔍 Fetching profile for partner: $partnerId');
+      final partnerProfile = await _apiService.getUserProfile(partnerId);
+
+      if (partnerProfile != null) {
+        print('✅ Partner profile loaded: ${partnerProfile['displayName']}');
+        setState(() {
+          _partnerInfo = partnerProfile;
+        });
+      } else {
+        print('⚠️ Partner profile not found, creating basic profile');
+        final displayName = await _getUserDisplayName(partnerId);
+        setState(() {
+          _partnerInfo = {
+            'id': partnerId,
+            'displayName': displayName,
+            'profilePictureUrl': null,
+            'age': null,
+            'gender': null,
+            'bio': null,
+            'isOnline': true,
+          };
+        });
+      }
+
+      setState(() {
+        _isLoadingPartnerInfo = false;
+      });
+    } catch (e) {
+      print('❌ Failed to load partner info: $e');
+      // Create a fallback partner info
+      setState(() {
+        _partnerInfo = {
+          'id': 'fallback_partner_${DateTime.now().millisecondsSinceEpoch}',
+          'displayName': 'Chat Partner',
+          'profilePictureUrl': null,
+          'age': null,
+          'gender': 'Other',
+          'bio': 'Ready to chat!',
+        };
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoadingPartnerInfo = false;
+        });
+      }
+    }
   }
 
   void _startHeartbeat() {
@@ -512,8 +644,8 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
 
     switch (reason) {
       case 'timeout':
-        title = 'Time\'s Up!';
-        message = 'Your 5-minute chat session has ended.';
+        title = 'Session Ended';
+        message = 'The chat session has ended.';
         icon = Icons.timer;
         break;
       case 'user_ended':
@@ -553,10 +685,86 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
     );
   }
 
-  String _formatTime(int seconds) {
-    final minutes = seconds ~/ 60;
-    final secs = seconds % 60;
-    return '${minutes.toString().padLeft(2, '0')}:${secs.toString().padLeft(2, '0')}';
+  Future<void> _sendFriendRequest() async {
+    if (_partnerInfo == null) return;
+
+    try {
+      final partnerId = _partnerInfo!['id'] as String;
+
+      // Check if this is a demo/mock user
+      if (partnerId.startsWith('mock_partner_') ||
+          partnerId.startsWith('demo_partner_') ||
+          _partnerInfo!['isDemo'] == true) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                  'This is a demo user. Friend requests can only be sent to real users in active chat sessions.'),
+              backgroundColor: Colors.orange,
+              duration: Duration(seconds: 3),
+            ),
+          );
+        }
+        return;
+      }
+
+      await _apiService.sendFriendRequest(
+        partnerId,
+        message: 'Hi! I met you in a random chat and would like to connect.',
+        type: 'random_chat',
+      );
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Friend request sent successfully!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      print('❌ Failed to send friend request: $e');
+      if (mounted) {
+        String errorMessage = 'Failed to send friend request';
+
+        // Provide more specific error messages
+        if (e.toString().contains('User not found')) {
+          errorMessage =
+              'User not found. They may have left the chat or their account is no longer active.';
+        } else if (e.toString().contains('Already friends')) {
+          errorMessage = 'You are already friends with this user!';
+        } else if (e.toString().contains('Request already sent')) {
+          errorMessage = 'Friend request already sent to this user.';
+        } else {
+          errorMessage = 'Failed to send friend request: ${e.toString()}';
+        }
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errorMessage),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
+    }
+  }
+
+  void _navigateToPartnerProfile() {
+    if (_partnerInfo == null) return;
+
+    _showPartnerProfileModal();
+  }
+
+  void _showPartnerProfileModal() {
+    if (_partnerInfo == null) return;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => _buildPartnerProfileModal(),
+    );
   }
 
   void _showExitWarningDialog() {
@@ -648,16 +856,373 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
         '⏰ [RANDOM CHAT DEBUG] Session timeout disabled - relying on explicit session events');
   }
 
+  Widget _buildPartnerProfileModal() {
+    return Container(
+      height: MediaQuery.of(context).size.height * 0.85,
+      decoration: const BoxDecoration(
+        color: Color(0xFF1A1A2E),
+        borderRadius: BorderRadius.only(
+          topLeft: Radius.circular(20),
+          topRight: Radius.circular(20),
+        ),
+      ),
+      child: Column(
+        children: [
+          // Handle bar
+          Container(
+            margin: const EdgeInsets.only(top: 12),
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: Colors.grey[400],
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+
+          // Header
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: Row(
+              children: [
+                IconButton(
+                  onPressed: () => Navigator.pop(context),
+                  icon: const Icon(Icons.close, color: Colors.white),
+                ),
+                const Spacer(),
+                Text(
+                  'Profile',
+                  style: Theme.of(context).textTheme.headlineSmall!.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                      ),
+                ),
+                const Spacer(),
+                IconButton(
+                  onPressed: _sendFriendRequest,
+                  icon: const Icon(Icons.person_add, color: Colors.white),
+                  tooltip: 'Add as Friend',
+                ),
+              ],
+            ),
+          ),
+
+          // Profile Content
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Column(
+                children: [
+                  // Profile Picture
+                  Container(
+                    width: 120,
+                    height: 120,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: AppColors.primary,
+                        width: 3,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.primary.withValues(alpha: 0.3),
+                          blurRadius: 20,
+                          offset: const Offset(0, 8),
+                        ),
+                      ],
+                    ),
+                    child: ClipOval(
+                      child: _partnerInfo!['profilePictureUrl'] != null
+                          ? Image.network(
+                              _partnerInfo!['profilePictureUrl'] as String,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) {
+                                return Container(
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      colors: [
+                                        AppColors.primary
+                                            .withValues(alpha: 0.3),
+                                        AppColors.primary
+                                            .withValues(alpha: 0.1),
+                                      ],
+                                    ),
+                                  ),
+                                  child: const Icon(
+                                    Icons.person,
+                                    color: Colors.white,
+                                    size: 48,
+                                  ),
+                                );
+                              },
+                            )
+                          : Container(
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: [
+                                    AppColors.primary.withValues(alpha: 0.3),
+                                    AppColors.primary.withValues(alpha: 0.1),
+                                  ],
+                                ),
+                              ),
+                              child: const Icon(
+                                Icons.person,
+                                color: Colors.white,
+                                size: 48,
+                              ),
+                            ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  // Name and Age
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        (_partnerInfo!['displayName'] as String?) ??
+                            'Anonymous',
+                        style: Theme.of(context)
+                            .textTheme
+                            .headlineMedium!
+                            .copyWith(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w700,
+                            ),
+                        textAlign: TextAlign.center,
+                      ),
+                      if (_partnerInfo!['isDemo'] == true) ...[
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.orange.withValues(alpha: 0.2),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: Colors.orange.withValues(alpha: 0.3),
+                              width: 1,
+                            ),
+                          ),
+                          child: Text(
+                            'DEMO',
+                            style: Theme.of(context)
+                                .textTheme
+                                .labelSmall!
+                                .copyWith(
+                                  color: Colors.orange,
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 10,
+                                ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+
+                  if (_partnerInfo!['age'] != null) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      '${_partnerInfo!['age']} years old',
+                      style: Theme.of(context).textTheme.bodyLarge!.copyWith(
+                            color: Colors.grey[300],
+                            fontWeight: FontWeight.w500,
+                          ),
+                    ),
+                  ],
+
+                  const SizedBox(height: 20),
+
+                  // Online Status
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.green.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: Colors.green.withValues(alpha: 0.3),
+                        width: 1,
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 8,
+                          height: 8,
+                          decoration: const BoxDecoration(
+                            color: Colors.green,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Online',
+                          style:
+                              Theme.of(context).textTheme.bodyMedium!.copyWith(
+                                    color: Colors.green,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 30),
+
+                  // Bio Section
+                  if (_partnerInfo!['bio'] != null &&
+                      (_partnerInfo!['bio'] as String).isNotEmpty) ...[
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.05),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.1),
+                          width: 1,
+                        ),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'About',
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleMedium!
+                                .copyWith(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            _partnerInfo!['bio'] as String,
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodyMedium!
+                                .copyWith(
+                                  color: Colors.grey[300],
+                                  height: 1.5,
+                                ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                  ],
+
+                  // Gender Section
+                  if (_partnerInfo!['gender'] != null) ...[
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.05),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.1),
+                          width: 1,
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.person,
+                            color: AppColors.primary,
+                            size: 20,
+                          ),
+                          const SizedBox(width: 12),
+                          Text(
+                            'Gender',
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleMedium!
+                                .copyWith(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                          ),
+                          const Spacer(),
+                          Text(
+                            _partnerInfo!['gender'] as String,
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodyMedium!
+                                .copyWith(
+                                  color: Colors.grey[300],
+                                ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                  ],
+
+                  // Action Buttons
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: _sendFriendRequest,
+                          icon: const Icon(Icons.person_add, size: 18),
+                          label: const Text('Add Friend'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primary,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () {
+                            Navigator.pop(context);
+                          },
+                          icon: const Icon(Icons.chat, size: 18),
+                          label: const Text('Continue Chat'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: Colors.white,
+                            side: BorderSide(
+                              color: AppColors.primary.withValues(alpha: 0.5),
+                              width: 1,
+                            ),
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 30),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = true; // Always dark mode
-
-    return WillPopScope(
-      onWillPop: () async {
-        // Always use the unified end session method
-        _showExitWarningDialog();
-        return false; // Prevent default back button behavior
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop) {
+          // Always use the unified end session method
+          _showExitWarningDialog();
+        }
       },
       child: Scaffold(
         appBar: AppBar(
@@ -672,7 +1237,7 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
                 colors: [
-                  Colors.black.withOpacity(0.35),
+                  Colors.black.withValues(alpha: 0.35),
                   Colors.transparent,
                 ],
               ),
@@ -684,44 +1249,358 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
             onPressed: _showExitWarningDialog,
           ),
           actions: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              child: Center(
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: _timeRemaining <= 30 ? Colors.red : Colors.orange,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    _formatTime(_timeRemaining),
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ),
+            IconButton(
+              icon: _isLoadingPartnerInfo
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                      ),
+                    )
+                  : const Icon(Icons.person, color: Colors.white),
+              onPressed:
+                  _partnerInfo != null ? _navigateToPartnerProfile : null,
+              tooltip: 'View Partner Profile',
             ),
           ],
         ),
         body: Column(
           children: [
-            // Session info banner
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(12),
-              color: AppColors.primary.withOpacity(0.1),
-              child: Text(
-                'Random chat session active • ${_formatTime(_timeRemaining)} remaining',
-                style: TextStyle(
-                  color: AppColors.primary,
-                  fontWeight: FontWeight.w500,
+            // Partner Profile Section
+            if (_partnerInfo != null)
+              GestureDetector(
+                onTap: _showPartnerProfileModal,
+                child: Container(
+                  width: double.infinity,
+                  margin: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        AppColors.primary.withValues(alpha: 0.1),
+                        AppColors.primary.withValues(alpha: 0.05),
+                      ],
+                    ),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: AppColors.primary.withValues(alpha: 0.2),
+                      width: 1,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.primary.withValues(alpha: 0.1),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      // Profile Picture
+                      Container(
+                        width: 50,
+                        height: 50,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: AppColors.primary.withValues(alpha: 0.3),
+                            width: 2,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.1),
+                              blurRadius: 4,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: ClipOval(
+                          child: _partnerInfo!['profilePictureUrl'] != null
+                              ? Image.network(
+                                  _partnerInfo!['profilePictureUrl'] as String,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return Container(
+                                      decoration: BoxDecoration(
+                                        gradient: LinearGradient(
+                                          colors: [
+                                            AppColors.primary
+                                                .withValues(alpha: 0.3),
+                                            AppColors.primary
+                                                .withValues(alpha: 0.1),
+                                          ],
+                                        ),
+                                      ),
+                                      child: Icon(
+                                        Icons.person,
+                                        color: AppColors.primary,
+                                        size: 24,
+                                      ),
+                                    );
+                                  },
+                                  loadingBuilder:
+                                      (context, child, loadingProgress) {
+                                    if (loadingProgress == null) return child;
+                                    return Container(
+                                      decoration: BoxDecoration(
+                                        gradient: LinearGradient(
+                                          colors: [
+                                            AppColors.primary
+                                                .withValues(alpha: 0.3),
+                                            AppColors.primary
+                                                .withValues(alpha: 0.1),
+                                          ],
+                                        ),
+                                      ),
+                                      child: const Center(
+                                        child: SizedBox(
+                                          width: 20,
+                                          height: 20,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            valueColor:
+                                                AlwaysStoppedAnimation<Color>(
+                                                    Colors.white),
+                                          ),
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                )
+                              : Container(
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      colors: [
+                                        AppColors.primary
+                                            .withValues(alpha: 0.3),
+                                        AppColors.primary
+                                            .withValues(alpha: 0.1),
+                                      ],
+                                    ),
+                                  ),
+                                  child: Icon(
+                                    Icons.person,
+                                    color: AppColors.primary,
+                                    size: 24,
+                                  ),
+                                ),
+                        ),
+                      ),
+
+                      const SizedBox(width: 12),
+
+                      // User Info
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    (_partnerInfo!['displayName'] as String?) ??
+                                        'Anonymous',
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .titleMedium!
+                                        .copyWith(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                if (_partnerInfo!['isDemo'] == true) ...[
+                                  const SizedBox(width: 8),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 6, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color:
+                                          Colors.orange.withValues(alpha: 0.2),
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: Border.all(
+                                        color: Colors.orange
+                                            .withValues(alpha: 0.3),
+                                        width: 1,
+                                      ),
+                                    ),
+                                    child: Text(
+                                      'DEMO',
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .labelSmall!
+                                          .copyWith(
+                                            color: Colors.orange,
+                                            fontWeight: FontWeight.w600,
+                                            fontSize: 9,
+                                          ),
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                            const SizedBox(height: 2),
+                            Row(
+                              children: [
+                                Container(
+                                  width: 8,
+                                  height: 8,
+                                  decoration: BoxDecoration(
+                                    color: Colors.green,
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  'Online',
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .bodySmall!
+                                      .copyWith(
+                                        color: Colors.green,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      // Action Buttons
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            onPressed: _loadPartnerInfo,
+                            icon: Icon(
+                              Icons.refresh,
+                              color: AppColors.primary,
+                              size: 18,
+                            ),
+                            tooltip: 'Refresh',
+                            style: IconButton.styleFrom(
+                              backgroundColor:
+                                  AppColors.primary.withValues(alpha: 0.1),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          IconButton(
+                            onPressed: _navigateToPartnerProfile,
+                            icon: Icon(
+                              Icons.visibility,
+                              color: AppColors.primary,
+                              size: 20,
+                            ),
+                            tooltip: 'View Profile',
+                            style: IconButton.styleFrom(
+                              backgroundColor:
+                                  AppColors.primary.withValues(alpha: 0.1),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
-                textAlign: TextAlign.center,
+              )
+            else
+              // Loading state for partner info
+              Container(
+                width: double.infinity,
+                margin: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: AppColors.primary.withValues(alpha: 0.2),
+                    width: 1,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    // Loading profile picture
+                    Container(
+                      width: 50,
+                      height: 50,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: AppColors.primary.withValues(alpha: 0.2),
+                      ),
+                      child: const Center(
+                        child: SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor:
+                                AlwaysStoppedAnimation<Color>(Colors.white),
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(width: 12),
+
+                    // Loading text
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            height: 16,
+                            width: 120,
+                            decoration: BoxDecoration(
+                              color: AppColors.primary.withValues(alpha: 0.2),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Container(
+                            height: 12,
+                            width: 80,
+                            decoration: BoxDecoration(
+                              color: AppColors.primary.withValues(alpha: 0.2),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    // Manual load button
+                    IconButton(
+                      onPressed: _loadPartnerInfo,
+                      icon: Icon(
+                        Icons.person_add,
+                        color: AppColors.primary,
+                        size: 20,
+                      ),
+                      tooltip: 'Load Partner Info',
+                      style: IconButton.styleFrom(
+                        backgroundColor:
+                            AppColors.primary.withValues(alpha: 0.1),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
             // Messages list
             Expanded(
               child: _messages.isEmpty
@@ -799,85 +1678,122 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
                   color: AppColors.cardBackground,
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
+                      color: Colors.black.withValues(alpha: 0.1),
                       blurRadius: 4,
                       offset: const Offset(0, -2),
                     ),
                   ],
                 ),
-                child: Row(
+                child: Column(
                   children: [
-                    Expanded(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          TextField(
-                            controller: _messageController,
-                            decoration: InputDecoration(
-                              hintText: 'Type a message...',
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(24),
-                                borderSide: BorderSide.none,
+                    // Friend request button
+                    if (_partnerInfo != null)
+                      Container(
+                        width: double.infinity,
+                        margin: const EdgeInsets.only(bottom: 12),
+                        child: ElevatedButton.icon(
+                          onPressed: _sendFriendRequest,
+                          icon: const Icon(Icons.person_add, size: 18),
+                          label: const Text('Add as Friend'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor:
+                                AppColors.primary.withValues(alpha: 0.15),
+                            foregroundColor: Colors.white,
+                            elevation: 0,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              side: BorderSide(
+                                color: AppColors.primary.withValues(alpha: 0.4),
+                                width: 1,
                               ),
-                              filled: true,
-                              fillColor: AppColors.inputBackground,
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 20,
-                                vertical: 10,
+                            ),
+                            shadowColor:
+                                AppColors.primary.withValues(alpha: 0.2),
+                          ),
+                        ),
+                      ),
+                    // Message input row
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              TextField(
+                                controller: _messageController,
+                                decoration: InputDecoration(
+                                  hintText: 'Type a message...',
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(24),
+                                    borderSide: BorderSide.none,
+                                  ),
+                                  filled: true,
+                                  fillColor: AppColors.inputBackground,
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 20,
+                                    vertical: 10,
+                                  ),
+                                  suffixIcon: _messageController.text.length >
+                                          900
+                                      ? Icon(
+                                          Icons.warning,
+                                          color:
+                                              _messageController.text.length >=
+                                                      1000
+                                                  ? Colors.red
+                                                  : Colors.orange,
+                                          size: 16,
+                                        )
+                                      : null,
+                                ),
+                                onChanged: (value) {
+                                  setState(() {});
+                                },
+                                onSubmitted: (_) => _sendMessage(),
+                                textInputAction: TextInputAction.send,
+                                maxLines:
+                                    2, // Reduced from 4 to 2 for shorter height
+                                maxLength: 1000,
+                                maxLengthEnforcement:
+                                    MaxLengthEnforcement.enforced,
                               ),
-                              suffixIcon: _messageController.text.length > 900
-                                  ? Icon(
-                                      Icons.warning,
+                              if (_messageController.text.length > 900)
+                                Padding(
+                                  padding:
+                                      const EdgeInsets.only(top: 4, left: 16),
+                                  child: Text(
+                                    '${_messageController.text.length}/1000',
+                                    style: TextStyle(
+                                      fontSize: 12,
                                       color:
                                           _messageController.text.length >= 1000
                                               ? Colors.red
                                               : Colors.orange,
-                                      size: 16,
-                                    )
-                                  : null,
-                            ),
-                            onChanged: (value) {
-                              setState(() {});
-                            },
-                            onSubmitted: (_) => _sendMessage(),
-                            textInputAction: TextInputAction.send,
-                            maxLines:
-                                2, // Reduced from 4 to 2 for shorter height
-                            maxLength: 1000,
-                            maxLengthEnforcement: MaxLengthEnforcement.enforced,
-                          ),
-                          if (_messageController.text.length > 900)
-                            Padding(
-                              padding: const EdgeInsets.only(top: 4, left: 16),
-                              child: Text(
-                                '${_messageController.text.length}/1000',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: _messageController.text.length >= 1000
-                                      ? Colors.red
-                                      : Colors.orange,
-                                  fontWeight: FontWeight.w500,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
                                 ),
-                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        GestureDetector(
+                          onTap: _sendMessage,
+                          child: Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: AppColors.primary,
+                              shape: BoxShape.circle,
                             ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    GestureDetector(
-                      onTap: _sendMessage,
-                      child: Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: AppColors.primary,
-                          shape: BoxShape.circle,
+                            child: const Icon(
+                              Icons.send,
+                              color: Colors.white,
+                              size: 20,
+                            ),
+                          ),
                         ),
-                        child: const Icon(
-                          Icons.send,
-                          color: Colors.white,
-                          size: 20,
-                        ),
-                      ),
+                      ],
                     ),
                   ],
                 ),

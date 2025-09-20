@@ -24,7 +24,7 @@ class _OnboardingScreen3State extends State<OnboardingScreen3> {
   final _displayNameController = TextEditingController();
   final _bioController = TextEditingController();
   final _ageController = TextEditingController();
-  
+
   String? _selectedGender;
   File? _profileImage;
   final ImagePicker _picker = ImagePicker();
@@ -55,7 +55,7 @@ class _OnboardingScreen3State extends State<OnboardingScreen3> {
               child: Column(
                 children: [
                   const SizedBox(height: 32),
-                  
+
                   // Header
                   Text(
                     'Complete Your Profile',
@@ -65,9 +65,9 @@ class _OnboardingScreen3State extends State<OnboardingScreen3> {
                     ),
                     textAlign: TextAlign.center,
                   ),
-                  
+
                   const SizedBox(height: 16),
-                  
+
                   Text(
                     'Add some details to help others connect with you',
                     style: theme.textTheme.bodyLarge?.copyWith(
@@ -75,14 +75,14 @@ class _OnboardingScreen3State extends State<OnboardingScreen3> {
                     ),
                     textAlign: TextAlign.center,
                   ),
-                  
+
                   const SizedBox(height: 32),
-                  
+
                   // Profile Image
                   _buildProfileImageSection(theme, tokens),
-                  
+
                   const SizedBox(height: 32),
-                  
+
                   // Form Fields
                   Expanded(
                     child: SingleChildScrollView(
@@ -99,9 +99,9 @@ class _OnboardingScreen3State extends State<OnboardingScreen3> {
                       ),
                     ),
                   ),
-                  
+
                   const SizedBox(height: 32),
-                  
+
                   // Continue Button
                   SizedBox(
                     width: double.infinity,
@@ -124,9 +124,9 @@ class _OnboardingScreen3State extends State<OnboardingScreen3> {
                       ),
                     ),
                   ),
-                  
+
                   const SizedBox(height: 16),
-                  
+
                   // Back Button
                   TextButton(
                     onPressed: () => Navigator.of(context).pop(),
@@ -137,7 +137,7 @@ class _OnboardingScreen3State extends State<OnboardingScreen3> {
                       ),
                     ),
                   ),
-                  
+
                   const SizedBox(height: 32),
                 ],
               ),
@@ -258,8 +258,8 @@ class _OnboardingScreen3State extends State<OnboardingScreen3> {
           if (age == null) {
             return 'Please enter a valid age';
           }
-          if (age < 13 || age > 120) {
-            return 'Age must be between 13 and 120';
+          if (age < 18 || age > 120) {
+            return 'Age must be between 18 and 120';
           }
           return null;
         },
@@ -282,11 +282,13 @@ class _OnboardingScreen3State extends State<OnboardingScreen3> {
           Row(
             children: [
               Expanded(
-                child: _buildGenderOption('male', 'Male', Icons.male, theme, tokens),
+                child: _buildGenderOption(
+                    'male', 'Male', Icons.male, theme, tokens),
               ),
               const SizedBox(width: 16),
               Expanded(
-                child: _buildGenderOption('female', 'Female', Icons.female, theme, tokens),
+                child: _buildGenderOption(
+                    'female', 'Female', Icons.female, theme, tokens),
               ),
             ],
           ),
@@ -295,9 +297,10 @@ class _OnboardingScreen3State extends State<OnboardingScreen3> {
     );
   }
 
-  Widget _buildGenderOption(String value, String label, IconData icon, ThemeData theme, AppThemeTokens tokens) {
+  Widget _buildGenderOption(String value, String label, IconData icon,
+      ThemeData theme, AppThemeTokens tokens) {
     final isSelected = _selectedGender == value;
-    
+
     return GestureDetector(
       onTap: () {
         setState(() {
@@ -312,7 +315,9 @@ class _OnboardingScreen3State extends State<OnboardingScreen3> {
               : Colors.white.withOpacity(0.05),
           borderRadius: BorderRadius.circular(tokens.radiusM),
           border: Border.all(
-            color: isSelected ? tokens.primaryColor : Colors.white.withOpacity(0.3),
+            color: isSelected
+                ? tokens.primaryColor
+                : Colors.white.withOpacity(0.3),
             width: isSelected ? 2 : 1,
           ),
         ),
@@ -320,14 +325,18 @@ class _OnboardingScreen3State extends State<OnboardingScreen3> {
           children: [
             Icon(
               icon,
-              color: isSelected ? tokens.primaryColor : Colors.white.withOpacity(0.7),
+              color: isSelected
+                  ? tokens.primaryColor
+                  : Colors.white.withOpacity(0.7),
               size: 24,
             ),
             const SizedBox(height: 8),
             Text(
               label,
               style: theme.textTheme.bodyMedium?.copyWith(
-                color: isSelected ? tokens.primaryColor : Colors.white.withOpacity(0.7),
+                color: isSelected
+                    ? tokens.primaryColor
+                    : Colors.white.withOpacity(0.7),
                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
               ),
             ),
@@ -379,7 +388,7 @@ class _OnboardingScreen3State extends State<OnboardingScreen3> {
         maxHeight: 512,
         imageQuality: 80,
       );
-      
+
       if (image != null) {
         setState(() {
           _profileImage = File(image.path);
@@ -404,7 +413,7 @@ class _OnboardingScreen3State extends State<OnboardingScreen3> {
         'bio': _bioController.text.trim(),
         'profileImage': _profileImage,
       };
-      
+
       widget.onProfileComplete(profileData);
     } else if (_selectedGender == null) {
       ScaffoldMessenger.of(context).showSnackBar(

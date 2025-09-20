@@ -32,8 +32,8 @@ class DisplayNameStepWidget extends StatelessWidget {
         Text(
           'This is how other users will see you in the app',
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
-            color: Colors.grey[600],
-          ),
+                color: Colors.grey[600],
+              ),
         ),
       ],
     );
@@ -86,8 +86,8 @@ class UsernameStepWidget extends StatelessWidget {
         Text(
           'Choose a unique username that represents you',
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
-            color: Colors.grey[600],
-          ),
+                color: Colors.grey[600],
+              ),
         ),
       ],
     );
@@ -122,8 +122,8 @@ class BioStepWidget extends StatelessWidget {
         Text(
           'Write a short description about yourself (max 500 characters)',
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
-            color: Colors.grey[600],
-          ),
+                color: Colors.grey[600],
+              ),
         ),
       ],
     );
@@ -151,21 +151,21 @@ class GenderStepWidget extends StatelessWidget {
     return Column(
       children: [
         ...genders.map((gender) => RadioListTile<String>(
-          title: Text(gender['label']!),
-          value: gender['value']!,
-          groupValue: formManager.selectedGender,
-          onChanged: (value) {
-            if (value != null) {
-              formManager.setGender(value);
-            }
-          },
-        )),
+              title: Text(gender['label']!),
+              value: gender['value']!,
+              groupValue: formManager.selectedGender,
+              onChanged: (value) {
+                if (value != null) {
+                  formManager.setGender(value);
+                }
+              },
+            )),
         const SizedBox(height: 16),
         Text(
           'This helps us show you relevant matches',
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
-            color: Colors.grey[600],
-          ),
+                color: Colors.grey[600],
+              ),
         ),
       ],
     );
@@ -193,8 +193,8 @@ class AgeStepWidget extends StatelessWidget {
         Slider(
           value: formManager.age.toDouble(),
           min: 18,
-          max: 100,
-          divisions: 82,
+          max: 120,
+          divisions: 102,
           label: formManager.age.toString(),
           onChanged: (value) {
             formManager.setAge(value.round());
@@ -204,8 +204,8 @@ class AgeStepWidget extends StatelessWidget {
         Text(
           'Your age helps us show you relevant matches',
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
-            color: Colors.grey[600],
-          ),
+                color: Colors.grey[600],
+              ),
         ),
       ],
     );
@@ -259,8 +259,8 @@ class ProfilePictureStepWidget extends StatelessWidget {
         Text(
           'A great photo helps you get more matches',
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
-            color: Colors.grey[600],
-          ),
+                color: Colors.grey[600],
+              ),
         ),
       ],
     );
@@ -317,11 +317,13 @@ class InterestsStepWidget extends StatelessWidget {
         Wrap(
           spacing: 8,
           runSpacing: 8,
-          children: formManager.interests.map((interest) => Chip(
-            label: Text(interest),
-            onDeleted: () => formManager.removeInterest(interest),
-            deleteIcon: const Icon(Icons.close, size: 18),
-          )).toList(),
+          children: formManager.interests
+              .map((interest) => Chip(
+                    label: Text(interest),
+                    onDeleted: () => formManager.removeInterest(interest),
+                    deleteIcon: const Icon(Icons.close, size: 18),
+                  ))
+              .toList(),
         ),
         const SizedBox(height: 16),
         ElevatedButton.icon(
@@ -333,8 +335,8 @@ class InterestsStepWidget extends StatelessWidget {
         Text(
           'Select your interests to find like-minded people',
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
-            color: Colors.grey[600],
-          ),
+                color: Colors.grey[600],
+              ),
         ),
       ],
     );
@@ -450,8 +452,8 @@ class GalleryStepWidget extends StatelessWidget {
         Text(
           'Add more photos to show your personality',
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
-            color: Colors.grey[600],
-          ),
+                color: Colors.grey[600],
+              ),
         ),
       ],
     );

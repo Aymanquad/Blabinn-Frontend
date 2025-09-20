@@ -122,166 +122,170 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   Widget _buildHeroSection(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          // Hero Image Section with Stacked Layout
-          Expanded(
-            flex: 5,
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                // Background image container
-                Positioned.fill(
-                  child: Center(
-                    child: Image.asset(
-                      'assets/images/Girl.png',
-                      fit: BoxFit.contain,
-                      height: MediaQuery.of(context).size.height * 0.6,
-                      errorBuilder: (context, error, stackTrace) {
-                        print('Image Error: $error');
-                        // Try fallback image
-                        return Image.asset(
-                          'assets/images/girl_new_use_nobg.jpg',
+    return SingleChildScrollView(
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          minHeight: MediaQuery.of(context).size.height -
+              MediaQuery.of(context).padding.top -
+              MediaQuery.of(context).padding.bottom -
+              100, // Account for bottom navigation
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // Hero Image Section
+              SizedBox(
+                height: MediaQuery.of(context).size.height * 0.5,
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    // Background image container
+                    Center(
+                      child: Container(
+                        width: 250,
+                        height: 300,
+                        decoration: BoxDecoration(
+                          image: const DecorationImage(
+                            image: AssetImage('assets/images/Girl.png'),
+                            fit: BoxFit.contain,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.15),
+                              blurRadius: 25,
+                              offset: const Offset(0, 8),
+                              spreadRadius: 2,
+                            ),
+                            BoxShadow(
+                              color: Colors.purple.withValues(alpha: 0.1),
+                              blurRadius: 20,
+                              offset: const Offset(0, -4),
+                              spreadRadius: 1,
+                            ),
+                          ],
+                        ),
+                        child: Image.asset(
+                          'assets/images/Girl.png',
                           fit: BoxFit.contain,
-                          height: MediaQuery.of(context).size.height * 0.6,
                           errorBuilder: (context, error, stackTrace) {
-                            print('Fallback Image Error: $error');
-                            // Try another fallback
+                            print('Image Error: $error');
                             return Image.asset(
-                              'assets/images/girl_new-removebg-preview.png',
+                              'assets/images/girl_new_use_nobg.jpg',
                               fit: BoxFit.contain,
-                              height: MediaQuery.of(context).size.height * 0.6,
                               errorBuilder: (context, error, stackTrace) {
-                                print('Second Fallback Image Error: $error');
-                                return Center(
-                                  child: Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Icon(
+                                print('Fallback Image Error: $error');
+                                return Image.asset(
+                                  'assets/images/girl_new-removebg-preview.png',
+                                  fit: BoxFit.contain,
+                                  errorBuilder: (context, error, stackTrace) {
+                                    print(
+                                        'Second Fallback Image Error: $error');
+                                    return const Center(
+                                      child: Icon(
                                         Icons.image_not_supported,
-                                        color: const Color(0x80FFFFFF),
+                                        color: Color(0x80FFFFFF),
                                         size: 64,
                                       ),
-                                      const SizedBox(height: 16),
-                                      Text(
-                                        'Failed to load image',
-                                        style: Theme.of(context)
-                                            .textTheme
-                                            .bodyMedium!
-                                            .copyWith(
-                                              color: const Color(0x80FFFFFF),
-                                            ),
-                                      ),
-                                    ],
-                                  ),
+                                    );
+                                  },
                                 );
                               },
                             );
                           },
-                        );
-                      },
-                    ),
-                  ),
-                ),
-
-                // Text overlay positioned above the waist area
-                Positioned(
-                  bottom: MediaQuery.of(context).size.height * 0.08,
-                  left: 0,
-                  right: 0,
-                  child: Text(
-                    'Ready to meet new people?',
-                    style: Theme.of(context).textTheme.headlineMedium!.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 28,
-                      shadows: [
-                        Shadow(
-                          color: Colors.black.withValues(alpha: 0.5),
-                          blurRadius: 4,
-                          offset: const Offset(0, 2),
                         ),
-                      ],
+                      ),
                     ),
-                    textAlign: TextAlign.center,
-                  ),
+
+                    // Text overlay positioned above the waist area
+                    Positioned(
+                      bottom: 20,
+                      left: 0,
+                      right: 0,
+                      child: Text(
+                        'Ready to meet new people?',
+                        style: Theme.of(context)
+                            .textTheme
+                            .headlineMedium!
+                            .copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w800,
+                          shadows: [
+                            Shadow(
+                              color: Colors.black.withValues(alpha: 0.5),
+                              blurRadius: 4,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-          ),
+              ),
 
-          // Button and subtitle section
-          Expanded(
-            flex: 1,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.start,
-              children: [
-                const SizedBox(height: 8),
+              const SizedBox(height: 2),
 
-                // Connect Button
-                Container(
-                  width: double.infinity,
-                  height: 56,
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFF8B5CF6), Color(0xFF7C3AED)],
-                      begin: Alignment.centerLeft,
-                      end: Alignment.centerRight,
+              // Connect Button
+              Container(
+                width: double.infinity,
+                height: 56,
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF8B5CF6), Color(0xFF7C3AED)],
+                    begin: Alignment.centerLeft,
+                    end: Alignment.centerRight,
+                  ),
+                  borderRadius: BorderRadius.circular(28),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x4D8B5CF6),
+                      blurRadius: 15,
+                      offset: Offset(0, 5),
                     ),
+                  ],
+                ),
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
                     borderRadius: BorderRadius.circular(28),
-                    boxShadow: const [
-                      BoxShadow(
-                        color: Color(0x4D8B5CF6),
-                        blurRadius: 15,
-                        offset: Offset(0, 5),
-                      ),
-                    ],
-                  ),
-                  child: Material(
-                    color: Colors.transparent,
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(28),
-                      onTap: () {
-                        if (mounted) {
-                          _stateManager.startMatching();
-                        }
-                      },
-                      child: Center(
-                        child: Text(
-                          'Connect Now',
-                          style:
-                              Theme.of(context).textTheme.titleLarge!.copyWith(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w500,
-                                    fontSize: 20,
-                                  ),
-                        ),
+                    onTap: () {
+                      if (mounted) {
+                        _stateManager.startMatching();
+                      }
+                    },
+                    child: Center(
+                      child: Text(
+                        'Connect Now',
+                        style: Theme.of(context).textTheme.titleLarge!.copyWith(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w700,
+                            ),
                       ),
                     ),
                   ),
                 ),
+              ),
 
-                const SizedBox(height: 16),
+              const SizedBox(height: 16),
 
-                // Descriptive text
-                Text(
-                  'Find and chat with people around the world',
-                  style: Theme.of(context).textTheme.bodyLarge!.copyWith(
-                        color: Colors.white.withValues(alpha: 0.8),
-                        fontSize: 16,
-                      ),
-                  textAlign: TextAlign.center,
-                ),
-              ],
-            ),
+              // Descriptive text
+              Text(
+                'Find and chat with people around the world',
+                style: Theme.of(context).textTheme.bodyLarge!.copyWith(
+                      color: Colors.white70,
+                      fontWeight: FontWeight.w500,
+                    ),
+                textAlign: TextAlign.center,
+              ),
+
+              // Bottom spacing for navigation bar
+              const SizedBox(height: 40),
+            ],
           ),
-
-          // Bottom spacing for navigation bar
-          const SizedBox(height: 100),
-        ],
+        ),
       ),
     );
   }

@@ -77,10 +77,29 @@ class _OnboardingScreenV2State extends State<OnboardingScreenV2>
 
     try {
       final formManager = context.read<OnboardingFormManager>();
-      
-      // Create user profile
+
+      // Create or update user profile
       final profileData = formManager.getFormData();
-      await _apiService.createProfile(profileData);
+
+      // Check if profile already exists
+      bool profileExists = false;
+      try {
+        await _apiService.getMyProfile();
+        profileExists = true;
+        print('✅ Profile already exists, updating instead of creating');
+      } catch (e) {
+        print('ℹ️ No existing profile found, creating new one');
+        profileExists = false;
+      }
+
+      // Use updateProfile if profile exists, otherwise createProfile
+      if (profileExists) {
+        await _apiService.updateProfile(profileData);
+        print('✅ Profile updated successfully');
+      } else {
+        await _apiService.createProfile(profileData);
+        print('✅ Profile created successfully');
+      }
 
       // Upload profile picture if available
       if (formManager.profilePicture != null) {
@@ -98,11 +117,11 @@ class _OnboardingScreenV2State extends State<OnboardingScreenV2>
       }
     } catch (e) {
       if (mounted) {
-        context.showError(
-          title: 'Onboarding Failed',
-          message: 'Failed to complete setup. Please try again.',
-          error: e,
-          onRetry: _completeOnboarding,
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error creating profile: $e'),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     } finally {
@@ -114,7 +133,8 @@ class _OnboardingScreenV2State extends State<OnboardingScreenV2>
     }
   }
 
-  Widget _buildStepContent(OnboardingStep step, OnboardingFormManager formManager) {
+  Widget _buildStepContent(
+      OnboardingStep step, OnboardingFormManager formManager) {
     switch (step.type) {
       case OnboardingStepType.displayName:
         return DisplayNameStepWidget(formManager: formManager);
@@ -162,7 +182,8 @@ class _OnboardingScreenV2State extends State<OnboardingScreenV2>
       create: (_) => OnboardingFormManager(),
       child: Scaffold(
         appBar: AppBar(
-          title: Text('Step ${_currentStep + 1} of ${OnboardingSteps.steps.length}'),
+          title: Text(
+              'Step ${_currentStep + 1} of ${OnboardingSteps.steps.length}'),
           leading: _currentStep > 0
               ? IconButton(
                   icon: const Icon(Icons.arrow_back),
@@ -180,7 +201,7 @@ class _OnboardingScreenV2State extends State<OnboardingScreenV2>
                   LinearProgressIndicator(
                     value: (_currentStep + 1) / OnboardingSteps.steps.length,
                   ),
-                  
+
                   // Step content
                   Expanded(
                     child: PageView.builder(
@@ -201,19 +222,25 @@ class _OnboardingScreenV2State extends State<OnboardingScreenV2>
                               // Step title and subtitle
                               Text(
                                 step.title,
-                                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                ),
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .headlineMedium
+                                    ?.copyWith(
+                                      fontWeight: FontWeight.bold,
+                                    ),
                               ),
                               const SizedBox(height: 8),
                               Text(
                                 step.subtitle,
-                                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                                  color: Colors.grey[600],
-                                ),
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .bodyLarge
+                                    ?.copyWith(
+                                      color: Colors.grey[600],
+                                    ),
                               ),
                               const SizedBox(height: 32),
-                              
+
                               // Step content
                               Expanded(
                                 child: ErrorBoundary(
@@ -226,7 +253,7 @@ class _OnboardingScreenV2State extends State<OnboardingScreenV2>
                       },
                     ),
                   ),
-                  
+
                   // Navigation buttons
                   Padding(
                     padding: const EdgeInsets.all(24.0),
@@ -244,16 +271,20 @@ class _OnboardingScreenV2State extends State<OnboardingScreenV2>
                           child: ElevatedButton(
                             onPressed: _isLoading
                                 ? null
-                                : _canProceed(OnboardingSteps.steps[_currentStep], formManager)
+                                : _canProceed(
+                                        OnboardingSteps.steps[_currentStep],
+                                        formManager)
                                     ? _nextStep
                                     : null,
                             child: _isLoading
                                 ? const SizedBox(
                                     height: 20,
                                     width: 20,
-                                    child: CircularProgressIndicator(strokeWidth: 2),
+                                    child: CircularProgressIndicator(
+                                        strokeWidth: 2),
                                   )
-                                : Text(_currentStep == OnboardingSteps.steps.length - 1
+                                : Text(_currentStep ==
+                                        OnboardingSteps.steps.length - 1
                                     ? 'Complete'
                                     : 'Next'),
                           ),

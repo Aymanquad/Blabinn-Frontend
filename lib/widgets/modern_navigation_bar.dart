@@ -115,9 +115,8 @@ class ModernNavigationBar extends StatelessWidget {
               duration: const Duration(milliseconds: 200),
               child: Icon(
                 item.icon,
-                color: isSelected
-                    ? Colors.white
-                    : Colors.white.withOpacity(0.6),
+                color:
+                    isSelected ? Colors.white : Colors.white.withOpacity(0.6),
                 size: 20,
               ),
             ),
@@ -126,9 +125,8 @@ class ModernNavigationBar extends StatelessWidget {
             AnimatedDefaultTextStyle(
               duration: const Duration(milliseconds: 200),
               style: TextStyle(
-                color: isSelected
-                    ? Colors.white
-                    : Colors.white.withOpacity(0.6),
+                color:
+                    isSelected ? Colors.white : Colors.white.withOpacity(0.6),
                 fontSize: isSelected ? 10 : 9,
                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
                 letterSpacing: 0.3,
@@ -176,7 +174,7 @@ class FloatingNavigationBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       height: 60,
-      margin: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+      margin: const EdgeInsets.fromLTRB(16, 0, 16, 24),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(28),
         boxShadow: [
@@ -270,9 +268,8 @@ class FloatingNavigationBar extends StatelessWidget {
                 duration: const Duration(milliseconds: 200),
                 child: Icon(
                   item.icon,
-                  color: isSelected
-                      ? Colors.white
-                      : Colors.white.withOpacity(0.7),
+                  color:
+                      isSelected ? Colors.white : Colors.white.withOpacity(0.7),
                   size: 24,
                 ),
               ),

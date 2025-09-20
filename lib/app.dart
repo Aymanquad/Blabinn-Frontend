@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'dart:ui';
+import 'widgets/modern_glass_nav_bar.dart' as modern_nav;
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:provider/provider.dart';
 import 'package:screen_protector/screen_protector.dart';
@@ -36,10 +37,10 @@ import 'services/global_matching_service.dart';
 import 'widgets/credits_display.dart';
 import 'screens/credit_shop_screen.dart';
 import 'services/api_service.dart';
-import 'widgets/custom_bottom_nav.dart';
 import 'widgets/modern_navigation_bar.dart';
 import 'widgets/enhanced_background.dart';
 import 'utils/logger.dart';
+import 'navigation/credit_shop_route.dart';
 
 // Global navigator key for navigation from anywhere
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
@@ -498,6 +499,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
   late AnimationController _drawerAnimationController;
   late Animation<double> _drawerAnimation;
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+  bool _navLocked = false;
 
   late final List<Widget> _screens;
 
@@ -517,7 +519,6 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
       ConnectScreen(onNavigateToTab: _onTabTapped),
       const ChatListScreen(),
       HomeScreen(onNavigateToTab: _onTabTapped),
-      const CreditShopScreen(),
       const LikesMatchesScreen(),
     ];
   }
@@ -733,6 +734,22 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
 
   void _navigateToProfile() {
     Navigator.pushNamed(context, '/profile');
+  }
+
+  Future<void> _navigateToCreditShop() async {
+    // Prevent double-tap navigation: ignore subsequent taps for 400ms
+    if (_navLocked) return;
+    setState(() => _navLocked = true);
+
+    try {
+      await Navigator.of(context).push(
+        CreditShopRoute<void>(builder: (_) => const CreditShopScreen()),
+      );
+    } finally {
+      // Small delay to prevent double taps re-triggering during animation end
+      await Future<void>.delayed(const Duration(milliseconds: 200));
+      if (mounted) setState(() => _navLocked = false);
+    }
   }
 
   // Removed unused duplicate navigation method
@@ -1144,12 +1161,14 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
                   ),
                 ),
                 actions: [
-                  // Show credits only on Home (index 2) and Credit Shop (index 3)
-                  if (_currentIndex == 2 || _currentIndex == 3)
+                  // Show credits only on Home (index 2) - tap to open credit shop
+                  if (_currentIndex == 2)
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 8),
                       child: Center(
-                        child: CreditsDisplaySmall(),
+                        child: CreditsDisplaySmall(
+                          onTap: _navLocked ? null : _navigateToCreditShop,
+                        ),
                       ),
                     ),
                   IconButton(
@@ -1185,28 +1204,24 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
           children: _screens,
         ),
       ),
-      bottomNavigationBar: FloatingNavigationBar(
+      bottomNavigationBar: modern_nav.ModernGlassNavBar(
         currentIndex: _currentIndex,
         onTap: _onTabTapped,
         items: [
-          NavigationBarItem(
-            icon: AppIcons.connect,
-            label: AppStrings.connect,
+          modern_nav.NavigationBarItem(
+            icon: Icons.explore_outlined,
+            label: 'Explore',
           ),
-          NavigationBarItem(
-            icon: AppIcons.chat,
-            label: AppStrings.chats,
+          modern_nav.NavigationBarItem(
+            icon: Icons.visibility_outlined,
+            label: 'Visibility',
           ),
-          NavigationBarItem(
-            icon: AppIcons.home,
-            label: AppStrings.home,
+          modern_nav.NavigationBarItem(
+            icon: Icons.chat_bubble_outline,
+            label: 'Chat',
           ),
-          const NavigationBarItem(
-            icon: Icons.store_mall_directory_outlined,
-            label: 'Credit Shop',
-          ),
-          NavigationBarItem(
-            icon: Icons.favorite,
+          modern_nav.NavigationBarItem(
+            icon: Icons.favorite_border,
             label: 'Likes',
           ),
         ],

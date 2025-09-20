@@ -129,6 +129,14 @@ class _CreditShopScreenState extends State<CreditShopScreen> {
               },
               tooltip: 'Restore Purchases',
             ),
+          // Back button in top-right corner
+          IconButton(
+            icon: const Icon(Icons.close),
+            onPressed: () {
+              Navigator.of(context).pop();
+            },
+            tooltip: 'Close',
+          ),
         ],
       ),
       body: SafeArea(

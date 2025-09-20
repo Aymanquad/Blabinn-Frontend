@@ -78,7 +78,67 @@ void main() async {
     Logger.warning('Running without billing - purchases will not work');
   }
 
-  runApp(const ChatApp());
+  runApp(const MyApp());
+}
+
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      theme: _buildDarkTheme(),
+      themeMode: ThemeMode.dark,
+      home: const _Warmup(child: ChatApp()),
+    );
+  }
+}
+
+class _Warmup extends StatefulWidget {
+  final Widget child;
+  const _Warmup({required this.child, super.key});
+
+  @override
+  State<_Warmup> createState() => _WarmupState();
+}
+
+class _WarmupState extends State<_Warmup> {
+  bool _ready = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    Future.wait([
+      precacheImage(
+          const AssetImage('assets/images/chatify_purple_logo.png'), context),
+    ]).whenComplete(() => setState(() => _ready = true));
+  }
+
+  @override
+  Widget build(BuildContext context) =>
+      _ready ? widget.child : const SizedBox.shrink();
+}
+
+// Move the theme building method here from app.dart
+ThemeData _buildDarkTheme() {
+  return ThemeData(
+    useMaterial3: true,
+    colorScheme: ColorScheme.fromSeed(
+      seedColor: const Color(0xFF6B46C1),
+      brightness: Brightness.dark,
+    ).copyWith(
+      primary: const Color(0xFF6B46C1),
+      secondary: const Color(0xFFA259FF),
+      tertiary: const Color(0xFFFF6B6B),
+      surface: const Color(0xFF1E1B2E),
+      background: const Color(0xFF1F1941),
+      onSurface: Colors.white,
+      onBackground: Colors.white,
+    ),
+    scaffoldBackgroundColor: Colors.transparent,
+    fontFamily: 'LeagueSpartan',
+  );
 }
 
 Future<void> _initializeSecurity() async {
@@ -86,7 +146,8 @@ Future<void> _initializeSecurity() async {
     // Allow screenshots by default; selective screens will enable protection
     await ScreenProtector.preventScreenshotOff();
     await ScreenProtector.protectDataLeakageOff();
-    Logger.info('Screenshots enabled globally; protected per-screen where needed');
+    Logger.info(
+        'Screenshots enabled globally; protected per-screen where needed');
   } catch (e) {
     Logger.warning('Failed to initialize security features', error: e);
   }

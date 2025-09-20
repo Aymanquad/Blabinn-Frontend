@@ -5,6 +5,7 @@ import '../core/config.dart';
 import '../services/firebase_auth_service.dart';
 import '../services/auth_service.dart';
 import '../widgets/glass_container.dart';
+import '../widgets/app_logo.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -43,13 +44,8 @@ class _LoginScreenState extends State<LoginScreen> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           // Purple Chatify logo
-          Container(
-            width: 120,
-            height: 120,
-            child: Image.asset(
-              'assets/images/chatify_purple_logo.png',
-              fit: BoxFit.contain,
-            ),
+          AppLogo(
+            size: 120,
           ),
           const SizedBox(height: 24),
 
