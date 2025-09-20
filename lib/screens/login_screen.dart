@@ -6,6 +6,7 @@ import '../services/firebase_auth_service.dart';
 import '../services/auth_service.dart';
 import '../widgets/glass_container.dart';
 import '../widgets/app_logo.dart';
+import '../app.dart' show navigatorKey;
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -298,7 +299,7 @@ class _LoginScreenState extends State<LoginScreen> {
         // Show profile creation popup for guest users
         await _showGuestProfilePopup();
       } else {
-        _showError(result['message'] ?? 'Guest sign-in failed');
+        _showError((result['message'] as String?) ?? 'Guest sign-in failed');
       }
     } catch (e) {
       _showError('Guest sign-in failed: ${e.toString()}');
@@ -349,14 +350,16 @@ class _LoginScreenState extends State<LoginScreen> {
             TextButton(
               onPressed: () {
                 Navigator.of(context).pop();
-                Navigator.pushReplacementNamed(context, '/home');
+                // Use global navigator key to ensure proper routing context
+                navigatorKey.currentState?.pushReplacementNamed('/home');
               },
               child: const Text('Skip for now'),
             ),
             ElevatedButton(
               onPressed: () {
                 Navigator.of(context).pop();
-                Navigator.pushReplacementNamed(context, '/onboarding');
+                // Use global navigator key to ensure proper routing context
+                navigatorKey.currentState?.pushReplacementNamed('/onboarding');
               },
               child: const Text('Create Profile'),
             ),
@@ -370,18 +373,18 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _handleAuthResult(Map<String, dynamic> result) async {
     if (result['success'] == true) {
       final user = result['user'];
-      final isNewUser = result['isNewUser'] ?? false;
+      final isNewUser = (result['isNewUser'] as bool?) ?? false;
 
       // Navigate based on user status
-      if (isNewUser) {
+      if (isNewUser == true) {
         // New user - go to onboarding
-        Navigator.pushReplacementNamed(context, '/onboarding');
+        navigatorKey.currentState?.pushReplacementNamed('/onboarding');
       } else {
         // Existing user - go to main app
-        Navigator.pushReplacementNamed(context, '/home');
+        navigatorKey.currentState?.pushReplacementNamed('/home');
       }
     } else {
-      _showError(result['message'] ?? 'Authentication failed');
+      _showError((result['message'] as String?) ?? 'Authentication failed');
     }
   }
 
@@ -435,7 +438,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   void _showDebugInfo() {
     final config = AppConfig.debugInfo;
-    showDialog(
+    showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
         title: Text('🔍 Debug Information'),
@@ -448,7 +451,7 @@ class _LoginScreenState extends State<LoginScreen> {
               SizedBox(height: 8),
               Text('Current API URL:'),
               SelectableText(
-                config['apiUrl'],
+                config['apiUrl'] as String? ?? 'N/A',
                 style: TextStyle(fontFamily: 'monospace', color: Colors.blue),
               ),
               SizedBox(height: 12),
@@ -473,7 +476,8 @@ class _LoginScreenState extends State<LoginScreen> {
         actions: [
           TextButton(
             onPressed: () {
-              Clipboard.setData(ClipboardData(text: config['apiUrl']));
+              Clipboard.setData(
+                  ClipboardData(text: config['apiUrl'] as String? ?? ''));
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(content: Text('API URL copied to clipboard')),
               );
