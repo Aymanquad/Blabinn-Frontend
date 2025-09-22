@@ -34,13 +34,8 @@ import 'screens/random_chat_screen.dart'; // Added import for RandomChatScreen
 import 'screens/test_interstitial_screen.dart';
 import 'widgets/interstitial_ad_manager.dart';
 import 'services/global_matching_service.dart';
-import 'widgets/credits_display.dart';
-import 'screens/credit_shop_screen.dart';
-import 'services/api_service.dart';
-import 'widgets/modern_navigation_bar.dart';
 import 'widgets/enhanced_background.dart';
 import 'utils/logger.dart';
-import 'navigation/credit_shop_route.dart';
 
 // Global navigator key for navigation from anywhere
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
@@ -493,12 +488,9 @@ class MainNavigationScreen extends StatefulWidget {
 class _MainNavigationScreenState extends State<MainNavigationScreen>
     with WidgetsBindingObserver, TickerProviderStateMixin {
   final NotificationService _notificationService = NotificationService();
-  int _currentIndex = 2;
-  final PageController _pageController = PageController(initialPage: 2);
+  int _currentIndex = 1;
+  final PageController _pageController = PageController(initialPage: 1);
   final SocketService _socketService = SocketService();
-  late AnimationController _drawerAnimationController;
-  late Animation<double> _drawerAnimation;
-  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   bool _navLocked = false;
 
   late final List<Widget> _screens;
@@ -511,27 +503,13 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
     _initializeSocketConnection();
     _enableScreenProtection();
     _setupInAppNotificationListener();
-    _initializeAnimations();
     _initializeGlobalMatchingService();
-    _claimDailyCreditsIfNeeded();
-    _syncCreditsOnStartup();
     _screens = [
       ConnectScreen(onNavigateToTab: _onTabTapped),
-      const ChatListScreen(),
       HomeScreen(onNavigateToTab: _onTabTapped),
       const LikesMatchesScreen(),
+      const ChatListScreen(),
     ];
-  }
-
-  void _initializeAnimations() {
-    _drawerAnimationController = AnimationController(
-      duration: const Duration(milliseconds: 300),
-      vsync: this,
-    );
-    _drawerAnimation = CurvedAnimation(
-      parent: _drawerAnimationController,
-      curve: Curves.easeInOut,
-    );
   }
 
   void _initializeGlobalMatchingService() {
@@ -629,7 +607,6 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _pageController.dispose();
-    _drawerAnimationController.dispose();
     _socketService.disconnect();
     _disableScreenProtection();
     super.dispose();
@@ -691,68 +668,13 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
     );
   }
 
-  Future<void> _claimDailyCreditsIfNeeded() async {
-    try {
-      // Wait until first frame to ensure context/providers are ready
-      WidgetsBinding.instance.addPostFrameCallback((_) async {
-        final userProvider = Provider.of<UserProvider>(context, listen: false);
-        if (userProvider.currentUser == null) return;
-        try {
-          final api = ApiService();
-          final result = await api.claimDailyCredits();
-          final awarded = (result['awarded'] as int?) ?? 0;
-          final credits =
-              (result['credits'] as int?) ?? userProvider.currentUser!.credits;
-          if (awarded > 0) {
-            userProvider.updateCurrentUser(
-                userProvider.currentUser!.copyWith(credits: credits));
-            if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('Daily bonus: +$awarded credits'),
-                  duration: const Duration(seconds: 2),
-                ),
-              );
-            }
-          }
-        } catch (_) {}
-      });
-    } catch (_) {}
-  }
-
-  Future<void> _syncCreditsOnStartup() async {
-    try {
-      // Wait until first frame to ensure context/providers are ready
-      WidgetsBinding.instance.addPostFrameCallback((_) async {
-        final userProvider = Provider.of<UserProvider>(context, listen: false);
-        if (userProvider.currentUser != null) {
-          await userProvider.refreshCredits();
-        }
-      });
-    } catch (_) {}
-  }
+  // Removed unused credit-related functions
 
   void _navigateToProfile() {
     Navigator.pushNamed(context, '/profile');
   }
 
-  Future<void> _navigateToCreditShop() async {
-    // Prevent double-tap navigation: ignore subsequent taps for 400ms
-    if (_navLocked) return;
-    setState(() => _navLocked = true);
-
-    try {
-      await Navigator.of(context).push(
-        CreditShopRoute<void>(builder: (_) => const CreditShopScreen()),
-      );
-    } finally {
-      // Small delay to prevent double taps re-triggering during animation end
-      await Future<void>.delayed(const Duration(milliseconds: 200));
-      if (mounted) setState(() => _navLocked = false);
-    }
-  }
-
-  // Removed unused duplicate navigation method
+  // Removed unused credit shop navigation method
 
   Widget _buildDrawer(BuildContext context) {
     return Drawer(
@@ -775,58 +697,6 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
               child: ListView(
                 padding: const EdgeInsets.only(top: 60),
                 children: [
-                  // Quick Actions
-                  _buildDrawerSection(
-                    context,
-                    'Quick Actions',
-                    [
-                      _buildDrawerItem(
-                        context,
-                        icon: Icons.search,
-                        title: 'Find People',
-                        subtitle: 'Search and connect with new people',
-                        iconColor: Theme.of(context).colorScheme.tertiary,
-                        onTap: () {
-                          Navigator.pop(context);
-                          Navigator.pushNamed(context, '/search');
-                        },
-                      ),
-                      _buildDrawerItem(
-                        context,
-                        icon: Icons.people,
-                        title: 'Friend Requests',
-                        subtitle: 'Manage your friend requests',
-                        iconColor: Theme.of(context).colorScheme.secondary,
-                        onTap: () {
-                          Navigator.pop(context);
-                          Navigator.pushNamed(context, '/friend-requests');
-                        },
-                      ),
-                      _buildDrawerItem(
-                        context,
-                        icon: Icons.favorite,
-                        title: 'Friends Section',
-                        subtitle: 'View and manage your friends',
-                        iconColor: Theme.of(context).colorScheme.tertiary,
-                        onTap: () {
-                          Navigator.pop(context);
-                          Navigator.pushNamed(context, '/friends-list');
-                        },
-                      ),
-                      _buildDrawerItem(
-                        context,
-                        icon: Icons.history,
-                        title: 'Your Activity',
-                        subtitle: 'View your recent activity',
-                        iconColor: Theme.of(context).colorScheme.primary,
-                        onTap: () {
-                          Navigator.pop(context);
-                          _showActivityDialog(context);
-                        },
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
                   // Settings
                   _buildDrawerSection(
                     context,
@@ -909,10 +779,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: () {
-          onTap();
-          _drawerAnimationController.reverse();
-        },
+        onTap: onTap,
         borderRadius: BorderRadius.circular(16),
         child: Container(
           margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
@@ -1118,7 +985,6 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      key: _scaffoldKey,
       extendBody: true,
       extendBodyBehindAppBar: true,
       resizeToAvoidBottomInset: false,
@@ -1132,25 +998,6 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
               child: AppBar(
                 backgroundColor: Colors.transparent,
                 elevation: 0,
-                leading: IconButton(
-                  icon: AnimatedBuilder(
-                    animation: _drawerAnimation,
-                    builder: (context, child) {
-                      return Transform.rotate(
-                        angle: _drawerAnimation.value * 0.5,
-                        child: Icon(
-                          Icons.menu,
-                          color: Colors.white.withOpacity(0.85),
-                        ),
-                      );
-                    },
-                  ),
-                  onPressed: () {
-                    _drawerAnimationController.forward();
-                    _scaffoldKey.currentState?.openDrawer();
-                  },
-                  tooltip: 'Menu',
-                ),
                 title: Text(
                   'Chatify',
                   style: TextStyle(
@@ -1161,16 +1008,6 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
                   ),
                 ),
                 actions: [
-                  // Show credits only on Home (index 2) - tap to open credit shop
-                  if (_currentIndex == 2)
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
-                      child: Center(
-                        child: CreditsDisplaySmall(
-                          onTap: _navLocked ? null : _navigateToCreditShop,
-                        ),
-                      ),
-                    ),
                   IconButton(
                     icon: Icon(
                       Icons.person,
@@ -1186,12 +1023,6 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
           ),
         ),
       ),
-      drawer: _buildDrawer(context),
-      onDrawerChanged: (isOpened) {
-        if (!isOpened) {
-          _drawerAnimationController.reverse();
-        }
-      },
       body: Padding(
         padding: const EdgeInsets.only(bottom: 8),
         child: PageView(
@@ -1209,20 +1040,20 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
         onTap: _onTabTapped,
         items: [
           modern_nav.NavigationBarItem(
-            icon: Icons.explore_outlined,
-            label: 'Explore',
+            icon: Icons.explore_rounded,
+            label: 'Discover',
           ),
           modern_nav.NavigationBarItem(
-            icon: Icons.visibility_outlined,
-            label: 'Visibility',
+            icon: Icons.home_rounded,
+            label: 'Home',
           ),
           modern_nav.NavigationBarItem(
-            icon: Icons.chat_bubble_outline,
-            label: 'Chat',
-          ),
-          modern_nav.NavigationBarItem(
-            icon: Icons.favorite_border,
+            icon: Icons.favorite_rounded,
             label: 'Likes',
+          ),
+          modern_nav.NavigationBarItem(
+            icon: Icons.chat_bubble_rounded,
+            label: 'Chats',
           ),
         ],
       ),

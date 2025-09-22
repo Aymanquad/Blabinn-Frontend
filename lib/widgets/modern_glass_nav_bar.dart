@@ -6,9 +6,9 @@ class ModernGlassNavBar extends StatelessWidget {
   final int currentIndex;
   final ValueChanged<int> onTap;
   final List<NavigationBarItem> items;
-  static const double _navHeight = 72.0; // Increased from 56
-  static const double _selectorSize = 40.0; // Increased from 32
-  static const double _iconSize = 24.0; // Increased from 22
+  static const double _navHeight = 76.0; // Optimized for better proportions
+  static const double _selectorSize = 44.0; // Better visual balance
+  static const double _iconSize = 26.0; // Slightly larger for better visibility
 
   const ModernGlassNavBar({
     super.key,
@@ -19,11 +19,11 @@ class ModernGlassNavBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final slotWidth = (MediaQuery.of(context).size.width - 48) / items.length;
+    final slotWidth = (MediaQuery.of(context).size.width - 40) / items.length;
 
     return Container(
       height: _navHeight,
-      margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       child: Stack(
         clipBehavior: Clip.none,
         children: [
@@ -57,7 +57,7 @@ class ModernGlassNavBar extends StatelessWidget {
                 height: _selectorSize,
                 decoration: BoxDecoration(
                   color: const Color(0xFF2E1E55),
-                  borderRadius: BorderRadius.circular(14),
+                  borderRadius: BorderRadius.circular(16),
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withAlpha(51),

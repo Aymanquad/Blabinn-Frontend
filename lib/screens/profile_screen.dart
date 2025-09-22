@@ -13,6 +13,8 @@ import '../widgets/modern_card.dart';
 import '../widgets/gradient_button.dart';
 import '../widgets/profile_avatar.dart';
 import '../widgets/animated_button.dart';
+import '../widgets/credits_display.dart';
+import '../screens/credit_shop_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({Key? key}) : super(key: key);
@@ -86,6 +88,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
         _currentUser = _authService.currentUser;
         _isLoading = false;
       });
+    }
+  }
+
+  Future<void> _navigateToCreditShop() async {
+    try {
+      await Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (context) => const CreditShopScreen(),
+        ),
+      );
+      // Refresh profile data when returning from credit shop
+      if (mounted) {
+        await _loadProfileData();
+      }
+    } catch (e) {
+      // Handle navigation error
+      debugPrint('Error navigating to credit shop: $e');
     }
   }
 
@@ -174,10 +193,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: const ConsistentAppBar(
+      appBar: ConsistentAppBar(
         title: 'Profile',
         backgroundColor: Colors.transparent,
         elevation: 0,
+        actions: [
+          // Credits display with tap to navigate to credit shop
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: Center(
+              child: CreditsDisplaySmall(
+                onTap: () => _navigateToCreditShop(),
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
@@ -192,7 +223,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 // Modern Avatar
                 LargeProfileAvatar(
                   imageUrl: user.hasProfileImage ? user.profileImage : null,
-                  displayName: user.displayName.isNotEmpty ? user.displayName : user.username,
+                  displayName: user.displayName.isNotEmpty
+                      ? user.displayName
+                      : user.username,
                   onTap: () {
                     Navigator.pushNamed(context, '/profile-management');
                   },
@@ -218,10 +251,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       textAlign: TextAlign.center,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                            fontWeight: FontWeight.w700,
-                            color: Theme.of(context).colorScheme.onSurface,
-                          ),
+                      style:
+                          Theme.of(context).textTheme.headlineMedium?.copyWith(
+                                fontWeight: FontWeight.w700,
+                                color: Theme.of(context).colorScheme.onSurface,
+                              ),
                     );
                   },
                 ),
@@ -235,14 +269,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   alignment: WrapAlignment.center,
                   children: [
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 8),
                       decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [
-                            const Color(0xFF10B981), // Success green
-                            const Color(0xFF10B981).withOpacity(0.8),
-                          ],
-                        ),
+                        color: const Color(0xFF10B981), // Original green color
                         borderRadius: BorderRadius.circular(20),
                         boxShadow: [
                           BoxShadow(
@@ -254,31 +284,47 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                       child: Text(
                         user.isGuest ? 'Guest User' : 'Registered User',
-                        style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w600,
-                            ),
+                        style:
+                            Theme.of(context).textTheme.labelMedium?.copyWith(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w600,
+                                ),
                       ),
                     ),
                     Consumer<UserProvider>(
                       builder: (context, userProvider, child) {
-                        final currentCredits = userProvider.currentUser?.credits ?? 0;
-                        return Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                          decoration: BoxDecoration(
-                            color: Theme.of(context).colorScheme.primary.withOpacity(0.2),
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(
-                              color: Theme.of(context).colorScheme.primary.withOpacity(0.3),
-                              width: 1,
+                        final currentCredits =
+                            userProvider.currentUser?.credits ?? 0;
+                        return GestureDetector(
+                          onTap: () => _navigateToCreditShop(),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .primary
+                                  .withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .primary
+                                    .withOpacity(0.3),
+                                width: 1,
+                              ),
                             ),
-                          ),
-                          child: Text(
-                            'Credits: $currentCredits',
-                            style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                                  color: Theme.of(context).colorScheme.primary,
-                                  fontWeight: FontWeight.w600,
-                                ),
+                            child: Text(
+                              'Credits: $currentCredits',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .labelMedium
+                                  ?.copyWith(
+                                    color:
+                                        Theme.of(context).colorScheme.primary,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                            ),
                           ),
                         );
                       },
@@ -289,23 +335,42 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 const SizedBox(height: 14),
 
                 // Profile Preview Button with Animation
-                SizedBox(
-                  width: double.infinity,
+                Center(
                   child: AnimatedButton(
                     onPressed: () {
                       Navigator.pushNamed(context, '/profile-preview');
                     },
-                    child: GradientOutlinedButton(
+                    child: OutlinedButton(
                       onPressed: null, // Handled by AnimatedButton
+                      style: OutlinedButton.styleFrom(
+                        side: BorderSide(
+                          color: theme.colorScheme.outline,
+                          width: 1.0,
+                        ),
+                        padding: const EdgeInsets.symmetric(
+                            vertical: 8, horizontal: 24),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        backgroundColor: Colors.transparent,
+                      ),
                       child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
+                        mainAxisSize: MainAxisSize.min,
                         children: [
                           Icon(
                             Icons.visibility,
-                            size: 20,
+                            size: 18,
+                            color: theme.colorScheme.onSurface,
                           ),
                           const SizedBox(width: 8),
-                          const Text('Preview Profile'),
+                          Text(
+                            'Preview Profile',
+                            style: TextStyle(
+                              color: theme.colorScheme.onSurface,
+                              fontWeight: FontWeight.w500,
+                              fontSize: 14,
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -313,6 +378,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
               ],
             ),
+
+            const SizedBox(height: 16),
+
+            // Premium Recommendation Section (only for non-premium users)
+            if (!user.isPremium) ...[
+              _buildPremiumRecommendationCard(user),
+              const SizedBox(height: 16),
+            ],
+
+            // Quick Actions Section
+            _buildQuickActionsSection(theme),
 
             const SizedBox(height: 16),
 
@@ -877,5 +953,288 @@ class _ProfileScreenState extends State<ProfileScreen> {
         Navigator.pushReplacementNamed(context, '/login');
       }
     }
+  }
+
+  Widget _buildPremiumRecommendationCard(User user) {
+    final theme = Theme.of(context);
+
+    return ModernCard(
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.primary,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(
+                    Icons.star_rounded,
+                    color: Colors.white,
+                    size: 24,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Upgrade to Premium',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: theme.colorScheme.onSurface,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Unlock exclusive features and unlimited connections',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurface.withOpacity(0.7),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+
+            // Premium features list
+            Column(
+              children: [
+                _buildPremiumFeature(
+                  icon: Icons.favorite_rounded,
+                  title: 'Unlimited Likes',
+                  description: 'Like as many profiles as you want',
+                ),
+                const SizedBox(height: 8),
+                _buildPremiumFeature(
+                  icon: Icons.visibility_rounded,
+                  title: 'See Who Liked You',
+                  description: 'View all your admirers instantly',
+                ),
+                const SizedBox(height: 8),
+                _buildPremiumFeature(
+                  icon: Icons.rocket_launch_rounded,
+                  title: 'Profile Boosts',
+                  description: 'Get more visibility and matches',
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 16),
+
+            // Upgrade button
+            SizedBox(
+              width: double.infinity,
+              child: AnimatedButton(
+                onPressed: () => _navigateToPremiumUpgrade(),
+                child: ElevatedButton(
+                  onPressed: null, // Handled by AnimatedButton
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: theme.colorScheme.primary,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(
+                        Icons.star_rounded,
+                        size: 20,
+                        color: Colors.white,
+                      ),
+                      const SizedBox(width: 8),
+                      const Text(
+                        'Upgrade Now',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPremiumFeature({
+    required IconData icon,
+    required String title,
+    required String description,
+  }) {
+    final theme = Theme.of(context);
+
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(6),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surfaceVariant,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(
+            icon,
+            size: 16,
+            color: theme.colorScheme.primary,
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: theme.colorScheme.onSurface,
+                ),
+              ),
+              Text(
+                description,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurface.withOpacity(0.6),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _navigateToPremiumUpgrade() async {
+    // Navigate to credit shop for premium upgrade
+    await _navigateToCreditShop();
+  }
+
+  Widget _buildQuickActionsSection(ThemeData theme) {
+    return ModernCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Text(
+              'Quick Actions',
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: theme.colorScheme.onSurface,
+              ),
+            ),
+          ),
+          _buildQuickActionItem(
+            icon: Icons.search_rounded,
+            title: 'Find People',
+            subtitle: 'Search and connect with new people',
+            iconColor: const Color(0xFFFF2BD3),
+            onTap: () => Navigator.pushNamed(context, '/search'),
+          ),
+          Divider(height: 1, color: theme.colorScheme.outline.withOpacity(0.2)),
+          _buildQuickActionItem(
+            icon: Icons.people_rounded,
+            title: 'Friend Requests',
+            subtitle: 'Manage your friend requests',
+            iconColor: const Color(0xFF00E5FF),
+            onTap: () => Navigator.pushNamed(context, '/friend-requests'),
+          ),
+          Divider(height: 1, color: theme.colorScheme.outline.withOpacity(0.2)),
+          _buildQuickActionItem(
+            icon: Icons.favorite_rounded,
+            title: 'Friends Section',
+            subtitle: 'View and manage your friends',
+            iconColor: const Color(0xFF1FE074),
+            onTap: () => Navigator.pushNamed(context, '/friends-list'),
+          ),
+          Divider(height: 1, color: theme.colorScheme.outline.withOpacity(0.2)),
+          _buildQuickActionItem(
+            icon: Icons.history_rounded,
+            title: 'Your Activity',
+            subtitle: 'View your recent activity',
+            iconColor: theme.colorScheme.primary,
+            onTap: () => _showActivityDialog(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildQuickActionItem({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required Color iconColor,
+    required VoidCallback onTap,
+  }) {
+    final theme = Theme.of(context);
+
+    return ListTile(
+      leading: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: iconColor.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Icon(
+          icon,
+          color: iconColor,
+          size: 20,
+        ),
+      ),
+      title: Text(
+        title,
+        style: TextStyle(
+          color: theme.colorScheme.onSurface,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+      subtitle: Text(
+        subtitle,
+        style: TextStyle(
+          color: theme.colorScheme.onSurface.withOpacity(0.7),
+          fontSize: 12,
+        ),
+      ),
+      trailing: Icon(
+        Icons.arrow_forward_ios,
+        size: 16,
+        color: theme.colorScheme.onSurface.withOpacity(0.5),
+      ),
+      onTap: onTap,
+    );
+  }
+
+  void _showActivityDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Your Activity'),
+        content: const Text(
+          'Activity tracking is coming soon! '
+          'You\'ll be able to view your recent connections, chats, and interactions here.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Got it'),
+          ),
+        ],
+      ),
+    );
   }
 }
