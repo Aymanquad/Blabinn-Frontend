@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
 import '../core/constants.dart';
 import '../services/socket_service.dart';
 import '../services/api_service.dart';
 import '../services/chat_moderation_service.dart';
+import '../services/premium_service.dart';
+import '../utils/permission_helper.dart';
+import '../models/message.dart';
 import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart' as FirebaseAuth;
 import '../utils/html_decoder.dart';
@@ -29,9 +34,10 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
   late SocketService _socketService;
   late ApiService _apiService;
   final ChatModerationService _moderationService = ChatModerationService();
-  late StreamSubscription _messageSubscription;
-  late StreamSubscription _errorSubscription;
-  late StreamSubscription _eventSubscription;
+  final ImagePicker _imagePicker = ImagePicker();
+  late StreamSubscription<dynamic> _messageSubscription;
+  late StreamSubscription<String> _errorSubscription;
+  late StreamSubscription<SocketEvent> _eventSubscription;
   bool _isSessionActive = true;
   bool _hasShownEndDialog = false; // Prevent multiple dialogs
   bool _isDisposing = false; // Prevent multiple dispose calls
@@ -74,7 +80,7 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
     if (!mounted || _hasShownEndDialog) return;
 
     _hasShownEndDialog = true;
-    showDialog(
+    showDialog<void>(
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
@@ -373,6 +379,8 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
           'senderId': messageSenderId,
           'timestamp': message.timestamp ?? DateTime.now(),
           'isFromCurrentUser': isFromCurrentUser,
+          'type': message.type ?? 'text',
+          'imageUrl': message.imageUrl,
         });
       });
 
@@ -437,6 +445,18 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
       return 'User ${userId.substring(0, 8)}...';
     }
     return 'User $userId';
+  }
+
+  /// Build display name with age for better visibility
+  String _buildDisplayNameWithAge() {
+    final displayName =
+        (_partnerInfo!['displayName'] as String?) ?? 'Anonymous';
+    final age = _partnerInfo!['age'];
+
+    if (age != null && age is int) {
+      return '$displayName, $age';
+    }
+    return displayName;
   }
 
   Future<void> _loadPartnerInfo() async {
@@ -605,6 +625,7 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
               'current_user', // Will be updated when we get the real message
           'timestamp': DateTime.now(),
           'isFromCurrentUser': true,
+          'type': 'text',
         });
       });
 
@@ -627,6 +648,345 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
         ),
       );
     }
+  }
+
+  // Image sharing methods
+  void _showAttachmentOptions() {
+    showModalBottomSheet<void>(
+      context: context,
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.camera_alt),
+              title: const Text('Take Photo'),
+              onTap: () {
+                Navigator.pop(context);
+                _takePhoto();
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library),
+              title: const Text('Choose from Gallery'),
+              onTap: () {
+                Navigator.pop(context);
+                _pickFromGallery();
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _takePhoto() async {
+    // Check if user has premium
+    final hasPremium = await PremiumService.checkChatImageSending(context);
+    if (!hasPremium) {
+      return; // User doesn't have premium, popup already shown
+    }
+
+    try {
+      // Request camera permission
+      final hasPermission =
+          await PermissionHelper.requestCameraPermission(context);
+      if (!hasPermission) {
+        return;
+      }
+
+      final XFile? image = await _imagePicker.pickImage(
+        source: ImageSource.camera,
+        imageQuality: 80,
+      );
+
+      if (image != null) {
+        await _showImageConfirmation(File(image.path));
+      }
+    } catch (e) {
+      _showError('Failed to take photo: $e');
+    }
+  }
+
+  Future<void> _pickFromGallery() async {
+    // Check if user has premium
+    final hasPremium = await PremiumService.checkChatImageSending(context);
+    if (!hasPremium) {
+      return; // User doesn't have premium, popup already shown
+    }
+
+    try {
+      // Request gallery permission
+      final hasPermission =
+          await PermissionHelper.requestGalleryPermission(context);
+      if (!hasPermission) {
+        return;
+      }
+
+      final XFile? image = await _imagePicker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 80,
+      );
+
+      if (image != null) {
+        await _showImageConfirmation(File(image.path));
+      }
+    } catch (e) {
+      _showError('Failed to pick image: $e');
+    }
+  }
+
+  Future<void> _showImageConfirmation(File imageFile) async {
+    final theme = Theme.of(context);
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: theme.scaffoldBackgroundColor,
+        title: Text(
+          'Send Image?',
+          style: TextStyle(color: theme.colorScheme.onSurface),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: Image.file(
+                imageFile,
+                height: 200,
+                width: double.infinity,
+                fit: BoxFit.cover,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Do you want to send this image?',
+              style: TextStyle(
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(
+              'Cancel',
+              style: TextStyle(
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+              ),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: theme.colorScheme.primary,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(
+                horizontal: 24,
+                vertical: 12,
+              ),
+            ),
+            child: const Text('Send'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      await _sendImageMessage(imageFile);
+    }
+  }
+
+  Future<void> _sendImageMessage(File imageFile) async {
+    if (!_isSessionActive) return;
+
+    try {
+      // Upload image to backend
+      final imageUrl = await _apiService.uploadChatImage(imageFile);
+
+      // Add image message to UI immediately (optimistic update)
+      final tempMessageId = 'temp_${DateTime.now().millisecondsSinceEpoch}';
+      setState(() {
+        _messages.add({
+          'id': tempMessageId,
+          'content': '', // No text content for image messages
+          'senderId': 'current_user',
+          'timestamp': DateTime.now(),
+          'isFromCurrentUser': true,
+          'type': 'image',
+          'imageUrl': imageUrl,
+        });
+      });
+
+      _scrollToBottom();
+
+      // Send image message via socket
+      await _socketService.sendMessage(
+        widget.chatRoomId,
+        imageUrl,
+        type: MessageType.image,
+      );
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Image sent successfully!'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } catch (e) {
+      _showError('Failed to send image: $e');
+    }
+  }
+
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
+      ),
+    );
+  }
+
+  Widget _buildMessageBubble(
+      Map<String, dynamic> message, bool isFromCurrentUser) {
+    final messageType = message['type'] as String? ?? 'text';
+
+    if (messageType == 'image') {
+      return _buildImageMessage(message, isFromCurrentUser);
+    } else {
+      return _buildTextMessage(message, isFromCurrentUser);
+    }
+  }
+
+  Widget _buildTextMessage(
+      Map<String, dynamic> message, bool isFromCurrentUser) {
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: 16,
+        vertical: 10,
+      ),
+      decoration: BoxDecoration(
+        color:
+            isFromCurrentUser ? AppColors.primary : AppColors.receivedMessage,
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Text(
+        HtmlDecoder.decodeHtmlEntities(message['content'] as String),
+        style: TextStyle(
+          color: isFromCurrentUser ? Colors.white : AppColors.text,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildImageMessage(
+      Map<String, dynamic> message, bool isFromCurrentUser) {
+    final imageUrl = message['imageUrl'] as String?;
+
+    if (imageUrl == null || imageUrl.isEmpty) {
+      return _buildTextMessage({'content': '[Image]'}, isFromCurrentUser);
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color:
+            isFromCurrentUser ? AppColors.primary : AppColors.receivedMessage,
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(14),
+        child: GestureDetector(
+          onTap: () => _showFullScreenImage(imageUrl),
+          child: Image.network(
+            imageUrl,
+            width: 200,
+            height: 200,
+            fit: BoxFit.cover,
+            loadingBuilder: (context, child, loadingProgress) {
+              if (loadingProgress == null) return child;
+              return Container(
+                width: 200,
+                height: 200,
+                color: Colors.grey[300],
+                child: Center(
+                  child: CircularProgressIndicator(
+                    value: loadingProgress.expectedTotalBytes != null
+                        ? loadingProgress.cumulativeBytesLoaded /
+                            loadingProgress.expectedTotalBytes!
+                        : null,
+                  ),
+                ),
+              );
+            },
+            errorBuilder: (context, error, stackTrace) {
+              return Container(
+                width: 200,
+                height: 200,
+                color: Colors.grey[300],
+                child: const Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.broken_image, size: 48, color: Colors.grey),
+                    SizedBox(height: 8),
+                    Text(
+                      'Failed to load image',
+                      style: TextStyle(color: Colors.grey),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showFullScreenImage(String imageUrl) {
+    showDialog<void>(
+      context: context,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.black,
+        child: Stack(
+          children: [
+            Center(
+              child: InteractiveViewer(
+                child: Image.network(
+                  imageUrl,
+                  fit: BoxFit.contain,
+                  errorBuilder: (context, error, stackTrace) {
+                    return const Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.broken_image, size: 64, color: Colors.white),
+                        SizedBox(height: 16),
+                        Text(
+                          'Failed to load image',
+                          style: TextStyle(color: Colors.white),
+                        ),
+                      ],
+                    );
+                  },
+                ),
+              ),
+            ),
+            Positioned(
+              top: 40,
+              right: 20,
+              child: IconButton(
+                onPressed: () => Navigator.pop(context),
+                icon: const Icon(Icons.close, color: Colors.white, size: 30),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   void _showSessionEndDialog(String reason) {
@@ -660,7 +1020,7 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
         break;
     }
 
-    showDialog(
+    showDialog<void>(
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
@@ -759,7 +1119,7 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
   void _showPartnerProfileModal() {
     if (_partnerInfo == null) return;
 
-    showModalBottomSheet(
+    showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
@@ -768,7 +1128,7 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
   }
 
   void _showExitWarningDialog() {
-    showDialog(
+    showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Row(
@@ -979,17 +1339,18 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Text(
-                        (_partnerInfo!['displayName'] as String?) ??
-                            'Anonymous',
-                        style: Theme.of(context)
-                            .textTheme
-                            .headlineMedium!
-                            .copyWith(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w700,
-                            ),
-                        textAlign: TextAlign.center,
+                      Flexible(
+                        child: Text(
+                          _buildDisplayNameWithAge(),
+                          style: Theme.of(context)
+                              .textTheme
+                              .headlineMedium!
+                              .copyWith(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w700,
+                              ),
+                          textAlign: TextAlign.center,
+                        ),
                       ),
                       if (_partnerInfo!['isDemo'] == true) ...[
                         const SizedBox(width: 8),
@@ -1402,8 +1763,7 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
                               children: [
                                 Expanded(
                                   child: Text(
-                                    (_partnerInfo!['displayName'] as String?) ??
-                                        'Anonymous',
+                                    _buildDisplayNameWithAge(),
                                     style: Theme.of(context)
                                         .textTheme
                                         .titleMedium!
@@ -1467,6 +1827,28 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
                                         fontWeight: FontWeight.w500,
                                       ),
                                 ),
+                                if (_partnerInfo!['gender'] != null) ...[
+                                  const SizedBox(width: 12),
+                                  Container(
+                                    width: 4,
+                                    height: 4,
+                                    decoration: BoxDecoration(
+                                      color: Colors.grey[400],
+                                      shape: BoxShape.circle,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    _partnerInfo!['gender'] as String,
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodySmall!
+                                        .copyWith(
+                                          color: Colors.grey[300],
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                  ),
+                                ],
                               ],
                             ),
                           ],
@@ -1646,25 +2028,11 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
                               : Alignment.centerLeft,
                           child: Container(
                             margin: const EdgeInsets.only(bottom: 8),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 10,
+                            constraints: BoxConstraints(
+                              maxWidth: MediaQuery.of(context).size.width * 0.7,
                             ),
-                            decoration: BoxDecoration(
-                              color: isFromCurrentUser
-                                  ? AppColors.primary
-                                  : AppColors.receivedMessage,
-                              borderRadius: BorderRadius.circular(18),
-                            ),
-                            child: Text(
-                              HtmlDecoder.decodeHtmlEntities(
-                                  message['content'] as String),
-                              style: TextStyle(
-                                color: isFromCurrentUser
-                                    ? Colors.white
-                                    : AppColors.text,
-                              ),
-                            ),
+                            child:
+                                _buildMessageBubble(message, isFromCurrentUser),
                           ),
                         );
                       },
@@ -1716,6 +2084,16 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
                     // Message input row
                     Row(
                       children: [
+                        // Attachment button
+                        IconButton(
+                          onPressed: _showAttachmentOptions,
+                          icon: Icon(
+                            Icons.attach_file,
+                            color: AppColors.primary,
+                            size: 24,
+                          ),
+                          tooltip: 'Attach Image',
+                        ),
                         Expanded(
                           child: Column(
                             mainAxisSize: MainAxisSize.min,

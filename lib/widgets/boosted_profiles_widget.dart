@@ -15,7 +15,7 @@ class BoostedProfilesWidgetState extends State<BoostedProfilesWidget>
   final ScrollController _scrollController = ScrollController();
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
-  
+
   List<Map<String, dynamic>> _boostedProfiles = [];
   bool _isLoading = true;
   Timer? _autoScrollTimer;
@@ -34,7 +34,7 @@ class BoostedProfilesWidgetState extends State<BoostedProfilesWidget>
       parent: _animationController,
       curve: Curves.easeInOut,
     ));
-    
+
     _loadBoostedProfiles();
     _startAutoScroll();
   }
@@ -57,7 +57,7 @@ class BoostedProfilesWidgetState extends State<BoostedProfilesWidget>
   Future<void> _loadBoostedProfiles() async {
     try {
       final profiles = await _boostService.getBoostedProfiles();
-      
+
       setState(() {
         _boostedProfiles = profiles;
         _isLoading = false;
@@ -83,7 +83,7 @@ class BoostedProfilesWidgetState extends State<BoostedProfilesWidget>
       if (_scrollController.hasClients && _boostedProfiles.isNotEmpty) {
         final maxScroll = _scrollController.position.maxScrollExtent;
         final currentScroll = _scrollController.offset;
-        
+
         if (currentScroll >= maxScroll) {
           _scrollController.animateTo(
             0,
@@ -277,7 +277,8 @@ class BoostedProfilesWidgetState extends State<BoostedProfilesWidget>
                     ),
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
                       color: Colors.amber.withOpacity(0.3),
                       borderRadius: BorderRadius.circular(20),
@@ -348,11 +349,13 @@ class BoostedProfilesWidgetState extends State<BoostedProfilesWidget>
   }
 
   Widget _buildTableRow(Map<String, dynamic> profile, int index) {
-    final displayName = profile['displayName'] ?? profile['username'] ?? 'Unknown';
+    final displayName =
+        profile['displayName'] ?? profile['username'] ?? 'Unknown';
     final profilePicture = profile['profilePicture'] as String?;
     final age = profile['age']?.toString() ?? '';
     final location = profile['location'] ?? '';
-    final interests = (profile['interests'] as List<dynamic>?)?.cast<String>() ?? [];
+    final interests =
+        (profile['interests'] as List<dynamic>?)?.cast<String>() ?? [];
 
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
@@ -474,8 +477,12 @@ class BoostedProfilesWidgetState extends State<BoostedProfilesWidget>
                     Text(
                       [age, location].where((s) => s.isNotEmpty).join(' • '),
                       style: TextStyle(
-                        color: Colors.white.withOpacity(0.7),
-                        fontSize: 12,
+                        color: Colors.white.withOpacity(
+                            0.8), // Increased opacity for better contrast
+                        fontSize:
+                            14, // Increased from 12 for better readability
+                        fontWeight: FontWeight
+                            .w500, // Added weight for better readability
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -485,8 +492,12 @@ class BoostedProfilesWidgetState extends State<BoostedProfilesWidget>
                     Text(
                       interests.take(2).join(', '),
                       style: TextStyle(
-                        color: Colors.amber.withOpacity(0.9),
-                        fontSize: 11,
+                        color: Colors.amber.withOpacity(
+                            0.95), // Increased opacity for better contrast
+                        fontSize:
+                            13, // Increased from 11 for better readability
+                        fontWeight: FontWeight
+                            .w500, // Added weight for better readability
                         fontStyle: FontStyle.italic,
                       ),
                       maxLines: 1,

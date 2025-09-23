@@ -56,9 +56,13 @@ class CreditsDisplay extends StatelessWidget {
               Text(
                 'credits',
                 style: TextStyle(
-                  fontSize: (size ?? 16) - 2,
-                  color: textColor?.withOpacity(0.7) ??
-                      Colors.green.withOpacity(0.7),
+                  fontSize: (size ?? 16) -
+                      1, // Reduced the size difference for better readability
+                  fontWeight:
+                      FontWeight.w500, // Added weight for better readability
+                  color: textColor?.withOpacity(
+                          0.8) ?? // Increased opacity for better contrast
+                      Colors.green.withOpacity(0.8),
                 ),
               ),
             ],
@@ -77,7 +81,7 @@ class CreditsDisplaySmall extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     Widget child = const CreditsDisplay(
-      size: 14,
+      size: 16, // Increased from 14 for better readability
       showIcon: true, // Show icon to make it more obvious it's interactive
     );
 
@@ -102,7 +106,7 @@ class CreditsDisplayLarge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const CreditsDisplay(
-      size: 18,
+      size: 20, // Increased from 18 for better readability
       backgroundColor: Colors.green,
       textColor: Colors.white,
     );

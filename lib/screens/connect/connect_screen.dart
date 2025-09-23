@@ -13,7 +13,8 @@ class ConnectScreen extends StatefulWidget {
 }
 
 class _ConnectScreenState extends State<ConnectScreen> {
-  final GlobalKey<BoostedProfilesWidgetState> _boostedProfilesKey = GlobalKey<BoostedProfilesWidgetState>();
+  final GlobalKey<BoostedProfilesWidgetState> _boostedProfilesKey =
+      GlobalKey<BoostedProfilesWidgetState>();
 
   @override
   void didChangeDependencies() {
@@ -29,7 +30,8 @@ class _ConnectScreenState extends State<ConnectScreen> {
     return Scaffold(
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 100, 16, 100), // Increased padding for transparent bars
+          padding: const EdgeInsets.fromLTRB(
+              16, 100, 16, 100), // Increased padding for transparent bars
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -38,10 +40,10 @@ class _ConnectScreenState extends State<ConnectScreen> {
               _AnimatedConnectNowSection(onConnect: () {
                 widget.onNavigateToTab?.call(2); // Navigate to Connect tab
               }),
-                             const SizedBox(height: 16),
-               // Boosted profiles section
-               BoostedProfilesWidget(key: _boostedProfilesKey),
-               const SizedBox(height: 16),
+              const SizedBox(height: 16),
+              // Boosted profiles section
+              BoostedProfilesWidget(key: _boostedProfilesKey),
+              const SizedBox(height: 16),
               // Banner Ad at the bottom
               const BannerAdWidget(
                 height: 50,
@@ -152,17 +154,22 @@ class _AnimatedConnectNowSectionState extends State<_AnimatedConnectNowSection>
                   Text(
                     'Ready to Connect?',
                     style: TextStyle(
-                      fontSize: 18, // Reduced size
+                      fontSize: 22, // Increased from 18 for better readability
                       fontWeight: FontWeight.bold,
                       color: theme.colorScheme.primary,
                     ),
                   ),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: 8),
                   Text(
                     'Find and chat with new people around you',
                     style: TextStyle(
-                      fontSize: 13, // Reduced size
-                      color: theme.colorScheme.onSurface.withOpacity(0.7),
+                      fontSize:
+                          16, // Increased from 13 for much better readability
+                      fontWeight:
+                          FontWeight.w500, // Added weight for better visibility
+                      color: theme.colorScheme.onSurface.withOpacity(
+                          0.9), // Increased opacity for better contrast
+                      height: 1.3, // Added line height for better text flow
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -178,7 +185,8 @@ class _AnimatedConnectNowSectionState extends State<_AnimatedConnectNowSection>
                           horizontal: 18, // Reduced padding
                         ),
                         textStyle: const TextStyle(
-                          fontSize: 14, // Reduced size
+                          fontSize:
+                              16, // Increased from 14 for better readability
                           fontWeight: FontWeight.bold,
                         ),
                         shape: RoundedRectangleBorder(
@@ -197,4 +205,4 @@ class _AnimatedConnectNowSectionState extends State<_AnimatedConnectNowSection>
       ),
     );
   }
-} 
+}

@@ -54,10 +54,13 @@ class ApiService {
       _firebaseToken = await _firebaseAuth.getIdToken();
 
       if (_firebaseToken == null) {
-        Logger.warning('Firebase token is null - user may not be authenticated');
+        Logger.warning(
+            'Firebase token is null - user may not be authenticated');
       } else {
-        Logger.debug('Firebase token retrieved successfully (length: ${_firebaseToken!.length})');
-        Logger.debug('Token starts with: ${_firebaseToken!.substring(0, 20)}...');
+        Logger.debug(
+            'Firebase token retrieved successfully (length: ${_firebaseToken!.length})');
+        Logger.debug(
+            'Token starts with: ${_firebaseToken!.substring(0, 20)}...');
       }
     } catch (e) {
       Logger.error('Failed to get Firebase token', error: e);
@@ -78,7 +81,8 @@ class ApiService {
       headers['Authorization'] = 'Bearer $_firebaseToken';
       Logger.debug('Authorization header added with token');
     } else {
-      Logger.warning('No Firebase token available for authorization - request will fail');
+      Logger.warning(
+          'No Firebase token available for authorization - request will fail');
 
       // Multiple retry attempts with different strategies
       for (int attempt = 1; attempt <= 3; attempt++) {
@@ -112,11 +116,21 @@ class ApiService {
       // Check if user is authenticated before making request
       final currentUser = _firebaseAuth.currentUser;
       Logger.debug('Current user: ${currentUser?.uid ?? 'null'}');
-      Logger.debug('User is anonymous: ${currentUser?.isAnonymous ?? 'unknown'}');
+      Logger.debug(
+          'User is anonymous: ${currentUser?.isAnonymous ?? 'unknown'}');
 
       if (currentUser == null) {
-        Logger.warning('User not authenticated - cannot make authenticated request to $endpoint');
-        throw Exception('User not authenticated. Please sign in first.');
+        Logger.warning(
+            'User not authenticated - cannot make authenticated request to $endpoint');
+        // Instead of throwing an exception, return a 401 response
+        return http.Response(
+          jsonEncode({
+            'error': 'User not authenticated',
+            'message': 'Please sign in first.'
+          }),
+          401,
+          headers: {'content-type': 'application/json'},
+        );
       }
 
       final response = await http
@@ -128,13 +142,33 @@ class ApiService {
 
       return response;
     } catch (e) {
-      throw Exception('Network error: $e');
+      // Return error response instead of throwing
+      return http.Response(
+        jsonEncode({'error': 'Network error', 'message': e.toString()}),
+        500,
+        headers: {'content-type': 'application/json'},
+      );
     }
   }
 
   Future<http.Response> _post(
       String endpoint, Map<String, dynamic> data) async {
     try {
+      // Check authentication for POST requests too
+      final currentUser = _firebaseAuth.currentUser;
+      if (currentUser == null && !endpoint.contains('/auth/')) {
+        Logger.warning(
+            'User not authenticated - cannot make authenticated POST request to $endpoint');
+        return http.Response(
+          jsonEncode({
+            'error': 'User not authenticated',
+            'message': 'Please sign in first.'
+          }),
+          401,
+          headers: {'content-type': 'application/json'},
+        );
+      }
+
       final response = await http
           .post(
             Uri.parse('$_baseUrl$endpoint'),
@@ -145,7 +179,12 @@ class ApiService {
 
       return response;
     } catch (e) {
-      throw Exception('Network error: $e');
+      // Return error response instead of throwing
+      return http.Response(
+        jsonEncode({'error': 'Network error', 'message': e.toString()}),
+        500,
+        headers: {'content-type': 'application/json'},
+      );
     }
   }
 
@@ -205,7 +244,9 @@ class ApiService {
   String _getErrorMessage(http.Response response) {
     try {
       final errorData = jsonDecode(response.body) as Map<String, dynamic>;
-      return errorData['message'] ?? errorData['error'] ?? 'Unknown error occurred';
+      return errorData['message'] ??
+          errorData['error'] ??
+          'Unknown error occurred';
     } catch (e) {
       // If we can't parse the error response, return a generic message
       switch (response.statusCode) {
@@ -239,7 +280,8 @@ class ApiService {
     return _handleResponse(response);
   }
 
-  Future<Map<String, dynamic>> postJson(String endpoint, Map<String, dynamic> data) async {
+  Future<Map<String, dynamic>> postJson(
+      String endpoint, Map<String, dynamic> data) async {
     final response = await _post(endpoint, data);
     return _handleResponse(response);
   }
@@ -270,7 +312,8 @@ class ApiService {
   // Update FCM token for push notifications
   Future<Map<String, dynamic>> updateFcmToken(String fcmToken) async {
     try {
-      Logger.notification('Updating FCM token: ${fcmToken.substring(0, 20)}...');
+      Logger.notification(
+          'Updating FCM token: ${fcmToken.substring(0, 20)}...');
       final response = await _put('/auth/fcm-token', {'fcmToken': fcmToken});
       final result = _handleResponse(response);
       Logger.notification('FCM token updated successfully');
@@ -333,7 +376,8 @@ class ApiService {
     return _handleResponse(response);
   }
 
-  Future<Map<String, dynamic>> grantAdCredits({int amount = 10, String trigger = 'credit_shop_reward'}) async {
+  Future<Map<String, dynamic>> grantAdCredits(
+      {int amount = 10, String trigger = 'credit_shop_reward'}) async {
     final response = await _post('/billing/credits/grant-ad', {
       'amount': amount,
       'trigger': trigger,
@@ -355,7 +399,8 @@ class ApiService {
   // Billing verification (simulated backend verification)
   Future<Map<String, dynamic>> verifyPurchase({
     required String platform, // 'android' | 'ios'
-    required String productId, // e.g. 8248-1325-3123-2424-credits-70, 8248-1325-3123-2424-premium-monthly
+    required String
+        productId, // e.g. 8248-1325-3123-2424-credits-70, 8248-1325-3123-2424-premium-monthly
     required String purchaseType, // 'consumable' | 'subscription'
     String? purchaseToken,
     String? orderId,
@@ -363,9 +408,11 @@ class ApiService {
     final response = await _post('/billing/verify', {
       'platform': platform,
       'productId': productId,
-      'purchaseToken': purchaseToken ?? 'mock_token_${DateTime.now().millisecondsSinceEpoch}',
+      'purchaseToken': purchaseToken ??
+          'mock_token_${DateTime.now().millisecondsSinceEpoch}',
       'purchaseType': purchaseType,
-      'orderId': orderId ?? 'mock_order_${DateTime.now().millisecondsSinceEpoch}',
+      'orderId':
+          orderId ?? 'mock_order_${DateTime.now().millisecondsSinceEpoch}',
     });
     return _handleResponse(response);
   }
@@ -424,7 +471,8 @@ class ApiService {
           contentType = 'image/jpeg'; // Fallback
       }
 
-      Logger.debug('Uploading profile picture with content type: $contentType, file: ${imageFile.path}');
+      Logger.debug(
+          'Uploading profile picture with content type: $contentType, file: ${imageFile.path}');
 
       // Add image file with explicit content type
       request.files.add(await http.MultipartFile.fromPath(
@@ -580,7 +628,8 @@ class ApiService {
       Logger.apiRequest('POST', '/chat/messages', data: data);
 
       final response = await _post('/chat/messages', data);
-      Logger.apiResponse('POST', '/chat/messages', response.statusCode, body: response.body);
+      Logger.apiResponse('POST', '/chat/messages', response.statusCode,
+          body: response.body);
 
       return _handleResponse(response);
     } catch (e) {
@@ -599,10 +648,11 @@ class ApiService {
       }
       // Add a parameter to ensure we get the most recent messages
       queryParams.add('sort=desc');
-      
+
       final endpoint = '/chat/history/$userId?${queryParams.join('&')}';
       final response = await _get(endpoint);
-      Logger.apiResponse('GET', endpoint, response.statusCode, body: response.body);
+      Logger.apiResponse('GET', endpoint, response.statusCode,
+          body: response.body);
 
       final result = _handleResponse(response);
       Logger.debug('Processed chat history result: $result');
@@ -619,7 +669,7 @@ class ApiService {
       Logger.debug('getLatestMessageWithUser() called with userId: $userId');
       final response = await _get('/chat/latest/$userId');
       Logger.apiResponse('GET', '/chat/latest/$userId', response.statusCode);
-      
+
       if (response.statusCode == 200) {
         final result = _handleResponse(response);
         Logger.debug('Latest message result: $result');
@@ -660,7 +710,8 @@ class ApiService {
       Logger.debug('getCurrentUserId() - User ID: $userId');
 
       if (userId == null) {
-        Logger.warning('No Firebase user found. User might be signed in as guest.');
+        Logger.warning(
+            'No Firebase user found. User might be signed in as guest.');
         // Check if user is signed in as guest
         final user = _firebaseAuth.currentUser;
         if (user != null && user.isAnonymous) {
@@ -775,7 +826,8 @@ class ApiService {
           contentType = 'image/jpeg'; // Fallback
       }
 
-      Logger.debug('Uploading image with content type: $contentType, file: ${imageFile.path}');
+      Logger.debug(
+          'Uploading image with content type: $contentType, file: ${imageFile.path}');
 
       // Add image file with explicit content type
       request.files.add(await http.MultipartFile.fromPath(
@@ -846,17 +898,20 @@ class ApiService {
   }
 
   // Report methods
-  Future<Map<String, dynamic>> reportUser(String reportedUserId, String reason, {String? description}) async {
+  Future<Map<String, dynamic>> reportUser(String reportedUserId, String reason,
+      {String? description}) async {
     final data = {
       'reportedUserId': reportedUserId,
       'reason': reason,
-      if (description != null && description.isNotEmpty) 'description': description,
+      if (description != null && description.isNotEmpty)
+        'description': description,
     };
     final response = await _post('/reports', data);
     return _handleResponse(response);
   }
 
-  Future<List<Map<String, dynamic>>> getUserReports(String userId, {String type = 'reported'}) async {
+  Future<List<Map<String, dynamic>>> getUserReports(String userId,
+      {String type = 'reported'}) async {
     final response = await _get('/reports/user/$userId?type=$type');
     final data = _handleResponse(response);
     return List<Map<String, dynamic>>.from(data['reports'] ?? []);
@@ -866,9 +921,10 @@ class ApiService {
     try {
       final currentUserId = await getCurrentUserId();
       if (currentUserId == null) return false;
-      
+
       final reports = await getUserReports(currentUserId, type: 'reporter');
-      return reports.any((report) => report['reportedUserId'] == reportedUserId);
+      return reports
+          .any((report) => report['reportedUserId'] == reportedUserId);
     } catch (e) {
       return false;
     }
@@ -917,7 +973,8 @@ class ApiService {
   }
 
   /// Update page switch count
-  Future<void> updatePageSwitchCount(int pageSwitchCount, DateTime lastPageSwitchTime) async {
+  Future<void> updatePageSwitchCount(
+      int pageSwitchCount, DateTime lastPageSwitchTime) async {
     try {
       final response = await _post('/ad-tracking/page-switch-count', {
         'pageSwitchCount': pageSwitchCount,
@@ -932,7 +989,8 @@ class ApiService {
   }
 
   /// Update daily ad views
-  Future<void> updateDailyAdViews(int dailyAdViews, DateTime lastAdViewDate) async {
+  Future<void> updateDailyAdViews(
+      int dailyAdViews, DateTime lastAdViewDate) async {
     try {
       final response = await _post('/ad-tracking/daily-ad-views', {
         'dailyAdViews': dailyAdViews,
@@ -947,7 +1005,8 @@ class ApiService {
   }
 
   /// Update who liked views
-  Future<void> updateWhoLikedViews(int whoLikedViews, DateTime lastWhoLikedViewDate) async {
+  Future<void> updateWhoLikedViews(
+      int whoLikedViews, DateTime lastWhoLikedViewDate) async {
     try {
       final response = await _post('/ad-tracking/who-liked-views', {
         'whoLikedViews': whoLikedViews,
@@ -962,7 +1021,8 @@ class ApiService {
   }
 
   /// Track ad view
-  Future<void> trackAdView(String adType, String trigger, Map<String, dynamic>? metadata) async {
+  Future<void> trackAdView(
+      String adType, String trigger, Map<String, dynamic>? metadata) async {
     try {
       final response = await _post('/ad-tracking/track-view', {
         'adType': adType,
@@ -978,7 +1038,8 @@ class ApiService {
   }
 
   /// Track ad click
-  Future<void> trackAdClick(String adType, String trigger, Map<String, dynamic>? metadata) async {
+  Future<void> trackAdClick(
+      String adType, String trigger, Map<String, dynamic>? metadata) async {
     try {
       final response = await _post('/ad-tracking/track-click', {
         'adType': adType,
@@ -994,7 +1055,8 @@ class ApiService {
   }
 
   /// Track reward ad completion
-  Future<void> trackRewardAdCompletion(String rewardType, Map<String, dynamic>? rewardData) async {
+  Future<void> trackRewardAdCompletion(
+      String rewardType, Map<String, dynamic>? rewardData) async {
     try {
       final response = await _post('/ad-tracking/track-reward', {
         'rewardType': rewardType,
@@ -1044,5 +1106,4 @@ class ApiService {
       // Non-fatal
     }
   }
-
 }

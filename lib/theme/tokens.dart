@@ -22,15 +22,23 @@ class BrandTokens {
   static const double elevationLg = 8.0;
   static const double elevationXl = 16.0;
 
-  // Typography scale
-  static const double fontSizeXs = 10.0;
-  static const double fontSizeSm = 12.0;
-  static const double fontSizeMd = 14.0;
-  static const double fontSizeLg = 16.0;
-  static const double fontSizeXl = 18.0;
-  static const double fontSizeXxl = 20.0;
-  static const double fontSizeDisplay = 24.0;
-  static const double fontSizeHero = 32.0;
+  // Typography scale - Enhanced for better readability
+  static const double fontSizeXs =
+      14.0; // Increased from 12.0 for better readability
+  static const double fontSizeSm =
+      16.0; // Increased from 14.0 for better readability
+  static const double fontSizeMd =
+      18.0; // Increased from 16.0 for better readability
+  static const double fontSizeLg =
+      20.0; // Increased from 18.0 for better readability
+  static const double fontSizeXl =
+      22.0; // Increased from 20.0 for better readability
+  static const double fontSizeXxl =
+      24.0; // Increased from 22.0 for better readability
+  static const double fontSizeDisplay =
+      28.0; // Increased from 26.0 for better readability
+  static const double fontSizeHero =
+      36.0; // Increased from 34.0 for better readability
 
   // Font weights
   static const FontWeight fontWeightRegular = FontWeight.w400;
