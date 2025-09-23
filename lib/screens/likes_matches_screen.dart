@@ -30,17 +30,17 @@ class _LikesMatchesScreenState extends State<LikesMatchesScreen>
   final ApiService _apiService = ApiService();
 
   late TabController _tabController;
-  
+
   // Data states
   List<dynamic> _whoLikedYou = [];
   List<dynamic> _yourMatches = [];
   List<dynamic> _likedProfiles = [];
-  
+
   // Loading states
   bool _isLoadingWhoLiked = false;
   bool _isLoadingMatches = false;
   bool _isLoadingLiked = false;
-  
+
   // Error states
   String? _errorWhoLiked;
   String? _errorMatches;
@@ -71,7 +71,7 @@ class _LikesMatchesScreenState extends State<LikesMatchesScreen>
 
   Future<void> _loadWhoLikedYou() async {
     if (!mounted) return;
-    
+
     setState(() {
       _isLoadingWhoLiked = true;
       _errorWhoLiked = null;
@@ -80,35 +80,40 @@ class _LikesMatchesScreenState extends State<LikesMatchesScreen>
     try {
       // Check if user can view "Who Liked You"
       final canView = await _matchingService.canViewWhoLikedYou();
-      
+
       if (canView['success'] == false || canView['data']?['canView'] != true) {
         setState(() {
-          _errorWhoLiked = 'Cannot view "Who Liked You" - ${canView['data']?['reason'] ?? 'Permission denied'}';
+          _errorWhoLiked =
+              'Cannot view "Who Liked You" - ${canView['data']?['reason'] ?? 'Permission denied'}';
           _isLoadingWhoLiked = false;
         });
         return;
       }
 
-      _viewInfo = canView['data'];
+      _viewInfo = canView['data'] as Map<String, dynamic>?;
 
       // Get who liked you data
       final result = await _matchingService.getWhoLikedYou(limit: 50);
-      
+
       if (mounted) {
         setState(() {
-          _whoLikedYou = List<dynamic>.from(result['whoLikedYou'] as List<dynamic>? ?? []);
+          _whoLikedYou =
+              List<dynamic>.from(result['whoLikedYou'] as List<dynamic>? ?? []);
           _isLoadingWhoLiked = false;
         });
       }
     } catch (e) {
       if (mounted) {
-        String errorMessage = 'Failed to load data. Please check your connection and try again.';
-        
+        String errorMessage =
+            'Failed to load data. Please check your connection and try again.';
+
         // Check if it's a profile not found error
-        if (e.toString().contains('User not found') || e.toString().contains('User not found')) {
-          errorMessage = 'Please create your profile first to view who liked you';
+        if (e.toString().contains('User not found') ||
+            e.toString().contains('User not found')) {
+          errorMessage =
+              'Please create your profile first to view who liked you';
         }
-        
+
         setState(() {
           _errorWhoLiked = errorMessage;
           _isLoadingWhoLiked = false;
@@ -119,7 +124,7 @@ class _LikesMatchesScreenState extends State<LikesMatchesScreen>
 
   Future<void> _loadYourMatches() async {
     if (!mounted) return;
-    
+
     setState(() {
       _isLoadingMatches = true;
       _errorMatches = null;
@@ -128,10 +133,11 @@ class _LikesMatchesScreenState extends State<LikesMatchesScreen>
     try {
       // Get user's matches (mutual likes with active conversations)
       final result = await _apiService.getJson('/matching/matches');
-      
+
       if (mounted) {
         setState(() {
-          _yourMatches = List<dynamic>.from(result['matches'] as List<dynamic>? ?? []);
+          _yourMatches =
+              List<dynamic>.from(result['matches'] as List<dynamic>? ?? []);
           _isLoadingMatches = false;
         });
       }
@@ -147,7 +153,7 @@ class _LikesMatchesScreenState extends State<LikesMatchesScreen>
 
   Future<void> _loadLikedProfiles() async {
     if (!mounted) return;
-    
+
     setState(() {
       _isLoadingLiked = true;
       _errorLiked = null;
@@ -156,23 +162,24 @@ class _LikesMatchesScreenState extends State<LikesMatchesScreen>
     try {
       // Get profiles user has liked recently
       final result = await _apiService.getJson('/matching/liked-profiles');
-      
+
       if (mounted) {
         setState(() {
-          _likedProfiles = List<dynamic>.from(result['likedProfiles'] as List<dynamic>? ?? []);
+          _likedProfiles = List<dynamic>.from(
+              result['likedProfiles'] as List<dynamic>? ?? []);
           _isLoadingLiked = false;
         });
       }
     } catch (e) {
       if (mounted) {
         setState(() {
-          _errorLiked = 'Failed to load liked profiles. Please try again later.';
+          _errorLiked =
+              'Failed to load liked profiles. Please try again later.';
           _isLoadingLiked = false;
         });
       }
     }
   }
-
 
   Future<void> _likeBack(dynamic likedUser) async {
     try {
@@ -180,23 +187,24 @@ class _LikesMatchesScreenState extends State<LikesMatchesScreen>
         likedUser['uid'] as String,
         message: "Liked you back!",
       );
-      
+
       if (result['success'] == true) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Liked ${(likedUser['displayName'] ?? likedUser['username']) as String} back!'),
+            content: Text(
+                'Liked ${(likedUser['displayName'] ?? likedUser['username']) as String} back!'),
             backgroundColor: Colors.green,
           ),
         );
 
         // Track ad view for connect action
         await _adService.onConnectClick();
-        
+
         // Remove from list and reload data
         setState(() {
           _whoLikedYou.removeWhere((user) => user['uid'] == likedUser['uid']);
         });
-        
+
         // Reload matches in case this created a new match
         _loadYourMatches();
       } else {
@@ -220,7 +228,8 @@ class _LikesMatchesScreenState extends State<LikesMatchesScreen>
 
   Future<void> _viewUserProfile(dynamic user) async {
     try {
-      final currentUser = Provider.of<UserProvider>(context, listen: false).currentUser;
+      final currentUser =
+          Provider.of<UserProvider>(context, listen: false).currentUser;
       if (currentUser == null) return;
 
       if (!currentUser.hasFeatureAccess('unlimited_who_liked')) {
@@ -240,9 +249,9 @@ class _LikesMatchesScreenState extends State<LikesMatchesScreen>
       // Navigate to profile preview
       Navigator.push(
         context,
-        MaterialPageRoute(
+        MaterialPageRoute<void>(
           builder: (context) => ProfilePreviewScreen(
-            userId: user['uid'] as String?,
+            userId: user['uid'] as String? ?? '',
             initialUserData: user as Map<String, dynamic>?,
           ),
         ),
@@ -259,14 +268,16 @@ class _LikesMatchesScreenState extends State<LikesMatchesScreen>
 
   Future<void> _startChat(dynamic match) async {
     try {
-      final currentUser = Provider.of<UserProvider>(context, listen: false).currentUser;
+      final currentUser =
+          Provider.of<UserProvider>(context, listen: false).currentUser;
       if (currentUser == null) return;
 
       // Check if user has premium access to chat with matches
       final hasAccess = await PremiumService.checkPremiumOrShowPopup(
         context: context,
         feature: 'Chat with Matches',
-        description: 'Start conversations with your matches. Premium users get unlimited access to chat with all their matches.',
+        description:
+            'Start conversations with your matches. Premium users get unlimited access to chat with all their matches.',
       );
 
       if (!hasAccess) return;
@@ -280,11 +291,11 @@ class _LikesMatchesScreenState extends State<LikesMatchesScreen>
         createdAt: DateTime.parse(match['matchedAt'] as String),
         updatedAt: DateTime.parse(match['matchedAt'] as String),
       );
-      
+
       // Navigate to chat screen
       Navigator.push(
         context,
-        MaterialPageRoute(
+        MaterialPageRoute<void>(
           builder: (context) => ChatScreen(chat: chat),
         ),
       );
@@ -300,12 +311,12 @@ class _LikesMatchesScreenState extends State<LikesMatchesScreen>
 
   String _formatDate(dynamic date) {
     if (date == null) return 'Unknown';
-    
+
     try {
       final dateTime = DateTime.parse(date.toString());
       final now = DateTime.now();
       final difference = now.difference(dateTime);
-      
+
       if (difference.inDays > 0) {
         return '${difference.inDays} day${difference.inDays == 1 ? '' : 's'} ago';
       } else if (difference.inHours > 0) {
@@ -327,15 +338,9 @@ class _LikesMatchesScreenState extends State<LikesMatchesScreen>
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Likes & Matches'),
         backgroundColor: Colors.transparent,
         elevation: 0,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _loadAllData,
-          ),
-        ],
+        toolbarHeight: 0, // Remove the app bar height
         bottom: TabBar(
           controller: _tabController,
           tabs: [
@@ -356,21 +361,24 @@ class _LikesMatchesScreenState extends State<LikesMatchesScreen>
       ),
       body: Column(
         children: [
+          // Add some top spacing to replace the removed app bar
+          const SizedBox(height: 16),
+
           // Banner Ad
           const ChatifyBannerAd(),
-          
+
           // View Info for "Who Liked You"
           if (_viewInfo != null && _tabController.index == 0) ...[
             Container(
               margin: const EdgeInsets.all(16),
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: _viewInfo!['remainingViews'] == -1 
+                color: _viewInfo!['remainingViews'] == -1
                     ? Colors.green.withOpacity(0.2)
                     : Colors.orange.withOpacity(0.2),
                 borderRadius: BorderRadius.circular(tokens.radiusMedium),
                 border: Border.all(
-                  color: _viewInfo!['remainingViews'] == -1 
+                  color: _viewInfo!['remainingViews'] == -1
                       ? Colors.green.withOpacity(0.5)
                       : Colors.orange.withOpacity(0.5),
                   width: 1,
@@ -379,10 +387,10 @@ class _LikesMatchesScreenState extends State<LikesMatchesScreen>
               child: Row(
                 children: [
                   Icon(
-                    _viewInfo!['remainingViews'] == -1 
+                    _viewInfo!['remainingViews'] == -1
                         ? Icons.all_inclusive
                         : Icons.visibility,
-                    color: _viewInfo!['remainingViews'] == -1 
+                    color: _viewInfo!['remainingViews'] == -1
                         ? Colors.green
                         : Colors.orange,
                   ),
@@ -425,7 +433,8 @@ class _LikesMatchesScreenState extends State<LikesMatchesScreen>
     }
 
     if (_errorWhoLiked != null) {
-      return _buildErrorState('Error loading who liked you', _errorWhoLiked!, _loadWhoLikedYou, theme);
+      return _buildErrorState('Error loading who liked you', _errorWhoLiked!,
+          _loadWhoLikedYou, theme);
     }
 
     if (_whoLikedYou.isEmpty) {
@@ -443,7 +452,7 @@ class _LikesMatchesScreenState extends State<LikesMatchesScreen>
       itemBuilder: (context, index) {
         final likedUser = _whoLikedYou[index];
         return BlurredProfileListItem(
-          profile: likedUser,
+          profile: likedUser as Map<String, dynamic>,
           onTap: () => _viewUserProfile(likedUser),
         );
       },
@@ -456,7 +465,8 @@ class _LikesMatchesScreenState extends State<LikesMatchesScreen>
     }
 
     if (_errorMatches != null) {
-      return _buildErrorState('Error loading matches', _errorMatches!, _loadYourMatches, theme);
+      return _buildErrorState(
+          'Error loading matches', _errorMatches!, _loadYourMatches, theme);
     }
 
     if (_yourMatches.isEmpty) {
@@ -474,7 +484,7 @@ class _LikesMatchesScreenState extends State<LikesMatchesScreen>
       itemBuilder: (context, index) {
         final match = _yourMatches[index];
         return BlurredProfileListItem(
-          profile: match,
+          profile: match as Map<String, dynamic>,
           onTap: () => _startChat(match),
         );
       },
@@ -487,7 +497,8 @@ class _LikesMatchesScreenState extends State<LikesMatchesScreen>
     }
 
     if (_errorLiked != null) {
-      return _buildErrorState('Error loading liked profiles', _errorLiked!, _loadLikedProfiles, theme);
+      return _buildErrorState('Error loading liked profiles', _errorLiked!,
+          _loadLikedProfiles, theme);
     }
 
     if (_likedProfiles.isEmpty) {
@@ -505,13 +516,12 @@ class _LikesMatchesScreenState extends State<LikesMatchesScreen>
       itemBuilder: (context, index) {
         final likedProfile = _likedProfiles[index];
         return BlurredProfileListItem(
-          profile: likedProfile,
+          profile: likedProfile as Map<String, dynamic>,
           onTap: () => _viewUserProfile(likedProfile),
         );
       },
     );
   }
-
 
   Widget _buildUserCard({
     required dynamic user,
@@ -527,12 +537,12 @@ class _LikesMatchesScreenState extends State<LikesMatchesScreen>
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       child: Card(
-        color: isMatch 
+        color: isMatch
             ? Colors.green.withOpacity(0.1)
             : Colors.white.withOpacity(0.1),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(tokens.radiusMedium),
-          side: isMatch 
+          side: isMatch
               ? BorderSide(color: Colors.green.withOpacity(0.3), width: 1)
               : BorderSide.none,
         ),
@@ -551,7 +561,8 @@ class _LikesMatchesScreenState extends State<LikesMatchesScreen>
                     borderRadius: BorderRadius.circular(30),
                     image: user['profileImageUrl'] != null
                         ? DecorationImage(
-                            image: NetworkImage(user['profileImageUrl']),
+                            image:
+                                NetworkImage(user['profileImageUrl'] as String),
                             fit: BoxFit.cover,
                           )
                         : null,
@@ -581,7 +592,9 @@ class _LikesMatchesScreenState extends State<LikesMatchesScreen>
                         children: [
                           Expanded(
                             child: Text(
-                              user['displayName'] ?? user['username'],
+                              (user['displayName'] ?? user['username'])
+                                      as String? ??
+                                  'Unknown',
                               style: theme.textTheme.titleMedium?.copyWith(
                                 color: Colors.white,
                                 fontWeight: FontWeight.bold,
@@ -595,7 +608,8 @@ class _LikesMatchesScreenState extends State<LikesMatchesScreen>
                             ),
                           if (isMatch)
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 4),
                               decoration: BoxDecoration(
                                 color: Colors.green.withOpacity(0.2),
                                 borderRadius: BorderRadius.circular(12),
@@ -610,9 +624,7 @@ class _LikesMatchesScreenState extends State<LikesMatchesScreen>
                             ),
                         ],
                       ),
-                      
                       const SizedBox(height: 4),
-                      
                       if (subtitle != null)
                         Text(
                           subtitle,
@@ -620,7 +632,6 @@ class _LikesMatchesScreenState extends State<LikesMatchesScreen>
                             color: Colors.white.withOpacity(0.7),
                           ),
                         ),
-
                       if (message != null && message.isNotEmpty) ...[
                         const SizedBox(height: 4),
                         Text(
@@ -650,8 +661,8 @@ class _LikesMatchesScreenState extends State<LikesMatchesScreen>
     );
   }
 
-
-  Widget _buildErrorState(String title, String message, VoidCallback onRetry, ThemeData theme) {
+  Widget _buildErrorState(
+      String title, String message, VoidCallback onRetry, ThemeData theme) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -686,7 +697,8 @@ class _LikesMatchesScreenState extends State<LikesMatchesScreen>
     );
   }
 
-  Widget _buildEmptyState(IconData icon, String title, String subtitle, ThemeData theme) {
+  Widget _buildEmptyState(
+      IconData icon, String title, String subtitle, ThemeData theme) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,

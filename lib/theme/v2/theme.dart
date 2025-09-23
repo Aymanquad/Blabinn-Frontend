@@ -511,49 +511,55 @@ class V2Theme {
         height: 1.4,
       ),
 
-      // Body styles
+      // Body styles - Enhanced for better readability
       bodyLarge: TextStyle(
         fontSize: BrandTokens.fontSizeLg,
-        fontWeight: BrandTokens.fontWeightRegular,
+        fontWeight: BrandTokens
+            .fontWeightMedium, // Increased weight for better readability
         color: colorScheme.onSurface,
-        letterSpacing: 0.5,
+        letterSpacing: 0.3, // Reduced for better spacing
         height: 1.5,
       ),
       bodyMedium: TextStyle(
         fontSize: BrandTokens.fontSizeMd,
-        fontWeight: BrandTokens.fontWeightRegular,
+        fontWeight: BrandTokens
+            .fontWeightMedium, // Increased weight for better readability
         color: colorScheme.onSurface,
-        letterSpacing: 0.25,
+        letterSpacing: 0.2, // Reduced for better spacing
         height: 1.5,
       ),
       bodySmall: TextStyle(
         fontSize: BrandTokens.fontSizeSm,
-        fontWeight: BrandTokens.fontWeightRegular,
-        color: colorScheme.onSurfaceVariant,
-        letterSpacing: 0.4,
+        fontWeight: BrandTokens
+            .fontWeightMedium, // Increased weight for better readability
+        color: colorScheme
+            .onSurface, // Changed from onSurfaceVariant for better contrast
+        letterSpacing: 0.3, // Reduced for better spacing
         height: 1.4,
       ),
 
-      // Label styles
+      // Label styles - Enhanced for better readability
       labelLarge: TextStyle(
         fontSize: BrandTokens.fontSizeMd,
-        fontWeight: BrandTokens.fontWeightMedium,
+        fontWeight: BrandTokens.fontWeightSemiBold, // Increased weight
         color: colorScheme.onSurface,
         letterSpacing: 0.1,
         height: 1.4,
       ),
       labelMedium: TextStyle(
         fontSize: BrandTokens.fontSizeSm,
-        fontWeight: BrandTokens.fontWeightMedium,
-        color: colorScheme.onSurfaceVariant,
-        letterSpacing: 0.5,
+        fontWeight: BrandTokens.fontWeightSemiBold, // Increased weight
+        color: colorScheme
+            .onSurface, // Changed from onSurfaceVariant for better contrast
+        letterSpacing: 0.3, // Reduced for better spacing
         height: 1.3,
       ),
       labelSmall: TextStyle(
         fontSize: BrandTokens.fontSizeXs,
-        fontWeight: BrandTokens.fontWeightMedium,
-        color: colorScheme.onSurfaceVariant.withOpacity(0.8),
-        letterSpacing: 0.5,
+        fontWeight: BrandTokens.fontWeightSemiBold, // Increased weight
+        color: colorScheme
+            .onSurface, // Changed from onSurfaceVariant for better contrast
+        letterSpacing: 0.3, // Reduced for better spacing
         height: 1.3,
       ),
     );

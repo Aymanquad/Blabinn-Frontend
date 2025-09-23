@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/rendering.dart';
 import 'dart:ui';
 import 'widgets/modern_glass_nav_bar.dart' as modern_nav;
 import 'package:firebase_auth/firebase_auth.dart';
@@ -102,8 +103,16 @@ class ChatApp extends StatelessWidget {
               theme: _buildDarkTheme(),
               themeMode: ThemeMode.dark,
               home: const SplashScreen(),
-              builder: (context, child) =>
-                  EnhancedBackground(child: child ?? const SizedBox()),
+              builder: (context, child) {
+                // Configure text scaling for better readability
+                return MediaQuery(
+                  data: MediaQuery.of(context).copyWith(
+                    textScaleFactor:
+                        MediaQuery.of(context).textScaleFactor.clamp(1.0, 1.3),
+                  ),
+                  child: EnhancedBackground(child: child ?? const SizedBox()),
+                );
+              },
               routes: {
                 '/home': (context) => const MainNavigationScreen(),
                 '/profile': (context) => const ProfileScreen(),
@@ -264,7 +273,7 @@ ThemeData _buildDarkTheme() {
         height: 1.5,
       ),
       bodySmall: TextStyle(
-        fontSize: 14, // Increased size
+        fontSize: 15, // Further increased for better readability
         fontWeight: FontWeight.w600, // Semi-bold for small text
         color: const Color(0xE6FFFFFF), // White with 90% opacity
         letterSpacing: 0.4,
@@ -281,14 +290,14 @@ ThemeData _buildDarkTheme() {
         fontFamily: 'LeagueSpartan',
       ),
       labelMedium: TextStyle(
-        fontSize: 14, // Increased size
+        fontSize: 15, // Further increased for better readability
         fontWeight: FontWeight.w600, // Semi-bold for medium labels
         color: const Color(0xF2FFFFFF), // White with 95% opacity
         letterSpacing: 0.5,
         fontFamily: 'LeagueSpartan',
       ),
       labelSmall: TextStyle(
-        fontSize: 12, // Increased size
+        fontSize: 13, // Further increased for better readability
         fontWeight: FontWeight.w600, // Semi-bold for small labels
         color: const Color(0xE6FFFFFF), // White with 90% opacity
         letterSpacing: 0.5,

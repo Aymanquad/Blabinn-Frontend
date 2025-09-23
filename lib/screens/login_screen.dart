@@ -76,9 +76,11 @@ class _LoginScreenState extends State<LoginScreen> {
           Text(
             'Connect with people around the world',
             style: TextStyle(
-              fontSize: 16,
+              fontSize: 18, // Increased for better readability
               color: Colors.white,
-              fontWeight: FontWeight.w500,
+              fontWeight:
+                  FontWeight.w600, // Increased weight for better readability
+              height: 1.4, // Added line height for better text flow
             ),
             textAlign: TextAlign.center,
           ),
@@ -135,8 +137,9 @@ class _LoginScreenState extends State<LoginScreen> {
               : 'Google (Requires Firebase)',
           style: const TextStyle(
             color: Colors.black87,
-            fontSize: 16,
-            fontWeight: FontWeight.w500,
+            fontSize: 17, // Increased for better readability
+            fontWeight:
+                FontWeight.w600, // Increased weight for better readability
           ),
         ),
         style: ElevatedButton.styleFrom(
@@ -177,8 +180,9 @@ class _LoginScreenState extends State<LoginScreen> {
               : 'Apple (Requires Firebase)',
           style: const TextStyle(
             color: Colors.white,
-            fontSize: 16,
-            fontWeight: FontWeight.w500,
+            fontSize: 17, // Increased for better readability
+            fontWeight:
+                FontWeight.w600, // Increased weight for better readability
           ),
         ),
         style: ElevatedButton.styleFrom(
@@ -232,8 +236,9 @@ class _LoginScreenState extends State<LoginScreen> {
           'Continue as Guest',
           style: TextStyle(
             color: Colors.white,
-            fontSize: 16,
-            fontWeight: FontWeight.w500,
+            fontSize: 17, // Increased for better readability
+            fontWeight:
+                FontWeight.w600, // Increased weight for better readability
           ),
         ),
         style: ElevatedButton.styleFrom(
@@ -253,9 +258,11 @@ class _LoginScreenState extends State<LoginScreen> {
     return Text(
       'By continuing, you agree to our Terms of Service and Privacy Policy',
       style: TextStyle(
-        fontSize: 12,
-        color: Colors.white.withOpacity(0.7),
-        height: 1.4,
+        fontSize: 14, // Increased from 12 for much better readability
+        color: Colors.white
+            .withOpacity(0.8), // Increased opacity for better contrast
+        fontWeight: FontWeight.w500, // Added weight for better readability
+        height: 1.5, // Increased line height for better text flow
       ),
       textAlign: TextAlign.center,
     );
