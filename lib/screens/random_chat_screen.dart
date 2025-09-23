@@ -90,7 +90,7 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
           ElevatedButton(
             onPressed: () {
               Navigator.pop(context); // Close dialog
-              Navigator.pop(context); // Go back to connect screen
+              _safeNavigateBack();
             },
             child: const Text('OK'),
           ),
@@ -676,7 +676,7 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
           ElevatedButton(
             onPressed: () {
               Navigator.pop(context); // Close dialog
-              Navigator.pop(context); // Go back to connect screen
+              _safeNavigateBack();
             },
             child: const Text('OK'),
           ),
@@ -689,7 +689,21 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
     if (_partnerInfo == null) return;
 
     try {
-      final partnerId = _partnerInfo!['id'] as String;
+      final partnerId = _partnerInfo!['id'];
+      
+      // Check if partnerId is null or not a string
+      if (partnerId == null || partnerId is! String) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Unable to send friend request: Partner information is incomplete.'),
+              backgroundColor: Colors.orange,
+              duration: Duration(seconds: 3),
+            ),
+          );
+        }
+        return;
+      }
 
       // Check if this is a demo/mock user
       if (partnerId.startsWith('mock_partner_') ||
@@ -844,6 +858,20 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
     // Show end session dialog
     if (mounted) {
       _showSessionEndDialog(reason);
+    }
+  }
+
+  void _safeNavigateBack() {
+    // Check if we can pop safely
+    if (Navigator.canPop(context)) {
+      Navigator.pop(context);
+    } else {
+      // If we can't pop, navigate to connect screen directly
+      Navigator.pushNamedAndRemoveUntil(
+        context,
+        '/connect',
+        (route) => route.settings.name == '/home' || route.isFirst,
+      );
     }
   }
 

@@ -441,16 +441,6 @@ class ConnectUIComponents {
             ),
           ),
           
-          const SizedBox(height: 12),
-          
-          Text(
-            'Looking for people within your selected distance range',
-            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-              color: Colors.white70,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          
           const SizedBox(height: 40),
           
           // Stop Matching Button

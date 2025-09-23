@@ -1,0 +1,95 @@
+{
+  "project_info": {
+    "project_number": "63308848043",
+    "project_id": "chat-app-3a529",
+    "storage_bucket": "chat-app-3a529.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:63308848043:android:18f71f8c74b0fe8ced90ee",
+        "android_client_info": {
+          "package_name": "com.company.blabinn"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "63308848043-126hr1bdiusvk2skoi3brrfb3pd5kpac.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.company.blabinn",
+            "certificate_hash": "132a69f1dd36b2d04880e53b3a4eb083e9813411"
+          }
+        },
+        {
+          "client_id": "63308848043-jrvil487thfjl9ffd2j3a5ggsf9k6l9s.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.company.blabinn",
+            "certificate_hash": "0409ed9ac7487fc906874d3131f868dd698ab4f4"
+          }
+        },
+        {
+          "client_id": "63308848043-nie3e5saj81m5np6n0lpqj7tlvkd6p62.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.company.blabinn",
+            "certificate_hash": "c58c498b5b356a93d0181b37ade773783942edef"
+          }
+        },
+        {
+          "client_id": "63308848043-tjc7ff8hlurthu5aafdftpc66m977v68.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.company.blabinn",
+            "certificate_hash": "11f16c19a0661452a32dc1b0bcfef9c6cd2acea5"
+          }
+        },
+        {
+          "client_id": "63308848043-vnvi1tg680qicsjemlf9b1bi4m5v399m.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.company.blabinn",
+            "certificate_hash": "e66436000a0457f07cdc995b9def92d7515aee8a"
+          }
+        },
+        {
+          "client_id": "63308848043-vqil7aa0comf5k24hkvi92om2sds1agp.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.company.blabinn",
+            "certificate_hash": "0745cee7ea0f41a52ab5ab1ff86ae822e16288a0"
+          }
+        },
+        {
+          "client_id": "63308848043-vv5apfu38f919f20ai4g3grhkn3uk0of.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAr2NFw1R3lN2p9KD0CHzoo4UY8W-OCLm4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "63308848043-vv5apfu38f919f20ai4g3grhkn3uk0of.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "63308848043-3ibqgf59gqd7f27rd7g794ogjkpjmpe3.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.xpertinc.hollyfyApp"
+              }
+            }
+          ]
+        }
+      },
+      "admob_app_id": "ca-app-pub-5160335418378680~2708057766"
+    }
+  ],
+  "configuration_version": "1"
+}
