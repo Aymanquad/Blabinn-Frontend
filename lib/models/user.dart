@@ -193,6 +193,8 @@ class User {
 
   factory User.fromJson(Map<String, dynamic> json) {
     try {
+      print('🔍 DEBUG: User.fromJson - Input JSON: $json');
+      
       // Extract basic user information
       final userId = _extractUserId(json);
       final userName = _extractUserName(json, userId);
@@ -207,8 +209,12 @@ class User {
       final lastPageSwitchTime = _extractDateTime(json['lastPageSwitchTime']);
       final lastAdViewDate = _extractDateTime(json['lastAdViewDate']);
       final lastWhoLikedViewDate = _extractDateTime(json['lastWhoLikedViewDate']);
+      
+      // Extract credits with debugging
+      final credits = json['credits'] as int? ?? 100;
+      print('🔍 DEBUG: User.fromJson - Credits from JSON: ${json['credits']}, Final credits: $credits');
 
-      return User(
+      final user = User(
         id: userId,
         username: userName,
         email: userEmail,
@@ -223,7 +229,7 @@ class User {
         lastSeen: lastSeenDate,
         isPremium: json['isPremium'] as bool? ?? false,
         adsFree: json['adsFree'] as bool? ?? false,
-        credits: json['credits'] as int? ?? 100,
+        credits: credits,
         createdAt: createdAtDate,
         updatedAt: updatedAtDate,
         isBlocked: json['isBlocked'] as bool? ?? false,
@@ -245,7 +251,11 @@ class User {
         whoLikedViews: json['whoLikedViews'] as int? ?? 0,
         lastWhoLikedViewDate: lastWhoLikedViewDate,
       );
+      
+      print('🔍 DEBUG: User.fromJson - Created user with credits: ${user.credits}');
+      return user;
     } catch (e) {
+      print('🔍 DEBUG: User.fromJson - Error creating user: $e');
       rethrow;
     }
   }

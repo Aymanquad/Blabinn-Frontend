@@ -299,8 +299,19 @@ class ApiService {
 
   // Profile methods - Updated to match backend endpoints
   Future<Map<String, dynamic>> getMyProfile() async {
-    final response = await _get('/profiles/me');
-    return _handleResponse(response);
+    print('🔍 DEBUG: ApiService - getMyProfile called');
+    try {
+      final response = await _get('/profiles/me');
+      print('🔍 DEBUG: ApiService - getMyProfile response status: ${response.statusCode}');
+      print('🔍 DEBUG: ApiService - getMyProfile response body: ${response.body}');
+      final result = _handleResponse(response);
+      print('🔍 DEBUG: ApiService - getMyProfile handled response: $result');
+      return result;
+    } catch (e) {
+      print('🔍 DEBUG: ApiService - getMyProfile error: $e');
+      print('🔍 DEBUG: ApiService - getMyProfile error type: ${e.runtimeType}');
+      rethrow;
+    }
   }
 
   Future<Map<String, dynamic>> updateProfile(
