@@ -416,12 +416,44 @@ class GlobalMatchingService {
           _navigateDirectlyToChat(sessionId, chatRoomId);
         },
         onAddFriend: () async {
-          await _apiService.sendFriendRequest(
-            matchedUser.id,
-            message:
-                'Hi! I met you in a random chat and would like to connect.',
-            type: 'random_chat',
-          );
+          try {
+            // Check if this is a demo user
+            if (matchedUser.id.startsWith('demo_matched_user_')) {
+              print('❌ [GLOBAL MATCHING DEBUG] Cannot send friend request to demo user');
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Cannot send friend request to demo users. Connect with real people first!'),
+                  backgroundColor: Colors.orange,
+                  duration: Duration(seconds: 3),
+                ),
+              );
+              return;
+            }
+            
+            await _apiService.sendFriendRequest(
+              matchedUser.id,
+              message:
+                  'Hi! I met you in a random chat and would like to connect.',
+              type: 'random_chat',
+            );
+            
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Friend request sent successfully!'),
+                backgroundColor: Colors.green,
+                duration: Duration(seconds: 2),
+              ),
+            );
+          } catch (e) {
+            print('❌ [GLOBAL MATCHING DEBUG] Error sending friend request: $e');
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Failed to send friend request: ${e.toString()}'),
+                backgroundColor: Colors.red,
+                duration: const Duration(seconds: 3),
+              ),
+            );
+          }
         },
         onSkip: () {
           _navigateDirectlyToChat(sessionId, chatRoomId);

@@ -590,11 +590,21 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
       // Get partner profile
       print('🔍 Fetching profile for partner: $partnerId');
       final partnerProfile = await _apiService.getUserProfile(partnerId);
+      print('🔍 [PARTNER DEBUG] Raw partner profile: $partnerProfile');
 
       if (partnerProfile.isNotEmpty) {
         print('✅ Partner profile loaded: ${partnerProfile['displayName']}');
+        print('🔍 [PARTNER DEBUG] Partner ID in profile: ${partnerProfile['id']}');
+        
+        // Ensure the ID field is properly set
+        final profileWithId = Map<String, dynamic>.from(partnerProfile);
+        if (profileWithId['id'] == null || profileWithId['id'].toString().isEmpty) {
+          profileWithId['id'] = partnerId;
+          print('🔍 [PARTNER DEBUG] Fixed missing ID field with: $partnerId');
+        }
+        
         setState(() {
-          _partnerInfo = partnerProfile;
+          _partnerInfo = profileWithId;
         });
       } else {
         print('⚠️ Partner profile not found, creating basic profile');
@@ -1169,13 +1179,20 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
   }
 
   Future<void> _sendFriendRequest() async {
-    if (_partnerInfo == null) return;
+    if (_partnerInfo == null) {
+      print('❌ [FRIEND REQUEST DEBUG] Partner info is null');
+      return;
+    }
+
+    print('🔍 [FRIEND REQUEST DEBUG] Partner info: $_partnerInfo');
 
     try {
       final partnerId = _partnerInfo!['id'];
+      print('🔍 [FRIEND REQUEST DEBUG] Partner ID: $partnerId (type: ${partnerId.runtimeType})');
 
       // Check if partnerId is null or not a string
       if (partnerId == null || partnerId is! String) {
+        print('❌ [FRIEND REQUEST DEBUG] Partner ID is invalid: $partnerId');
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
