@@ -122,15 +122,7 @@ class ApiService {
       if (currentUser == null) {
         Logger.warning(
             'User not authenticated - cannot make authenticated request to $endpoint');
-        // Instead of throwing an exception, return a 401 response
-        return http.Response(
-          jsonEncode({
-            'error': 'User not authenticated',
-            'message': 'Please sign in first.'
-          }),
-          401,
-          headers: {'content-type': 'application/json'},
-        );
+        throw Exception('User not authenticated. Please sign in first.');
       }
 
       final response = await http
@@ -142,33 +134,13 @@ class ApiService {
 
       return response;
     } catch (e) {
-      // Return error response instead of throwing
-      return http.Response(
-        jsonEncode({'error': 'Network error', 'message': e.toString()}),
-        500,
-        headers: {'content-type': 'application/json'},
-      );
+      throw Exception('Network error: $e');
     }
   }
 
   Future<http.Response> _post(
       String endpoint, Map<String, dynamic> data) async {
     try {
-      // Check authentication for POST requests too
-      final currentUser = _firebaseAuth.currentUser;
-      if (currentUser == null && !endpoint.contains('/auth/')) {
-        Logger.warning(
-            'User not authenticated - cannot make authenticated POST request to $endpoint');
-        return http.Response(
-          jsonEncode({
-            'error': 'User not authenticated',
-            'message': 'Please sign in first.'
-          }),
-          401,
-          headers: {'content-type': 'application/json'},
-        );
-      }
-
       final response = await http
           .post(
             Uri.parse('$_baseUrl$endpoint'),
@@ -179,12 +151,7 @@ class ApiService {
 
       return response;
     } catch (e) {
-      // Return error response instead of throwing
-      return http.Response(
-        jsonEncode({'error': 'Network error', 'message': e.toString()}),
-        500,
-        headers: {'content-type': 'application/json'},
-      );
+      throw Exception('Network error: $e');
     }
   }
 
@@ -299,19 +266,8 @@ class ApiService {
 
   // Profile methods - Updated to match backend endpoints
   Future<Map<String, dynamic>> getMyProfile() async {
-    print('🔍 DEBUG: ApiService - getMyProfile called');
-    try {
-      final response = await _get('/profiles/me');
-      print('🔍 DEBUG: ApiService - getMyProfile response status: ${response.statusCode}');
-      print('🔍 DEBUG: ApiService - getMyProfile response body: ${response.body}');
-      final result = _handleResponse(response);
-      print('🔍 DEBUG: ApiService - getMyProfile handled response: $result');
-      return result;
-    } catch (e) {
-      print('🔍 DEBUG: ApiService - getMyProfile error: $e');
-      print('🔍 DEBUG: ApiService - getMyProfile error type: ${e.runtimeType}');
-      rethrow;
-    }
+    final response = await _get('/profiles/me');
+    return _handleResponse(response);
   }
 
   Future<Map<String, dynamic>> updateProfile(

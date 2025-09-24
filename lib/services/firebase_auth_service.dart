@@ -4,7 +4,6 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'package:http/http.dart' as http;
-import '../core/constants.dart';
 import '../core/config.dart';
 
 class FirebaseAuthService {

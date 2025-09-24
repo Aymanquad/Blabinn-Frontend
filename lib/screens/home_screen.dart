@@ -275,11 +275,8 @@ class _HomeScreenState extends State<HomeScreen>
               Text(
                 'Find and chat with people around the world',
                 style: Theme.of(context).textTheme.bodyLarge!.copyWith(
-                      color: Colors.white.withOpacity(
-                          0.9), // Increased opacity for better contrast
-                      fontWeight: FontWeight
-                          .w600, // Increased weight for better readability
-                      fontSize: 17, // Slightly increased font size
+                      color: Colors.white70,
+                      fontWeight: FontWeight.w500,
                     ),
                 textAlign: TextAlign.center,
               ),
