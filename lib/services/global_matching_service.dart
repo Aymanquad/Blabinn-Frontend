@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
+import 'package:firebase_auth/firebase_auth.dart' as FirebaseAuth;
 import 'socket_service.dart';
 import 'api_service.dart';
 import '../app.dart'; // Import for navigatorKey
@@ -290,18 +291,65 @@ class GlobalMatchingService {
       print(
           '🔍 [GLOBAL MATCHING DEBUG] Fetching matched user details for session: $sessionId');
 
-      // Try to get partner info from the session
-      final sessionData = await _apiService.getActiveRandomChatSession();
+      // Try multiple times with delay in case session data isn't ready yet
+      for (int attempt = 1; attempt <= 3; attempt++) {
+        print('🔍 [GLOBAL MATCHING DEBUG] Attempt $attempt to get session data');
+        
+        // Try to get partner info from the session
+        final responseData = await _apiService.getActiveRandomChatSession();
+        print('🔍 [GLOBAL MATCHING DEBUG] Response data (attempt $attempt): $responseData');
+        
+        // Extract session data from response
+        final sessionData = responseData['session'] as Map<String, dynamic>?;
+        print('🔍 [GLOBAL MATCHING DEBUG] Session data (attempt $attempt): $sessionData');
+      
       if (sessionData != null && sessionData['sessionId'] == sessionId) {
-        final partnerId = sessionData['partnerId'] as String?;
+        // Get current user ID to find the partner
+        final currentUserId = FirebaseAuth.FirebaseAuth.instance.currentUser?.uid;
+        print('🔍 [GLOBAL MATCHING DEBUG] Current user ID: $currentUserId');
+        String? partnerId;
+        
+        // First try the direct partnerId field (for backward compatibility)
+        partnerId = sessionData['partnerId'] as String?;
+        print('🔍 [GLOBAL MATCHING DEBUG] Direct partnerId: $partnerId');
+        
+        // If no direct partnerId, extract from participants array
+        if (partnerId?.isEmpty != false && currentUserId != null) {
+          final participants = sessionData['participants'] as List<dynamic>?;
+          print('🔍 [GLOBAL MATCHING DEBUG] Participants: $participants');
+          if (participants != null && participants.isNotEmpty) {
+            // Find the participant that is not the current user
+            for (final participant in participants) {
+              print('🔍 [GLOBAL MATCHING DEBUG] Checking participant: $participant vs current: $currentUserId');
+              if (participant != currentUserId) {
+                partnerId = participant as String?;
+                print('🔍 [GLOBAL MATCHING DEBUG] Found partner in participants: $partnerId');
+                break;
+              }
+            }
+          }
+        }
+        
         if (partnerId?.isNotEmpty == true) {
-          print('🔍 [GLOBAL MATCHING DEBUG] Found partner ID: $partnerId');
+          print('🔍 [GLOBAL MATCHING DEBUG] Fetching user profile for partner ID: $partnerId');
           final userProfile = await _apiService.getUserProfile(partnerId!);
+          print('🔍 [GLOBAL MATCHING DEBUG] User profile: $userProfile');
           if (userProfile?.isNotEmpty == true) {
             return User.fromJson(userProfile);
           }
+        } else {
+          print('❌ [GLOBAL MATCHING DEBUG] No partner ID found on attempt $attempt');
         }
+      } else {
+        print('❌ [GLOBAL MATCHING DEBUG] Session data null or sessionId mismatch on attempt $attempt');
       }
+      
+      // If this attempt failed and we have more attempts, wait and try again
+      if (attempt < 3) {
+        print('⏳ [GLOBAL MATCHING DEBUG] Waiting 1 second before retry...');
+        await Future.delayed(const Duration(seconds: 1));
+      }
+    }
 
       // Fallback: create a demo user for testing
       print('🔍 [GLOBAL MATCHING DEBUG] Creating demo user for match popup');

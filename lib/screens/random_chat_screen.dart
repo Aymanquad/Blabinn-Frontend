@@ -499,9 +499,26 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
         print(
             '🔍 No partner found in messages, trying to get from active session...');
         try {
-          final sessionData = await _apiService.getActiveRandomChatSession();
-          if (sessionData['sessionId'] == widget.sessionId) {
+          final responseData = await _apiService.getActiveRandomChatSession();
+          final sessionData = responseData['session'] as Map<String, dynamic>?;
+          if (sessionData != null && sessionData['sessionId'] == widget.sessionId) {
+            // First try the direct partnerId field (for backward compatibility)
             partnerId = sessionData['partnerId'] as String?;
+            
+            // If no direct partnerId, extract from participants array
+            if (partnerId?.isEmpty != false) {
+              final participants = sessionData['participants'] as List<dynamic>?;
+              if (participants != null && participants.isNotEmpty) {
+                // Find the participant that is not the current user
+                for (final participant in participants) {
+                  if (participant != currentUserId) {
+                    partnerId = participant as String?;
+                    break;
+                  }
+                }
+              }
+            }
+            
             if (partnerId != null) {
               print('🔍 Found partner ID from active session: $partnerId');
             }
@@ -517,13 +534,28 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
             '🔍 No partner found in messages or active session, trying alternative methods...');
         try {
           // Try to get partner info from the session itself
-          final sessionData = await _apiService.getActiveRandomChatSession();
-          if (sessionData.isNotEmpty) {
+          final responseData = await _apiService.getActiveRandomChatSession();
+          final sessionData = responseData['session'] as Map<String, dynamic>?;
+          if (sessionData != null && sessionData.isNotEmpty) {
             // Try different possible field names for partner info
             partnerId = (sessionData['partnerId'] as String?) ??
                 (sessionData['partner_id'] as String?) ??
                 (sessionData['otherUserId'] as String?) ??
                 (sessionData['other_user_id'] as String?);
+            
+            // If still no partnerId, try extracting from participants array
+            if (partnerId?.isEmpty != false) {
+              final participants = sessionData['participants'] as List<dynamic>?;
+              if (participants != null && participants.isNotEmpty) {
+                // Find the participant that is not the current user
+                for (final participant in participants) {
+                  if (participant != currentUserId) {
+                    partnerId = participant as String?;
+                    break;
+                  }
+                }
+              }
+            }
 
             if (partnerId != null) {
               print('🔍 Found partner ID from session data: $partnerId');
