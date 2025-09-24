@@ -607,54 +607,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
       child: Column(
           children: [
             // Avatar with modern styling
-            Stack(
-              children: [
-                LargeProfileAvatar(
-                  imageUrl: user.hasProfileImage ? user.profileImage : null,
-                  displayName: user.displayName.isNotEmpty
-                      ? user.displayName
-                      : user.username,
-                  onTap: () {
-                    Navigator.pushNamed(context, '/profile-management');
-                  },
-                  showEditIcon: true,
-                  onEdit: () {
-                    Navigator.pushNamed(context, '/profile-management');
-                  },
-                ),
-                // Status indicator
-                Positioned(
-                  bottom: 8,
-                  right: 8,
-                  child: Container(
-                    width: 24,
-                    height: 24,
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: user.isGuest 
-                            ? [Colors.orange.shade400, Colors.orange.shade700]
-                            : [Colors.green.shade400, Colors.green.shade700],
-                      ),
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white, width: 3),
-                      boxShadow: [
-                        BoxShadow(
-                          color: (user.isGuest ? Colors.orange : Colors.green).withOpacity(0.4),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
-                        ),
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
-                          blurRadius: 6,
-                          offset: const Offset(0, 1),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
+            LargeProfileAvatar(
+              imageUrl: user.hasProfileImage ? user.profileImage : null,
+              displayName: user.displayName.isNotEmpty
+                  ? user.displayName
+                  : user.username,
+              onTap: () {
+                Navigator.pushNamed(context, '/profile-management');
+              },
+              showEditIcon: true,
+              onEdit: () {
+                Navigator.pushNamed(context, '/profile-management');
+              },
             ),
 
             const SizedBox(height: 20),
