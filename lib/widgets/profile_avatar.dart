@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../core/theme_extensions.dart';
+import '../core/constants.dart';
 
 /// Modern profile avatar with enhanced styling
 class ProfileAvatar extends StatelessWidget {
@@ -143,31 +144,74 @@ class LargeProfileAvatar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Stack(
       children: [
-        ProfileAvatar(
-          imageUrl: imageUrl,
-          displayName: displayName,
-          size: 120,
-          onTap: onTap,
-          useGradient: true,
-          borderWidth: 4,
+        Container(
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: AppColors.primary,
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.primary.withOpacity(0.3),
+                blurRadius: 20,
+                offset: const Offset(0, 8),
+              ),
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 15,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          padding: const EdgeInsets.all(6),
+          child: Container(
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Colors.white.withOpacity(0.1),
+                  Colors.white.withOpacity(0.05),
+                ],
+              ),
+              border: Border.all(
+                color: Colors.white.withOpacity(0.2),
+                width: 2,
+              ),
+            ),
+            padding: const EdgeInsets.all(4),
+            child: ProfileAvatar(
+              imageUrl: imageUrl,
+              displayName: displayName,
+              size: 120,
+              onTap: onTap,
+              useGradient: false,
+              borderWidth: 0,
+              backgroundColor: Colors.transparent,
+            ),
+          ),
         ),
         if (showEditIcon)
           Positioned(
-            bottom: 0,
-            right: 0,
+            bottom: 8,
+            right: 8,
             child: GestureDetector(
               onTap: onEdit,
               child: Container(
-                width: 36,
-                height: 36,
+                width: 40,
+                height: 40,
                 decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.primary,
+                        color: AppColors.primary,
                   shape: BoxShape.circle,
                   border: Border.all(
-                    color: Theme.of(context).colorScheme.surface,
+                    color: Colors.white,
                     width: 3,
                   ),
                   boxShadow: [
+                    BoxShadow(
+                      color: AppColors.primary.withOpacity(0.4),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
                     BoxShadow(
                       color: Colors.black.withOpacity(0.2),
                       blurRadius: 8,
@@ -176,9 +220,9 @@ class LargeProfileAvatar extends StatelessWidget {
                   ],
                 ),
                 child: const Icon(
-                  Icons.edit,
+                  Icons.edit_rounded,
                   color: Colors.white,
-                  size: 18,
+                  size: 20,
                 ),
               ),
             ),

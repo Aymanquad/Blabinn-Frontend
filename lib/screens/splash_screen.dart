@@ -1,8 +1,10 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../widgets/app_logo.dart';
 import '../services/transition_service.dart';
 import '../screens/login_screen.dart';
+import '../providers/user_provider.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -75,6 +77,16 @@ class _SplashScreenState extends State<SplashScreen>
     _scaleController.forward();
     await Future<void>.delayed(const Duration(milliseconds: 300));
     _slideController.forward();
+
+    // Initialize UserProvider while animations are running
+    try {
+      print('🔍 DEBUG: SplashScreen - Initializing UserProvider...');
+      final userProvider = Provider.of<UserProvider>(context, listen: false);
+      await userProvider.initialize();
+      print('🔍 DEBUG: SplashScreen - UserProvider initialized successfully');
+    } catch (e) {
+      print('🔍 DEBUG: SplashScreen - UserProvider initialization failed: $e');
+    }
 
     // Wait for animations to complete
     await Future<void>.delayed(const Duration(milliseconds: 1500));
