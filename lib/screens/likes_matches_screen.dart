@@ -13,6 +13,7 @@ import '../core/theme_extensions.dart';
 import '../providers/user_provider.dart';
 import '../screens/profile_preview_screen.dart';
 import '../screens/chat_screen.dart';
+import '../screens/friend_requests_screen.dart';
 
 /// Comprehensive Likes & Matches Screen
 /// Shows who liked you, your matches, and liked profiles
@@ -51,7 +52,7 @@ class _LikesMatchesScreenState extends State<LikesMatchesScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 4, vsync: this);
     _loadAllData();
   }
 
@@ -353,6 +354,10 @@ class _LikesMatchesScreenState extends State<LikesMatchesScreen>
               text: 'Matches (${_yourMatches.length})',
             ),
             Tab(
+              icon: const Icon(Icons.person_add),
+              text: 'Friend Requests',
+            ),
+            Tab(
               icon: const Icon(Icons.favorite_border),
               text: 'You Liked (${_likedProfiles.length})',
             ),
@@ -418,6 +423,7 @@ class _LikesMatchesScreenState extends State<LikesMatchesScreen>
               children: [
                 _buildWhoLikedYouTab(theme, tokens),
                 _buildMatchesTab(theme, tokens),
+                _buildFriendRequestsTab(theme, tokens),
                 _buildLikedProfilesTab(theme, tokens),
               ],
             ),
@@ -489,6 +495,10 @@ class _LikesMatchesScreenState extends State<LikesMatchesScreen>
         );
       },
     );
+  }
+
+  Widget _buildFriendRequestsTab(ThemeData theme, AppThemeTokens tokens) {
+    return const FriendRequestsScreen();
   }
 
   Widget _buildLikedProfilesTab(ThemeData theme, AppThemeTokens tokens) {
