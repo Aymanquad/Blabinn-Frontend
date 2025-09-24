@@ -18,6 +18,7 @@ class _SearchScreenState extends State<SearchScreen> {
   bool _isLoading = false;
   bool _hasSearched = false;
   String? _errorMessage;
+  String _lastSearchQuery = '';
 
   @override
   void dispose() {
@@ -25,16 +26,20 @@ class _SearchScreenState extends State<SearchScreen> {
     super.dispose();
   }
 
-  Future<void> _performSearch() async {
-    if (_searchController.text.trim().isEmpty) {
+  Future<void> _performSearch([String? query]) async {
+    final searchQuery = query ?? _searchController.text.trim();
+
+    if (searchQuery.isEmpty) {
       setState(() {
         _searchResults = [];
         _hasSearched = false;
         _errorMessage = null;
+        _lastSearchQuery = '';
       });
       return;
     }
 
+    _lastSearchQuery = searchQuery;
     setState(() {
       _isLoading = true;
       _errorMessage = null;
@@ -42,16 +47,16 @@ class _SearchScreenState extends State<SearchScreen> {
 
     try {
       // Get current user ID to filter out from results
-      final currentUserId = await _apiService.getCurrentUserId(); 
-      
+      final currentUserId = await _apiService.getCurrentUserId();
+
       final results = await _apiService.searchProfiles({
-        'searchTerm': _searchController.text.trim(),
+        'searchTerm': searchQuery,
         'limit': 20,
       });
 
       //print('🔍 DEBUG: Search results received: ${results.length} users');
       //print('🔍 DEBUG: Current user ID: $currentUserId');
-      
+
       // Filter out current user from results
       final filteredResults = results.where((user) {
         final userId = user['uid'] ?? user['id'];
@@ -59,13 +64,14 @@ class _SearchScreenState extends State<SearchScreen> {
       }).toList();
 
       //print('🔍 DEBUG: Filtered results: ${filteredResults.length} users (removed current user)');
-      
+
       // Check connection status for each user
       final resultsWithStatus = <Map<String, dynamic>>[];
       for (final user in filteredResults) {
         final userId = user['uid'] ?? user['id'];
         try {
-          final connectionStatus = await _apiService.getConnectionStatus(userId);
+          final connectionStatus =
+              await _apiService.getConnectionStatus(userId);
           user['connectionStatus'] = connectionStatus['status'] ?? 'none';
           user['connectionType'] = connectionStatus['type'] ?? 'none';
           //print('🔍 DEBUG: User ${user['username']} - Connection status: ${user['connectionStatus']}');
@@ -95,13 +101,49 @@ class _SearchScreenState extends State<SearchScreen> {
 
   Future<void> _sendFriendRequest(String targetUserId) async {
     try {
-      //print('🔍 DEBUG: Sending friend request to user: $targetUserId');
+      print('🔍 [SEARCH] Sending friend request to user: $targetUserId');
 
       if (targetUserId.isEmpty) {
         throw Exception('Invalid user ID: User ID cannot be empty');
       }
 
+      // Check connection status first to avoid duplicate requests
+      final connectionStatus =
+          await _apiService.getConnectionStatus(targetUserId);
+      final status = connectionStatus['status'] ?? 'none';
+
+      if (status == 'friends' || status == 'accepted') {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('You are already friends with this user!'),
+              backgroundColor: Colors.green,
+              duration: Duration(seconds: 3),
+            ),
+          );
+        }
+        return;
+      }
+
+      if (status == 'pending') {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Friend request already sent and is pending.'),
+              backgroundColor: Colors.orange,
+              duration: Duration(seconds: 4),
+            ),
+          );
+        }
+        return;
+      }
+
       await _apiService.sendFriendRequest(targetUserId);
+
+      // Refresh search results to update connection status
+      if (_lastSearchQuery.isNotEmpty) {
+        _performSearch(_lastSearchQuery);
+      }
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -112,11 +154,30 @@ class _SearchScreenState extends State<SearchScreen> {
         );
       }
     } catch (e) {
-      //print('❌ ERROR: Failed to send friend request: $e');
+      print('❌ [SEARCH] Failed to send friend request: $e');
       if (mounted) {
+        String errorMessage = 'Failed to send friend request';
+
+        // Provide more specific error messages
+        if (e.toString().contains('User not found')) {
+          errorMessage = 'User not found or no longer available.';
+        } else if (e.toString().contains('Already friends')) {
+          errorMessage = 'You are already friends with this user!';
+        } else if (e.toString().contains('Request already sent') ||
+            e.toString().contains('Friend request already sent')) {
+          errorMessage = 'A friend request to this user is already pending.';
+        } else if (e
+            .toString()
+            .contains('Cannot send request to blocked user')) {
+          errorMessage = 'Cannot send friend request to this user.';
+        } else {
+          errorMessage =
+              'Failed to send friend request. Please try again later.';
+        }
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to send friend request: ${e.toString()}'),
+            content: Text(errorMessage),
             backgroundColor: Colors.red,
           ),
         );
@@ -394,14 +455,15 @@ class _SearchScreenState extends State<SearchScreen> {
 
   Widget _buildActionButton(Map<String, dynamic> user) {
     final connectionStatus = user['connectionStatus'] ?? 'none';
-    final isAlreadyFriend = connectionStatus == 'accepted' || connectionStatus == 'friends';
+    final isAlreadyFriend =
+        connectionStatus == 'accepted' || connectionStatus == 'friends';
     final isPending = connectionStatus == 'pending';
-    
+
     String buttonText;
     Color buttonColor;
     Color textColor;
     bool isEnabled;
-    
+
     if (isAlreadyFriend) {
       buttonText = 'Already Friends';
       buttonColor = Colors.grey[300]!;
@@ -420,19 +482,21 @@ class _SearchScreenState extends State<SearchScreen> {
     }
 
     return ElevatedButton(
-      onPressed: isEnabled ? () {
-        final userId = user['uid'] ?? user['id'];
-        if (userId != null) {
-          _sendFriendRequest(userId);
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Cannot connect: User ID not found'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
-      } : null,
+      onPressed: isEnabled
+          ? () {
+              final userId = user['uid'] ?? user['id'];
+              if (userId != null) {
+                _sendFriendRequest(userId);
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Cannot connect: User ID not found'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
+            }
+          : null,
       style: ElevatedButton.styleFrom(
         backgroundColor: buttonColor,
         foregroundColor: textColor,
@@ -472,17 +536,17 @@ class _SearchScreenState extends State<SearchScreen> {
             ),
           ),
         ),
-        titleTextStyle: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+        titleTextStyle: const TextStyle(
+            color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
       ),
-      body:
-          Column(
-            children: [
-              _buildSearchBar(),
-              Expanded(
-                child: _buildSearchResults(),
-              ),
-            ],
+      body: Column(
+        children: [
+          _buildSearchBar(),
+          Expanded(
+            child: _buildSearchResults(),
           ),
+        ],
+      ),
     );
   }
 }

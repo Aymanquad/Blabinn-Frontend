@@ -501,13 +501,15 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
         try {
           final responseData = await _apiService.getActiveRandomChatSession();
           final sessionData = responseData['session'] as Map<String, dynamic>?;
-          if (sessionData != null && sessionData['sessionId'] == widget.sessionId) {
+          if (sessionData != null &&
+              sessionData['sessionId'] == widget.sessionId) {
             // First try the direct partnerId field (for backward compatibility)
             partnerId = sessionData['partnerId'] as String?;
-            
+
             // If no direct partnerId, extract from participants array
             if (partnerId?.isEmpty != false) {
-              final participants = sessionData['participants'] as List<dynamic>?;
+              final participants =
+                  sessionData['participants'] as List<dynamic>?;
               if (participants != null && participants.isNotEmpty) {
                 // Find the participant that is not the current user
                 for (final participant in participants) {
@@ -518,7 +520,7 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
                 }
               }
             }
-            
+
             if (partnerId != null) {
               print('🔍 Found partner ID from active session: $partnerId');
             }
@@ -542,10 +544,11 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
                 (sessionData['partner_id'] as String?) ??
                 (sessionData['otherUserId'] as String?) ??
                 (sessionData['other_user_id'] as String?);
-            
+
             // If still no partnerId, try extracting from participants array
             if (partnerId?.isEmpty != false) {
-              final participants = sessionData['participants'] as List<dynamic>?;
+              final participants =
+                  sessionData['participants'] as List<dynamic>?;
               if (participants != null && participants.isNotEmpty) {
                 // Find the participant that is not the current user
                 for (final participant in participants) {
@@ -594,15 +597,17 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
 
       if (partnerProfile.isNotEmpty) {
         print('✅ Partner profile loaded: ${partnerProfile['displayName']}');
-        print('🔍 [PARTNER DEBUG] Partner ID in profile: ${partnerProfile['id']}');
-        
+        print(
+            '🔍 [PARTNER DEBUG] Partner ID in profile: ${partnerProfile['id']}');
+
         // Ensure the ID field is properly set
         final profileWithId = Map<String, dynamic>.from(partnerProfile);
-        if (profileWithId['id'] == null || profileWithId['id'].toString().isEmpty) {
+        if (profileWithId['id'] == null ||
+            profileWithId['id'].toString().isEmpty) {
           profileWithId['id'] = partnerId;
           print('🔍 [PARTNER DEBUG] Fixed missing ID field with: $partnerId');
         }
-        
+
         setState(() {
           _partnerInfo = profileWithId;
         });
@@ -1188,7 +1193,8 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
 
     try {
       final partnerId = _partnerInfo!['id'];
-      print('🔍 [FRIEND REQUEST DEBUG] Partner ID: $partnerId (type: ${partnerId.runtimeType})');
+      print(
+          '🔍 [FRIEND REQUEST DEBUG] Partner ID: $partnerId (type: ${partnerId.runtimeType})');
 
       // Check if partnerId is null or not a string
       if (partnerId == null || partnerId is! String) {
@@ -1223,12 +1229,47 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
         return;
       }
 
+      // Check current connection status before sending request
+      print(
+          '🔍 [FRIEND REQUEST DEBUG] Checking connection status for $partnerId');
+      final connectionStatus = await _apiService.getConnectionStatus(partnerId);
+      print('🔍 [FRIEND REQUEST DEBUG] Connection status: $connectionStatus');
+
+      final status = connectionStatus['status'] ?? 'none';
+      if (status == 'friends' || status == 'accepted') {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('You are already friends with this user!'),
+              backgroundColor: Colors.green,
+              duration: Duration(seconds: 3),
+            ),
+          );
+        }
+        return;
+      }
+
+      if (status == 'pending') {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Friend request already sent and is pending.'),
+              backgroundColor: Colors.orange,
+              duration: Duration(seconds: 4),
+            ),
+          );
+        }
+        return;
+      }
+
+      print('🔍 [FRIEND REQUEST DEBUG] Sending friend request to $partnerId');
       await _apiService.sendFriendRequest(
         partnerId,
         message: 'Hi! I met you in a random chat and would like to connect.',
         type: 'random_chat',
       );
 
+      print('✅ [FRIEND REQUEST DEBUG] Friend request sent successfully');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -1238,7 +1279,7 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
         );
       }
     } catch (e) {
-      print('❌ Failed to send friend request: $e');
+      print('❌ [FRIEND REQUEST DEBUG] Failed to send friend request: $e');
       if (mounted) {
         String errorMessage = 'Failed to send friend request';
 
@@ -1248,10 +1289,18 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
               'User not found. They may have left the chat or their account is no longer active.';
         } else if (e.toString().contains('Already friends')) {
           errorMessage = 'You are already friends with this user!';
-        } else if (e.toString().contains('Request already sent')) {
-          errorMessage = 'Friend request already sent to this user.';
+        } else if (e.toString().contains('Request already sent') ||
+            e.toString().contains('Friend request already sent')) {
+          errorMessage =
+              'A friend request to this user is already pending. Please wait for them to respond.';
+        } else if (e
+            .toString()
+            .contains('Cannot send request to blocked user')) {
+          errorMessage = 'Cannot send friend request to this user.';
         } else {
-          errorMessage = 'Failed to send friend request: ${e.toString()}';
+          errorMessage =
+              'Failed to send friend request. Please try again later.';
+          print('❌ [FRIEND REQUEST DEBUG] Detailed error: ${e.toString()}');
         }
 
         ScaffoldMessenger.of(context).showSnackBar(

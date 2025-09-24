@@ -113,6 +113,37 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
   Future<void> _sendFriendRequest() async {
     try {
+      // Check connection status first to avoid duplicate requests
+      final connectionStatus =
+          await _apiService.getConnectionStatus(widget.userId);
+      final status = connectionStatus['status'] ?? 'none';
+
+      if (status == 'friends' || status == 'accepted') {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('You are already friends with this user!'),
+              backgroundColor: Colors.green,
+              duration: Duration(seconds: 3),
+            ),
+          );
+        }
+        return;
+      }
+
+      if (status == 'pending') {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Friend request already sent and is pending.'),
+              backgroundColor: Colors.orange,
+              duration: Duration(seconds: 4),
+            ),
+          );
+        }
+        return;
+      }
+
       await _apiService.sendFriendRequest(widget.userId);
 
       if (mounted) {
@@ -126,9 +157,28 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       }
     } catch (e) {
       if (mounted) {
+        String errorMessage = 'Failed to send request';
+
+        // Provide more specific error messages
+        if (e.toString().contains('User not found')) {
+          errorMessage = 'User not found or no longer available.';
+        } else if (e.toString().contains('Already friends')) {
+          errorMessage = 'You are already friends with this user!';
+        } else if (e.toString().contains('Request already sent') ||
+            e.toString().contains('Friend request already sent')) {
+          errorMessage = 'A friend request to this user is already pending.';
+        } else if (e
+            .toString()
+            .contains('Cannot send request to blocked user')) {
+          errorMessage = 'Cannot send friend request to this user.';
+        } else {
+          errorMessage =
+              'Failed to send friend request. Please try again later.';
+        }
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to send request: ${e.toString()}'),
+            content: Text(errorMessage),
             backgroundColor: Colors.red,
           ),
         );
@@ -309,8 +359,8 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
               backgroundColor: AppColors.primary,
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              shape:
-                  RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(25)),
             ),
           ),
         );
@@ -326,8 +376,8 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
               foregroundColor: AppColors.primary,
               side: BorderSide(color: AppColors.primary),
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              shape:
-                  RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(25)),
             ),
           ),
         );
@@ -409,7 +459,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
           icon: const Icon(Icons.person_add),
           label: const Text('Send Friend Request'),
           style: ElevatedButton.styleFrom(
-                       backgroundColor: AppColors.primary,
+            backgroundColor: AppColors.primary,
             foregroundColor: Colors.white,
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
             shape:
@@ -430,13 +480,13 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-                         AppColors.primary.withOpacity(0.1),
-             AppColors.secondary.withOpacity(0.1),
+            AppColors.primary.withOpacity(0.1),
+            AppColors.secondary.withOpacity(0.1),
           ],
         ),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-                     color: AppColors.text.withOpacity(0.1),
+          color: AppColors.text.withOpacity(0.1),
           width: 1,
         ),
       ),
@@ -447,14 +497,14 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
               Container(
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                                     border: Border.all(
-                     color: AppColors.primary.withOpacity(0.3),
-                     width: 3,
-                   ),
+                  border: Border.all(
+                    color: AppColors.primary.withOpacity(0.3),
+                    width: 3,
+                  ),
                 ),
                 child: CircleAvatar(
                   radius: 60,
-                                     backgroundColor: AppColors.primary.withOpacity(0.1),
+                  backgroundColor: AppColors.primary.withOpacity(0.1),
                   backgroundImage: _userData?['profilePicture'] != null
                       ? NetworkImage(_userData!['profilePicture'])
                       : null,
@@ -515,7 +565,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 20),
-                     _buildActionButton(),
+          _buildActionButton(),
         ],
       ),
     );
@@ -658,7 +708,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                   color: AppColors.primary.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
-                                         color: AppColors.primary.withOpacity(0.3),
+                    color: AppColors.primary.withOpacity(0.3),
                     width: 1,
                   ),
                 ),
@@ -667,7 +717,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
-                                         color: AppColors.primary,
+                    color: AppColors.primary,
                   ),
                 ),
               );
@@ -725,7 +775,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
             children: [
               Icon(
                 Icons.photo_library_outlined,
-                                 color: AppColors.secondary,
+                color: AppColors.secondary,
                 size: 20,
               ),
               const SizedBox(width: 8),
@@ -875,23 +925,23 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
             ],
           ),
           const SizedBox(height: 16),
-                     _buildDetailItem(
-             icon: Icons.email_outlined,
-             title: 'Email',
-             value: _userData?['email'] ?? 'Not provided',
-           ),
+          _buildDetailItem(
+            icon: Icons.email_outlined,
+            title: 'Email',
+            value: _userData?['email'] ?? 'Not provided',
+          ),
           const SizedBox(height: 12),
-                     _buildDetailItem(
-             icon: Icons.location_on_outlined,
-             title: 'Location',
-             value: _userData?['location'] ?? 'Not provided',
-           ),
+          _buildDetailItem(
+            icon: Icons.location_on_outlined,
+            title: 'Location',
+            value: _userData?['location'] ?? 'Not provided',
+          ),
           const SizedBox(height: 12),
-                     _buildDetailItem(
-             icon: Icons.calendar_today_outlined,
-             title: 'Joined',
-             value: _getCreatedAtYear(),
-           ),
+          _buildDetailItem(
+            icon: Icons.calendar_today_outlined,
+            title: 'Joined',
+            value: _getCreatedAtYear(),
+          ),
         ],
       ),
     );
@@ -968,76 +1018,76 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-        return Scaffold(
-          backgroundColor: theme.scaffoldBackgroundColor,
-          appBar: const ConsistentAppBar(
-            title: 'Profile',
-          ),
-          body: Stack(
-            children: [
-              if (_isLoading)
-                Center(
-                  child: SkeletonLayouts.profileCard(),
-                )
-              else if (_errorMessage != null)
-                Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.error_outline,
-                        size: 64,
-                        color: Colors.red.withOpacity(0.6),
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'Error',
-                        style: theme.textTheme.headlineSmall?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        _errorMessage!,
-                        style: TextStyle(
-                          color: theme.colorScheme.onSurface.withOpacity(0.7),
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 16),
-                      ElevatedButton(
-                        onPressed: _loadUserProfile,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primary,
-                          foregroundColor: Colors.white,
-                        ),
-                        child: const Text('Try Again'),
-                      ),
-                    ],
+    return Scaffold(
+      backgroundColor: theme.scaffoldBackgroundColor,
+      appBar: const ConsistentAppBar(
+        title: 'Profile',
+      ),
+      body: Stack(
+        children: [
+          if (_isLoading)
+            Center(
+              child: SkeletonLayouts.profileCard(),
+            )
+          else if (_errorMessage != null)
+            Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.error_outline,
+                    size: 64,
+                    color: Colors.red.withOpacity(0.6),
                   ),
-                )
-              else
-                SingleChildScrollView(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildProfileHeader(),
-                      const SizedBox(height: 20),
-                      _buildBioSection(),
-                      const SizedBox(height: 20),
-                      _buildInterestsSection(),
-                      const SizedBox(height: 20),
-                      _buildGallerySection(),
-                      const SizedBox(height: 20),
-                      _buildProfileDetails(),
-                      const SizedBox(height: 20),
-                    ],
+                  const SizedBox(height: 16),
+                  Text(
+                    'Error',
+                    style: theme.textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                ),
-            ],
-          ),
-        );
+                  const SizedBox(height: 8),
+                  Text(
+                    _errorMessage!,
+                    style: TextStyle(
+                      color: theme.colorScheme.onSurface.withOpacity(0.7),
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: _loadUserProfile,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
+                    ),
+                    child: const Text('Try Again'),
+                  ),
+                ],
+              ),
+            )
+          else
+            SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildProfileHeader(),
+                  const SizedBox(height: 20),
+                  _buildBioSection(),
+                  const SizedBox(height: 20),
+                  _buildInterestsSection(),
+                  const SizedBox(height: 20),
+                  _buildGallerySection(),
+                  const SizedBox(height: 20),
+                  _buildProfileDetails(),
+                  const SizedBox(height: 20),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
   }
 
   Widget _buildBottomSheet() {
@@ -1100,10 +1150,10 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       // For now, we'll use a placeholder connection ID
       // In a real implementation, you'd get this from the friend request data
       const connectionId = 'placeholder_connection_id';
-      
+
       final apiService = ApiService();
       await apiService.acceptFriendRequest(connectionId);
-      
+
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -1133,10 +1183,10 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       // For now, we'll use a placeholder connection ID
       // In a real implementation, you'd get this from the friend request data
       const connectionId = 'placeholder_connection_id';
-      
+
       final apiService = ApiService();
       await apiService.rejectFriendRequest(connectionId);
-      
+
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -1166,7 +1216,8 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Block User'),
-        content: const Text('Are you sure you want to block this user? You won\'t be able to see their profile or receive messages from them.'),
+        content: const Text(
+            'Are you sure you want to block this user? You won\'t be able to see their profile or receive messages from them.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -1214,7 +1265,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     try {
       final apiService = ApiService();
       await apiService.blockUser(widget.userId);
-      
+
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -1241,7 +1292,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     try {
       final apiService = ApiService();
       await apiService.reportUser(widget.userId, reason);
-      
+
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
