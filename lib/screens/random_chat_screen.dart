@@ -1241,15 +1241,22 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
       print('❌ Failed to send friend request: $e');
       if (mounted) {
         String errorMessage = 'Failed to send friend request';
+        Color backgroundColor = Colors.red;
 
         // Provide more specific error messages
-        if (e.toString().contains('User not found')) {
-          errorMessage =
-              'User not found. They may have left the chat or their account is no longer active.';
+        if (e.toString().contains('Friend request already sent')) {
+          errorMessage = 'Friend request already sent to this user';
+          backgroundColor = Colors.orange;
         } else if (e.toString().contains('Already friends')) {
           errorMessage = 'You are already friends with this user!';
+          backgroundColor = Colors.green;
+        } else if (e.toString().contains('User not found')) {
+          errorMessage =
+              'User not found. They may have left the chat or their account is no longer active.';
+          backgroundColor = Colors.orange;
         } else if (e.toString().contains('Request already sent')) {
           errorMessage = 'Friend request already sent to this user.';
+          backgroundColor = Colors.orange;
         } else {
           errorMessage = 'Failed to send friend request: ${e.toString()}';
         }
@@ -1257,7 +1264,7 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(errorMessage),
-            backgroundColor: Colors.red,
+            backgroundColor: backgroundColor,
             duration: const Duration(seconds: 4),
           ),
         );
