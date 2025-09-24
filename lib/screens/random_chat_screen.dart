@@ -1282,21 +1282,22 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
       print('❌ [FRIEND REQUEST DEBUG] Failed to send friend request: $e');
       if (mounted) {
         String errorMessage = 'Failed to send friend request';
+        Color backgroundColor = Colors.red;
 
         // Provide more specific error messages
-        if (e.toString().contains('User not found')) {
-          errorMessage =
-              'User not found. They may have left the chat or their account is no longer active.';
+        if (e.toString().contains('Friend request already sent')) {
+          errorMessage = 'Friend request already sent to this user';
+          backgroundColor = Colors.orange;
         } else if (e.toString().contains('Already friends')) {
           errorMessage = 'You are already friends with this user!';
-        } else if (e.toString().contains('Request already sent') ||
-            e.toString().contains('Friend request already sent')) {
+          backgroundColor = Colors.green;
+        } else if (e.toString().contains('User not found')) {
           errorMessage =
-              'A friend request to this user is already pending. Please wait for them to respond.';
-        } else if (e
-            .toString()
-            .contains('Cannot send request to blocked user')) {
-          errorMessage = 'Cannot send friend request to this user.';
+              'User not found. They may have left the chat or their account is no longer active.';
+          backgroundColor = Colors.orange;
+        } else if (e.toString().contains('Request already sent')) {
+          errorMessage = 'Friend request already sent to this user.';
+          backgroundColor = Colors.orange;
         } else {
           errorMessage =
               'Failed to send friend request. Please try again later.';
@@ -1306,7 +1307,7 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(errorMessage),
-            backgroundColor: Colors.red,
+            backgroundColor: backgroundColor,
             duration: const Duration(seconds: 4),
           ),
         );

@@ -446,10 +446,28 @@ class GlobalMatchingService {
             );
           } catch (e) {
             print('❌ [GLOBAL MATCHING DEBUG] Error sending friend request: $e');
+            
+            String errorMessage = 'Failed to send friend request';
+            Color backgroundColor = Colors.red;
+            
+            // Provide specific error messages
+            if (e.toString().contains('Friend request already sent')) {
+              errorMessage = 'Friend request already sent to this user';
+              backgroundColor = Colors.orange;
+            } else if (e.toString().contains('Already friends')) {
+              errorMessage = 'You are already friends with this user!';
+              backgroundColor = Colors.green;
+            } else if (e.toString().contains('User not found')) {
+              errorMessage = 'User not found. They may have left the chat.';
+              backgroundColor = Colors.orange;
+            } else {
+              errorMessage = 'Failed to send friend request: ${e.toString()}';
+            }
+            
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text('Failed to send friend request: ${e.toString()}'),
-                backgroundColor: Colors.red,
+                content: Text(errorMessage),
+                backgroundColor: backgroundColor,
                 duration: const Duration(seconds: 3),
               ),
             );
