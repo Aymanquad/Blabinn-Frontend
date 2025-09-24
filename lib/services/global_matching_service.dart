@@ -3,9 +3,12 @@ import 'dart:async';
 import 'socket_service.dart';
 import 'api_service.dart';
 import '../app.dart'; // Import for navigatorKey
+import '../widgets/match_popup.dart';
+import '../models/user.dart';
 
 class GlobalMatchingService {
-  static final GlobalMatchingService _instance = GlobalMatchingService._internal();
+  static final GlobalMatchingService _instance =
+      GlobalMatchingService._internal();
   factory GlobalMatchingService() => _instance;
   GlobalMatchingService._internal();
 
@@ -19,18 +22,22 @@ class GlobalMatchingService {
   Map<String, dynamic> _filters = {};
 
   // Stream controllers for state changes
-  final StreamController<bool> _matchingStateController = StreamController<bool>.broadcast();
-  final StreamController<bool> _connectionStateController = StreamController<bool>.broadcast();
-  final StreamController<String?> _messageController = StreamController<String?>.broadcast();
-  final StreamController<int> _queueTimeController = StreamController<int>.broadcast();
+  final StreamController<bool> _matchingStateController =
+      StreamController<bool>.broadcast();
+  final StreamController<bool> _connectionStateController =
+      StreamController<bool>.broadcast();
+  final StreamController<String?> _messageController =
+      StreamController<String?>.broadcast();
+  final StreamController<int> _queueTimeController =
+      StreamController<int>.broadcast();
 
   // Services
   final SocketService _socketService = SocketService();
   final ApiService _apiService = ApiService();
 
   // Stream subscriptions
-  StreamSubscription? _matchSubscription;
-  StreamSubscription? _errorSubscription;
+  StreamSubscription<Map<String, dynamic>>? _matchSubscription;
+  StreamSubscription<String>? _errorSubscription;
 
   // Getters
   bool get isMatching => _isMatching;
@@ -73,7 +80,7 @@ class GlobalMatchingService {
       'distance': '1-5',
       'language': 'any',
       'ageRange': 'all',
-      'interests': [],
+      'interests': <String>[],
     };
     _genderPreference = 'any';
   }
@@ -82,20 +89,23 @@ class GlobalMatchingService {
     final event = data['event'];
 
     if (event == 'match_found') {
-      final sessionId = data['sessionId'];
-      final chatRoomId = data['chatRoomId'];
+      final sessionId = data['sessionId'] as String?;
+      final chatRoomId = data['chatRoomId'] as String?;
 
-      _currentSessionId = sessionId;
-      _isMatching = false;
-      _isConnected = true;
-      _matchMessage = 'Match found! Starting chat...';
-      _notifyStateChanges();
+      if (sessionId != null && chatRoomId != null) {
+        _currentSessionId = sessionId;
+        _isMatching = false;
+        _isConnected = true;
+        _matchMessage = 'Match found! Starting chat...';
+        _notifyStateChanges();
 
-      _navigateToChat(sessionId, chatRoomId);
+        _navigateToChat(sessionId, chatRoomId);
+      }
     } else if (event == 'match_timeout') {
       String timeoutMessage;
-      final String reason = data['reason'] ?? 'time_limit_exceeded';
-      final String genderPreference = data['genderPreference'] ?? 'any';
+      final String reason = data['reason'] as String? ?? 'time_limit_exceeded';
+      final String genderPreference =
+          data['genderPreference'] as String? ?? 'any';
 
       if (reason == 'no_gender_compatible_users') {
         timeoutMessage =
@@ -118,7 +128,7 @@ class GlobalMatchingService {
     String errorMessage = error;
     String errorCode = '';
     String sessionId = '';
-    String chatRoomId = '';
+    // String chatRoomId = ''; // Unused
 
     if (error.contains('|')) {
       final parts = error.split('|');
@@ -126,7 +136,7 @@ class GlobalMatchingService {
         errorMessage = parts[0];
         errorCode = parts[1];
         sessionId = parts[2];
-        chatRoomId = parts[3];
+        // chatRoomId = parts[3]; // Unused
       }
     }
 
@@ -165,14 +175,16 @@ class GlobalMatchingService {
 
     switch (event) {
       case 'session_started':
-        if (sessionId != null && chatRoomId != null) {
-          _currentSessionId = sessionId;
+        final sessionIdStr = sessionId as String?;
+        final chatRoomIdStr = chatRoomId as String?;
+        if (sessionIdStr != null && chatRoomIdStr != null) {
+          _currentSessionId = sessionIdStr;
           _isMatching = false;
           _isConnected = true;
           _matchMessage = 'Match found! Starting chat...';
           _notifyStateChanges();
 
-          _navigateToChat(sessionId, chatRoomId);
+          _navigateToChat(sessionIdStr, chatRoomIdStr);
         } else {
           print('❌ [GLOBAL MATCHING DEBUG] Missing session or chat room ID');
           _isMatching = false;
@@ -180,7 +192,7 @@ class GlobalMatchingService {
           _notifyStateChanges();
         }
         break;
-      
+
       case 'session_failed':
         _isMatching = false;
         _isConnected = false;
@@ -188,17 +200,19 @@ class GlobalMatchingService {
         _matchMessage = 'Failed to start chat session. Please try again.';
         _notifyStateChanges();
         break;
-      
+
       case 'partner_joined':
-        if (sessionId != null && chatRoomId != null) {
-          _currentSessionId = sessionId;
+        final sessionIdStr = sessionId as String?;
+        final chatRoomIdStr = chatRoomId as String?;
+        if (sessionIdStr != null && chatRoomIdStr != null) {
+          _currentSessionId = sessionIdStr;
           _isMatching = false;
           _isConnected = true;
           _matchMessage = 'Partner joined! Chat is ready.';
           _notifyStateChanges();
         }
         break;
-      
+
       case 'partner_left':
         _isMatching = false;
         _isConnected = false;
@@ -206,7 +220,7 @@ class GlobalMatchingService {
         _matchMessage = 'Partner left before chat started. Please try again.';
         _notifyStateChanges();
         break;
-      
+
       default:
         print('⚠️ [GLOBAL MATCHING DEBUG] Unknown random chat event: $event');
         break;
@@ -218,8 +232,10 @@ class GlobalMatchingService {
     String timeoutMessage;
 
     if (timeoutData != null) {
-      final String reason = timeoutData['reason'] ?? 'time_limit_exceeded';
-      final String timeoutGenderPreference = timeoutData['genderPreference'] ?? _genderPreference;
+      final String reason =
+          timeoutData['reason'] as String? ?? 'time_limit_exceeded';
+      final String timeoutGenderPreference =
+          timeoutData['genderPreference'] as String? ?? _genderPreference;
 
       if (reason == 'no_gender_compatible_users') {
         timeoutMessage =
@@ -242,12 +258,137 @@ class GlobalMatchingService {
     _notifyStateChanges();
   }
 
-  void _navigateToChat(String sessionId, String chatRoomId) {
+  void _navigateToChat(String sessionId, String chatRoomId) async {
     try {
-      print('🚀 [GLOBAL MATCHING DEBUG] Navigating to random chat from global service');
+      print(
+          '🚀 [GLOBAL MATCHING DEBUG] Preparing to show match popup and navigate to chat');
       print('   📱 Session ID: $sessionId');
       print('   💬 Chat Room ID: $chatRoomId');
-      
+
+      // Get matched user details
+      final matchedUser = await _getMatchedUserDetails(sessionId);
+
+      if (matchedUser != null) {
+        // Show match popup first
+        await _showMatchPopup(matchedUser, sessionId, chatRoomId);
+      } else {
+        // Fallback: navigate directly to chat if we can't get user details
+        _navigateDirectlyToChat(sessionId, chatRoomId);
+      }
+    } catch (e) {
+      print('❌ [GLOBAL MATCHING DEBUG] Error during navigation: $e');
+      _isMatching = false;
+      _isConnected = false;
+      _currentSessionId = null;
+      _matchMessage = 'Error starting chat. Please try again.';
+      _notifyStateChanges();
+    }
+  }
+
+  Future<User?> _getMatchedUserDetails(String sessionId) async {
+    try {
+      print(
+          '🔍 [GLOBAL MATCHING DEBUG] Fetching matched user details for session: $sessionId');
+
+      // Try to get partner info from the session
+      final sessionData = await _apiService.getActiveRandomChatSession();
+      if (sessionData != null && sessionData['sessionId'] == sessionId) {
+        final partnerId = sessionData['partnerId'] as String?;
+        if (partnerId?.isNotEmpty == true) {
+          print('🔍 [GLOBAL MATCHING DEBUG] Found partner ID: $partnerId');
+          final userProfile = await _apiService.getUserProfile(partnerId!);
+          if (userProfile?.isNotEmpty == true) {
+            return User.fromJson(userProfile);
+          }
+        }
+      }
+
+      // Fallback: create a demo user for testing
+      print('🔍 [GLOBAL MATCHING DEBUG] Creating demo user for match popup');
+      return User(
+        id: 'demo_matched_user_${DateTime.now().millisecondsSinceEpoch}',
+        username: 'Chat Partner',
+        email: null,
+        bio: 'Ready to chat with you!',
+        profileImage: null,
+        interests: ['chatting', 'meeting new people'],
+        language: 'en',
+        location: null,
+        latitude: null,
+        longitude: null,
+        isOnline: true,
+        lastSeen: DateTime.now(),
+        isPremium: false,
+        adsFree: false,
+        credits: 100,
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+        isBlocked: false,
+        isFriend: false,
+        deviceId: null,
+        age: 25,
+        gender: 'Other',
+        userType: 'guest',
+        isVerified: false,
+        verificationDate: null,
+        connectCount: 0,
+        pageSwitchCount: 0,
+        lastPageSwitchTime: null,
+        dailyAdViews: 0,
+        lastAdViewDate: null,
+        superLikesUsed: 0,
+        boostsUsed: 0,
+        friendsCount: 0,
+        whoLikedViews: 0,
+        lastWhoLikedViewDate: null,
+      );
+    } catch (e) {
+      print('❌ [GLOBAL MATCHING DEBUG] Error fetching user details: $e');
+      return null;
+    }
+  }
+
+  Future<void> _showMatchPopup(
+      User matchedUser, String sessionId, String chatRoomId) async {
+    try {
+      final context = navigatorKey.currentContext;
+      if (context == null) {
+        print('❌ [GLOBAL MATCHING DEBUG] No context available for popup');
+        _navigateDirectlyToChat(sessionId, chatRoomId);
+        return;
+      }
+
+      print(
+          '✨ [GLOBAL MATCHING DEBUG] Showing match popup for user: ${matchedUser.username}');
+
+      await showMatchPopup(
+        context: context,
+        matchedUser: matchedUser,
+        onContinueChat: () {
+          _navigateDirectlyToChat(sessionId, chatRoomId);
+        },
+        onAddFriend: () async {
+          await _apiService.sendFriendRequest(
+            matchedUser.id,
+            message:
+                'Hi! I met you in a random chat and would like to connect.',
+            type: 'random_chat',
+          );
+        },
+        onSkip: () {
+          _navigateDirectlyToChat(sessionId, chatRoomId);
+        },
+      );
+    } catch (e) {
+      print('❌ [GLOBAL MATCHING DEBUG] Error showing match popup: $e');
+      _navigateDirectlyToChat(sessionId, chatRoomId);
+    }
+  }
+
+  void _navigateDirectlyToChat(String sessionId, String chatRoomId) {
+    try {
+      print('🚀 [GLOBAL MATCHING DEBUG] Navigating directly to random chat');
+
       // Use dynamic navigation to avoid import issues
       navigatorKey.currentState?.pushNamed(
         '/random-chat',
@@ -256,14 +397,15 @@ class GlobalMatchingService {
           'chatRoomId': chatRoomId,
         },
       ).then((_) {
-        print('🔙 [GLOBAL MATCHING DEBUG] Returned from RandomChatScreen, resetting state');
+        print(
+            '🔙 [GLOBAL MATCHING DEBUG] Returned from RandomChatScreen, resetting state');
         // When returning from random chat, reset state
         _isMatching = false;
         _isConnected = false;
         _currentSessionId = null;
         _matchMessage = null;
         _notifyStateChanges();
-      }).catchError((error) {
+      }).catchError((Object error) {
         print('❌ [GLOBAL MATCHING DEBUG] Navigation error: $error');
         _isMatching = false;
         _isConnected = false;
@@ -272,7 +414,7 @@ class GlobalMatchingService {
         _notifyStateChanges();
       });
     } catch (e) {
-      print('❌ [GLOBAL MATCHING DEBUG] Error during navigation: $e');
+      print('❌ [GLOBAL MATCHING DEBUG] Error during direct navigation: $e');
       _isMatching = false;
       _isConnected = false;
       _currentSessionId = null;
@@ -299,15 +441,17 @@ class GlobalMatchingService {
       _queueTime = 0;
       _notifyStateChanges();
 
-      final userInterests = _filters['interests']?.cast<String>() ?? [];
+      final userInterests =
+          (_filters['interests'] as List<dynamic>?)?.cast<String>() ??
+              <String>[];
 
       if (_genderPreference.isEmpty) {
         _genderPreference = 'any';
       }
 
       await _socketService.startRandomConnection(
-        country: _filters['region'],
-        language: _filters['language'],
+        country: _filters['region'] as String?,
+        language: _filters['language'] as String?,
         interests: userInterests,
         genderPreference: _genderPreference,
       );
@@ -382,4 +526,4 @@ class GlobalMatchingService {
     _queueTimeController.close();
     stopMatching();
   }
-} 
+}

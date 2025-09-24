@@ -1,10 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
-import 'dart:math';
 import '../core/constants.dart';
-import '../models/user.dart';
-import '../services/auth_service.dart';
 import '../services/api_service.dart';
 import '../widgets/simple_image_cropper.dart';
 import '../utils/permission_helper.dart';
@@ -19,7 +16,6 @@ class OnboardingScreen extends StatefulWidget {
 class _OnboardingScreenState extends State<OnboardingScreen>
     with TickerProviderStateMixin {
   final PageController _pageController = PageController();
-  final _authService = AuthService();
   final _apiService = ApiService();
 
   // Form data
@@ -136,11 +132,12 @@ class _OnboardingScreenState extends State<OnboardingScreen>
   bool _canProceed() {
     switch (_steps[_currentStep].type) {
       case OnboardingStepType.displayName:
-        return _displayName.trim().isNotEmpty && _displayName.trim().length >= 2;
+        return _displayName.trim().isNotEmpty &&
+            _displayName.trim().length >= 2;
       case OnboardingStepType.username:
-        return _username.trim().isNotEmpty && 
-               _username.trim().length >= 3 && 
-               _isUsernameAvailable;
+        return _username.trim().isNotEmpty &&
+            _username.trim().length >= 3 &&
+            _isUsernameAvailable;
       case OnboardingStepType.bio:
         return _bio.trim().isNotEmpty;
       case OnboardingStepType.gender:
@@ -173,7 +170,25 @@ class _OnboardingScreenState extends State<OnboardingScreen>
         'interests': _interests,
       };
 
-      await _apiService.createProfile(profileData);
+      // Check if profile already exists
+      bool profileExists = false;
+      try {
+        await _apiService.getMyProfile();
+        profileExists = true;
+        print('✅ Profile already exists, updating instead of creating');
+      } catch (e) {
+        print('ℹ️ No existing profile found, creating new one');
+        profileExists = false;
+      }
+
+      // Use updateProfile if profile exists, otherwise createProfile
+      if (profileExists) {
+        await _apiService.updateProfile(profileData);
+        print('✅ Profile updated successfully');
+      } else {
+        await _apiService.createProfile(profileData);
+        print('✅ Profile created successfully');
+      }
 
       // Upload profile picture if selected
       if (_profilePicture != null) {
@@ -232,7 +247,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
             children: [
               // Progress indicator
               _buildProgressIndicator(),
-              
+
               // Page content
               Expanded(
                 child: PageView.builder(
@@ -251,7 +266,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                   },
                 ),
               ),
-              
+
               // Navigation buttons
               _buildNavigationButtons(),
             ],
@@ -288,12 +303,12 @@ class _OnboardingScreenState extends State<OnboardingScreen>
             ],
           ),
           const SizedBox(height: 12),
-           LinearProgressIndicator(
-             value: (_currentStep + 1) / _steps.length,
-             backgroundColor: const Color(0xFF1A0D2E).withOpacity(0.8),
-             valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primary),
-             minHeight: 6,
-           ),
+          LinearProgressIndicator(
+            value: (_currentStep + 1) / _steps.length,
+            backgroundColor: const Color(0xFF1A0D2E).withOpacity(0.8),
+            valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primary),
+            minHeight: 6,
+          ),
         ],
       ),
     );
@@ -306,7 +321,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const SizedBox(height: 20),
-          
+
           // Title and subtitle
           Text(
             step.title,
@@ -325,12 +340,12 @@ class _OnboardingScreenState extends State<OnboardingScreen>
             ),
           ),
           const SizedBox(height: 24),
-          
+
           // Step content
           Expanded(
             child: _buildStepWidget(step),
           ),
-          
+
           const SizedBox(height: 20),
         ],
       ),
@@ -387,7 +402,8 @@ class _OnboardingScreenState extends State<OnboardingScreen>
         ),
         filled: true,
         fillColor: AppColors.inputBackground.withOpacity(0.8),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
       ),
     );
   }
@@ -416,11 +432,13 @@ class _OnboardingScreenState extends State<OnboardingScreen>
             hintStyle: TextStyle(color: AppColors.textMuted),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(16),
-              borderSide: BorderSide(color: AppColors.textMuted.withOpacity(0.5)),
+              borderSide:
+                  BorderSide(color: AppColors.textMuted.withOpacity(0.5)),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(16),
-              borderSide: BorderSide(color: AppColors.textMuted.withOpacity(0.5)),
+              borderSide:
+                  BorderSide(color: AppColors.textMuted.withOpacity(0.5)),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(16),
@@ -432,7 +450,8 @@ class _OnboardingScreenState extends State<OnboardingScreen>
             ),
             filled: true,
             fillColor: const Color(0xFF1A0D2E).withOpacity(0.6),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
             suffixIcon: _isCheckingUsername
                 ? const SizedBox(
                     width: 20,
@@ -445,7 +464,9 @@ class _OnboardingScreenState extends State<OnboardingScreen>
             errorText: _usernameError,
           ),
         ),
-        if (_username.isNotEmpty && !_isUsernameAvailable && !_isCheckingUsername)
+        if (_username.isNotEmpty &&
+            !_isUsernameAvailable &&
+            !_isCheckingUsername)
           Padding(
             padding: const EdgeInsets.only(top: 8),
             child: Text(
@@ -505,7 +526,8 @@ class _OnboardingScreenState extends State<OnboardingScreen>
           const SizedBox(height: 12),
           _buildGenderOption('female', 'Female', Icons.female),
           const SizedBox(height: 12),
-          _buildGenderOption('prefer-not-to-say', 'Prefer not to say', Icons.help_outline),
+          _buildGenderOption(
+              'prefer-not-to-say', 'Prefer not to say', Icons.help_outline),
         ],
       ),
     );
@@ -523,10 +545,14 @@ class _OnboardingScreenState extends State<OnboardingScreen>
         width: double.infinity,
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-           color: isSelected ? AppColors.primary.withOpacity(0.3) : const Color(0xFF1A0D2E).withOpacity(0.6),
+          color: isSelected
+              ? AppColors.primary.withOpacity(0.3)
+              : const Color(0xFF1A0D2E).withOpacity(0.6),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: isSelected ? AppColors.primary : AppColors.textMuted.withOpacity(0.5),
+            color: isSelected
+                ? AppColors.primary
+                : AppColors.textMuted.withOpacity(0.5),
             width: isSelected ? 2 : 1,
           ),
         ),
@@ -579,9 +605,9 @@ class _OnboardingScreenState extends State<OnboardingScreen>
             color: AppColors.textSecondary,
           ),
         ),
-        
+
         const SizedBox(height: 60),
-        
+
         // Simple slider
         Slider(
           value: _age.toDouble(),
@@ -596,9 +622,9 @@ class _OnboardingScreenState extends State<OnboardingScreen>
             });
           },
         ),
-        
+
         const SizedBox(height: 20),
-        
+
         // Age range labels
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -619,9 +645,9 @@ class _OnboardingScreenState extends State<OnboardingScreen>
             ),
           ],
         ),
-        
+
         const SizedBox(height: 40),
-        
+
         Text(
           'You can change this later in your profile settings',
           style: TextStyle(
@@ -634,13 +660,12 @@ class _OnboardingScreenState extends State<OnboardingScreen>
     );
   }
 
-
   Widget _buildProfilePictureStep() {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         const Spacer(),
-        
+
         // Profile picture container
         Center(
           child: GestureDetector(
@@ -648,11 +673,12 @@ class _OnboardingScreenState extends State<OnboardingScreen>
             child: Container(
               width: 200,
               height: 200,
-               decoration: BoxDecoration(
-                 color: const Color(0xFF1A0D2E).withOpacity(0.6),
-                 borderRadius: BorderRadius.circular(100),
-                 border: Border.all(color: AppColors.primary.withOpacity(0.5), width: 2),
-               ),
+              decoration: BoxDecoration(
+                color: const Color(0xFF1A0D2E).withOpacity(0.6),
+                borderRadius: BorderRadius.circular(100),
+                border: Border.all(
+                    color: AppColors.primary.withOpacity(0.5), width: 2),
+              ),
               child: _profilePicture != null
                   ? ClipRRect(
                       borderRadius: BorderRadius.circular(100),
@@ -682,9 +708,9 @@ class _OnboardingScreenState extends State<OnboardingScreen>
             ),
           ),
         ),
-        
+
         const SizedBox(height: 30),
-        
+
         // Skip text
         Center(
           child: Text(
@@ -696,7 +722,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
             textAlign: TextAlign.center,
           ),
         ),
-        
+
         const Spacer(),
       ],
     );
@@ -731,12 +757,17 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                     });
                   },
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 12),
                     decoration: BoxDecoration(
-                       color: isSelected ? AppColors.primary : const Color(0xFF1A0D2E).withOpacity(0.6),
+                      color: isSelected
+                          ? AppColors.primary
+                          : const Color(0xFF1A0D2E).withOpacity(0.6),
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(
-                        color: isSelected ? AppColors.primary : AppColors.textMuted.withOpacity(0.5),
+                        color: isSelected
+                            ? AppColors.primary
+                            : AppColors.textMuted.withOpacity(0.5),
                         width: 1,
                       ),
                     ),
@@ -744,7 +775,8 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                       interest,
                       style: TextStyle(
                         color: isSelected ? Colors.white : AppColors.text,
-                        fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                        fontWeight:
+                            isSelected ? FontWeight.bold : FontWeight.w500,
                         fontSize: 14,
                       ),
                     ),
@@ -783,29 +815,32 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                 return GestureDetector(
                   onTap: _galleryImages.length < 5 ? _pickGalleryImages : null,
                   child: Container(
-                     decoration: BoxDecoration(
-                       color: _galleryImages.length < 5 
-                           ? const Color(0xFF1A0D2E).withOpacity(0.6)
-                           : const Color(0xFF0D0A1A).withOpacity(0.8),
-                       borderRadius: BorderRadius.circular(16),
-                       border: Border.all(color: AppColors.primary.withOpacity(0.3)),
-                     ),
+                    decoration: BoxDecoration(
+                      color: _galleryImages.length < 5
+                          ? const Color(0xFF1A0D2E).withOpacity(0.6)
+                          : const Color(0xFF0D0A1A).withOpacity(0.8),
+                      borderRadius: BorderRadius.circular(16),
+                      border:
+                          Border.all(color: AppColors.primary.withOpacity(0.3)),
+                    ),
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Icon(
                           Icons.add_photo_alternate,
                           size: 32,
-                          color: _galleryImages.length < 5 
-                              ? AppColors.textMuted 
+                          color: _galleryImages.length < 5
+                              ? AppColors.textMuted
                               : AppColors.textSecondary,
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          _galleryImages.length < 5 ? 'Add Photo' : 'Gallery Full',
+                          _galleryImages.length < 5
+                              ? 'Add Photo'
+                              : 'Gallery Full',
                           style: TextStyle(
-                            color: _galleryImages.length < 5 
-                                ? AppColors.textMuted 
+                            color: _galleryImages.length < 5
+                                ? AppColors.textMuted
                                 : AppColors.textSecondary,
                             fontSize: 12,
                           ),
@@ -815,7 +850,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                   ),
                 );
               }
-              
+
               return Container(
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(16),
@@ -903,14 +938,18 @@ class _OnboardingScreenState extends State<OnboardingScreen>
             child: ElevatedButton(
               onPressed: _canProceed() ? (_isLoading ? null : _nextStep) : null,
               style: ElevatedButton.styleFrom(
-                 backgroundColor: _canProceed() ? AppColors.primary : const Color(0xFF1A0D2E).withOpacity(0.8),
+                backgroundColor: _canProceed()
+                    ? AppColors.primary
+                    : const Color(0xFF1A0D2E).withOpacity(0.8),
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
                 ),
                 elevation: _canProceed() ? 4 : 1,
-                shadowColor: _canProceed() ? AppColors.primary.withOpacity(0.3) : Colors.transparent,
+                shadowColor: _canProceed()
+                    ? AppColors.primary.withOpacity(0.3)
+                    : Colors.transparent,
               ),
               child: _isLoading
                   ? const SizedBox(
@@ -922,7 +961,9 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                       ),
                     )
                   : Text(
-                      _currentStep == _steps.length - 1 ? 'Complete' : 'Continue',
+                      _currentStep == _steps.length - 1
+                          ? 'Complete'
+                          : 'Continue',
                       style: const TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 16,
@@ -944,8 +985,9 @@ class _OnboardingScreenState extends State<OnboardingScreen>
     });
 
     try {
-      final response = await _apiService.checkUsernameAvailability(_username.trim());
-      final isAvailable = response['available'] ?? false;
+      final response =
+          await _apiService.checkUsernameAvailability(_username.trim());
+      final isAvailable = (response['available'] as bool?) ?? false;
       setState(() {
         _isUsernameAvailable = isAvailable;
         _isCheckingUsername = false;
@@ -963,7 +1005,8 @@ class _OnboardingScreenState extends State<OnboardingScreen>
 
   Future<void> _pickProfilePicture() async {
     try {
-      final hasPermission = await PermissionHelper.requestGalleryPermission(context);
+      final hasPermission =
+          await PermissionHelper.requestGalleryPermission(context);
       if (!hasPermission) return;
 
       final picker = ImagePicker();
@@ -989,7 +1032,8 @@ class _OnboardingScreenState extends State<OnboardingScreen>
 
   Future<void> _pickGalleryImages() async {
     try {
-      final hasPermission = await PermissionHelper.requestGalleryPermission(context);
+      final hasPermission =
+          await PermissionHelper.requestGalleryPermission(context);
       if (!hasPermission) return;
 
       final picker = ImagePicker();
@@ -1013,7 +1057,8 @@ class _OnboardingScreenState extends State<OnboardingScreen>
     }
   }
 
-  Future<File?> _showImageEditingOptions(File imageFile, bool isProfilePicture) async {
+  Future<File?> _showImageEditingOptions(
+      File imageFile, bool isProfilePicture) async {
     return showDialog<File?>(
       context: context,
       builder: (context) => AlertDialog(
@@ -1099,4 +1144,3 @@ enum OnboardingStepType {
   interests,
   gallery,
 }
-

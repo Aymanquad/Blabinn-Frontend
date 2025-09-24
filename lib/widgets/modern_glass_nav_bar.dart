@@ -19,11 +19,24 @@ class ModernGlassNavBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final slotWidth = (MediaQuery.of(context).size.width - 40) / items.length;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isTablet = screenWidth > 600;
+    final isSmallScreen = screenWidth < 360;
+
+    // Responsive sizing
+    final navHeight = isTablet ? 84.0 : (isSmallScreen ? 68.0 : _navHeight);
+    final horizontalMargin = isTablet ? 40.0 : (isSmallScreen ? 12.0 : 20.0);
+    final verticalMargin = isTablet ? 20.0 : (isSmallScreen ? 12.0 : 16.0);
+    final iconSize = isTablet ? 30.0 : (isSmallScreen ? 22.0 : _iconSize);
+    final selectorSize =
+        isTablet ? 52.0 : (isSmallScreen ? 38.0 : _selectorSize);
+
+    final slotWidth = (screenWidth - (horizontalMargin * 2)) / items.length;
 
     return Container(
-      height: _navHeight,
-      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      height: navHeight,
+      margin: EdgeInsets.symmetric(
+          horizontal: horizontalMargin, vertical: verticalMargin),
       child: Stack(
         clipBehavior: Clip.none,
         children: [
@@ -49,12 +62,12 @@ class ModernGlassNavBar extends StatelessWidget {
           AnimatedPositioned(
             duration: const Duration(milliseconds: 260),
             curve: Curves.easeOutCubic,
-            left: currentIndex * slotWidth + (slotWidth - _selectorSize) / 2,
-            top: (_navHeight - _selectorSize) / 2,
+            left: currentIndex * slotWidth + (slotWidth - selectorSize) / 2,
+            top: (navHeight - selectorSize) / 2,
             child: IgnorePointer(
               child: Container(
-                width: _selectorSize,
-                height: _selectorSize,
+                width: selectorSize,
+                height: selectorSize,
                 decoration: BoxDecoration(
                   color: const Color(0xFF2E1E55),
                   borderRadius: BorderRadius.circular(16),
@@ -80,6 +93,7 @@ class ModernGlassNavBar extends StatelessWidget {
                   child: _NavItemAnimated(
                     selected: currentIndex == index,
                     icon: items[index].icon,
+                    iconSize: iconSize,
                     onTap: () {
                       HapticFeedback.lightImpact();
                       onTap(index);
@@ -98,11 +112,13 @@ class ModernGlassNavBar extends StatelessWidget {
 class _NavItemAnimated extends StatefulWidget {
   final bool selected;
   final IconData icon;
+  final double iconSize;
   final VoidCallback onTap;
 
   const _NavItemAnimated({
     required this.selected,
     required this.icon,
+    required this.iconSize,
     required this.onTap,
   });
 
@@ -169,7 +185,7 @@ class _NavItemAnimatedState extends State<_NavItemAnimated>
           child: Center(
             child: Icon(
               widget.icon,
-              size: ModernGlassNavBar._iconSize,
+              size: widget.iconSize,
               color: color,
             ),
           ),

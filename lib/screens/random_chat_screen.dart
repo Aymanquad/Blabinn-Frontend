@@ -433,7 +433,7 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
   Future<String> _getUserDisplayName(String userId) async {
     try {
       final userProfile = await _apiService.getUserProfile(userId);
-      if (userProfile != null && userProfile['displayName'] != null) {
+      if (userProfile['displayName'] != null) {
         return userProfile['displayName'] as String;
       }
     } catch (e) {
@@ -471,6 +471,9 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
       final currentUserId = FirebaseAuth.FirebaseAuth.instance.currentUser?.uid;
       if (currentUserId == null) {
         print('❌ No current user ID found');
+        setState(() {
+          _isLoadingPartnerInfo = false;
+        });
         return;
       }
 
@@ -497,8 +500,7 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
             '🔍 No partner found in messages, trying to get from active session...');
         try {
           final sessionData = await _apiService.getActiveRandomChatSession();
-          if (sessionData != null &&
-              sessionData['sessionId'] == widget.sessionId) {
+          if (sessionData['sessionId'] == widget.sessionId) {
             partnerId = sessionData['partnerId'] as String?;
             if (partnerId != null) {
               print('🔍 Found partner ID from active session: $partnerId');
@@ -509,32 +511,55 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
         }
       }
 
-      // Method 3: If still no partner, create a demo partner for testing
+      // Method 3: If still no partner, try to get partner from session data directly
       if (partnerId == null) {
-        print('🔍 No partner found, creating demo partner for testing');
-        setState(() {
-          _partnerInfo = {
-            'id': 'demo_partner_${DateTime.now().millisecondsSinceEpoch}',
-            'displayName': 'Demo User',
-            'profilePictureUrl': null,
-            'age': 25,
-            'gender': 'Other',
-            'bio':
-                'This is a demo user for testing the random chat feature. In a real chat session, you would see the actual user\'s information here.',
-            'isDemo': true, // Mark as demo user
-          };
-        });
-        setState(() {
-          _isLoadingPartnerInfo = false;
-        });
-        return;
+        print(
+            '🔍 No partner found in messages or active session, trying alternative methods...');
+        try {
+          // Try to get partner info from the session itself
+          final sessionData = await _apiService.getActiveRandomChatSession();
+          if (sessionData.isNotEmpty) {
+            // Try different possible field names for partner info
+            partnerId = (sessionData['partnerId'] as String?) ??
+                (sessionData['partner_id'] as String?) ??
+                (sessionData['otherUserId'] as String?) ??
+                (sessionData['other_user_id'] as String?);
+
+            if (partnerId != null) {
+              print('🔍 Found partner ID from session data: $partnerId');
+            }
+          }
+        } catch (e) {
+          print('⚠️ Failed to get session data: $e');
+        }
+
+        // If still no partner, create a generic partner info
+        if (partnerId == null) {
+          print('ℹ️ No partner found, creating generic partner info');
+          setState(() {
+            _partnerInfo = {
+              'id': 'random_partner_${DateTime.now().millisecondsSinceEpoch}',
+              'displayName': 'Random Partner',
+              'profilePictureUrl': null,
+              'age': null,
+              'gender': 'Other',
+              'bio': 'You\'re connected with a random chat partner!',
+              'isOnline': true,
+              'isRandomPartner': true,
+            };
+          });
+          setState(() {
+            _isLoadingPartnerInfo = false;
+          });
+          return;
+        }
       }
 
       // Get partner profile
       print('🔍 Fetching profile for partner: $partnerId');
       final partnerProfile = await _apiService.getUserProfile(partnerId);
 
-      if (partnerProfile != null) {
+      if (partnerProfile.isNotEmpty) {
         print('✅ Partner profile loaded: ${partnerProfile['displayName']}');
         setState(() {
           _partnerInfo = partnerProfile;
@@ -564,11 +589,14 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
       setState(() {
         _partnerInfo = {
           'id': 'fallback_partner_${DateTime.now().millisecondsSinceEpoch}',
-          'displayName': 'Chat Partner',
+          'displayName': 'Random Chat Partner',
           'profilePictureUrl': null,
           'age': null,
           'gender': 'Other',
-          'bio': 'Ready to chat!',
+          'bio':
+              'You\'re connected with a random chat partner! Start chatting to get to know each other.',
+          'isOnline': true,
+          'isRandomPartner': true,
         };
       });
     } finally {
@@ -1045,18 +1073,82 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
     );
   }
 
+  Future<void> _addAsFriend() async {
+    if (_partnerInfo == null) return;
+
+    // Handle different user types
+    if (_partnerInfo!['isPlaceholder'] == true) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+                'Connect with people through chat to add them as friends!'),
+            backgroundColor: Colors.blue,
+            duration: Duration(seconds: 3),
+          ),
+        );
+      }
+      return;
+    }
+
+    if (_partnerInfo!['isRandomPartner'] == true) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+                'You can add random chat partners as friends after getting to know them better!'),
+            backgroundColor: Colors.blue,
+            duration: Duration(seconds: 3),
+          ),
+        );
+      }
+      return;
+    }
+
+    if (_partnerInfo!['isConnectedFriend'] == true) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('This person is already your friend!'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+      return;
+    }
+
+    if (_partnerInfo!['isDemo'] == true) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+                'This is a demo user. Connect with real people to add them as friends!'),
+            backgroundColor: Colors.orange,
+            duration: Duration(seconds: 3),
+          ),
+        );
+      }
+      return;
+    }
+
+    // For real users, send friend request
+    await _sendFriendRequest();
+  }
+
   Future<void> _sendFriendRequest() async {
     if (_partnerInfo == null) return;
 
     try {
       final partnerId = _partnerInfo!['id'];
-      
+
       // Check if partnerId is null or not a string
       if (partnerId == null || partnerId is! String) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Unable to send friend request: Partner information is incomplete.'),
+              content: Text(
+                  'Unable to send friend request: Partner information is incomplete.'),
               backgroundColor: Colors.orange,
               duration: Duration(seconds: 3),
             ),
@@ -1286,7 +1378,7 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
                 ),
                 const Spacer(),
                 IconButton(
-                  onPressed: _sendFriendRequest,
+                  onPressed: _addAsFriend,
                   icon: const Icon(Icons.person_add, color: Colors.white),
                   tooltip: 'Add as Friend',
                 ),
@@ -1400,6 +1492,82 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
                                 .labelSmall!
                                 .copyWith(
                                   color: Colors.orange,
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 10,
+                                ),
+                          ),
+                        ),
+                      ] else if (_partnerInfo!['isConnectedFriend'] ==
+                          true) ...[
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.green.withValues(alpha: 0.2),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: Colors.green.withValues(alpha: 0.3),
+                              width: 1,
+                            ),
+                          ),
+                          child: Text(
+                            'FRIEND',
+                            style: Theme.of(context)
+                                .textTheme
+                                .labelSmall!
+                                .copyWith(
+                                  color: Colors.green,
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 10,
+                                ),
+                          ),
+                        ),
+                      ] else if (_partnerInfo!['isPlaceholder'] == true) ...[
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.grey.withValues(alpha: 0.2),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: Colors.grey.withValues(alpha: 0.3),
+                              width: 1,
+                            ),
+                          ),
+                          child: Text(
+                            'NO FRIENDS',
+                            style: Theme.of(context)
+                                .textTheme
+                                .labelSmall!
+                                .copyWith(
+                                  color: Colors.grey,
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 10,
+                                ),
+                          ),
+                        ),
+                      ] else if (_partnerInfo!['isRandomPartner'] == true) ...[
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.blue.withValues(alpha: 0.2),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: Colors.blue.withValues(alpha: 0.3),
+                              width: 1,
+                            ),
+                          ),
+                          child: Text(
+                            'RANDOM',
+                            style: Theme.of(context)
+                                .textTheme
+                                .labelSmall!
+                                .copyWith(
+                                  color: Colors.blue,
                                   fontWeight: FontWeight.w600,
                                   fontSize: 10,
                                 ),
@@ -1663,25 +1831,30 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
                 onTap: _showPartnerProfileModal,
                 child: Container(
                   width: double.infinity,
-                  margin: const EdgeInsets.all(16),
-                  padding: const EdgeInsets.all(16),
+                  margin: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                  padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                       colors: [
-                        AppColors.primary.withValues(alpha: 0.1),
-                        AppColors.primary.withValues(alpha: 0.05),
+                        AppColors.primary.withValues(alpha: 0.15),
+                        AppColors.primary.withValues(alpha: 0.08),
                       ],
                     ),
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(20),
                     border: Border.all(
-                      color: AppColors.primary.withValues(alpha: 0.2),
-                      width: 1,
+                      color: AppColors.primary.withValues(alpha: 0.3),
+                      width: 1.5,
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: AppColors.primary.withValues(alpha: 0.1),
+                        color: AppColors.primary.withValues(alpha: 0.2),
+                        blurRadius: 12,
+                        offset: const Offset(0, 4),
+                      ),
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.1),
                         blurRadius: 8,
                         offset: const Offset(0, 2),
                       ),
@@ -1691,18 +1864,23 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
                     children: [
                       // Profile Picture
                       Container(
-                        width: 50,
-                        height: 50,
+                        width: 60,
+                        height: 60,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           border: Border.all(
-                            color: AppColors.primary.withValues(alpha: 0.3),
-                            width: 2,
+                            color: AppColors.primary.withValues(alpha: 0.4),
+                            width: 3,
                           ),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.1),
-                              blurRadius: 4,
+                              color: AppColors.primary.withValues(alpha: 0.3),
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
+                            ),
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.15),
+                              blurRadius: 6,
                               offset: const Offset(0, 2),
                             ),
                           ],
@@ -1780,12 +1958,13 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
                         ),
                       ),
 
-                      const SizedBox(width: 12),
+                      const SizedBox(width: 16),
 
                       // User Info
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Row(
                               children: [
@@ -1794,10 +1973,11 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
                                     _buildDisplayNameWithAge(),
                                     style: Theme.of(context)
                                         .textTheme
-                                        .titleMedium!
+                                        .titleLarge!
                                         .copyWith(
                                           color: Colors.white,
-                                          fontWeight: FontWeight.w600,
+                                          fontWeight: FontWeight.w700,
+                                          fontSize: 18,
                                         ),
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
@@ -1830,97 +2010,155 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
                                           ),
                                     ),
                                   ),
+                                ] else if (_partnerInfo!['isConnectedFriend'] ==
+                                    true) ...[
+                                  const SizedBox(width: 8),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 6, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color:
+                                          Colors.green.withValues(alpha: 0.2),
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: Border.all(
+                                        color:
+                                            Colors.green.withValues(alpha: 0.3),
+                                        width: 1,
+                                      ),
+                                    ),
+                                    child: Text(
+                                      'FRIEND',
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .labelSmall!
+                                          .copyWith(
+                                            color: Colors.green,
+                                            fontWeight: FontWeight.w600,
+                                            fontSize: 9,
+                                          ),
+                                    ),
+                                  ),
+                                ] else if (_partnerInfo!['isPlaceholder'] ==
+                                    true) ...[
+                                  const SizedBox(width: 8),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 6, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: Colors.grey.withValues(alpha: 0.2),
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: Border.all(
+                                        color:
+                                            Colors.grey.withValues(alpha: 0.3),
+                                        width: 1,
+                                      ),
+                                    ),
+                                    child: Text(
+                                      'NO FRIENDS',
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .labelSmall!
+                                          .copyWith(
+                                            color: Colors.grey,
+                                            fontWeight: FontWeight.w600,
+                                            fontSize: 9,
+                                          ),
+                                    ),
+                                  ),
+                                ] else if (_partnerInfo!['isRandomPartner'] ==
+                                    true) ...[
+                                  const SizedBox(width: 8),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 6, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: Colors.blue.withValues(alpha: 0.2),
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: Border.all(
+                                        color:
+                                            Colors.blue.withValues(alpha: 0.3),
+                                        width: 1,
+                                      ),
+                                    ),
+                                    child: Text(
+                                      'RANDOM',
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .labelSmall!
+                                          .copyWith(
+                                            color: Colors.blue,
+                                            fontWeight: FontWeight.w600,
+                                            fontSize: 9,
+                                          ),
+                                    ),
+                                  ),
                                 ],
                               ],
                             ),
-                            const SizedBox(height: 2),
+                            const SizedBox(height: 6),
                             Row(
                               children: [
                                 Container(
-                                  width: 8,
-                                  height: 8,
+                                  width: 10,
+                                  height: 10,
                                   decoration: BoxDecoration(
                                     color: Colors.green,
                                     shape: BoxShape.circle,
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color:
+                                            Colors.green.withValues(alpha: 0.5),
+                                        blurRadius: 4,
+                                        offset: const Offset(0, 1),
+                                      ),
+                                    ],
                                   ),
                                 ),
-                                const SizedBox(width: 6),
+                                const SizedBox(width: 8),
                                 Text(
                                   'Online',
                                   style: Theme.of(context)
                                       .textTheme
-                                      .bodySmall!
+                                      .bodyMedium!
                                       .copyWith(
                                         color: Colors.green,
-                                        fontWeight: FontWeight.w500,
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 14,
                                       ),
                                 ),
                                 if (_partnerInfo!['gender'] != null) ...[
-                                  const SizedBox(width: 12),
+                                  const SizedBox(width: 16),
                                   Container(
-                                    width: 4,
-                                    height: 4,
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 8, vertical: 3),
                                     decoration: BoxDecoration(
-                                      color: Colors.grey[400],
-                                      shape: BoxShape.circle,
+                                      color:
+                                          Colors.white.withValues(alpha: 0.1),
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(
+                                        color:
+                                            Colors.white.withValues(alpha: 0.2),
+                                        width: 1,
+                                      ),
                                     ),
-                                  ),
-                                  const SizedBox(width: 6),
-                                  Text(
-                                    _partnerInfo!['gender'] as String,
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .bodySmall!
-                                        .copyWith(
-                                          color: Colors.grey[300],
-                                          fontWeight: FontWeight.w500,
-                                        ),
+                                    child: Text(
+                                      _partnerInfo!['gender'] as String,
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodySmall!
+                                          .copyWith(
+                                            color: Colors.white
+                                                .withValues(alpha: 0.8),
+                                            fontWeight: FontWeight.w500,
+                                            fontSize: 12,
+                                          ),
+                                    ),
                                   ),
                                 ],
                               ],
                             ),
                           ],
                         ),
-                      ),
-
-                      // Action Buttons
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          IconButton(
-                            onPressed: _loadPartnerInfo,
-                            icon: Icon(
-                              Icons.refresh,
-                              color: AppColors.primary,
-                              size: 18,
-                            ),
-                            tooltip: 'Refresh',
-                            style: IconButton.styleFrom(
-                              backgroundColor:
-                                  AppColors.primary.withValues(alpha: 0.1),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 4),
-                          IconButton(
-                            onPressed: _navigateToPartnerProfile,
-                            icon: Icon(
-                              Icons.visibility,
-                              color: AppColors.primary,
-                              size: 20,
-                            ),
-                            tooltip: 'View Profile',
-                            style: IconButton.styleFrom(
-                              backgroundColor:
-                                  AppColors.primary.withValues(alpha: 0.1),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                            ),
-                          ),
-                        ],
                       ),
                     ],
                   ),
@@ -1930,25 +2168,43 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
               // Loading state for partner info
               Container(
                 width: double.infinity,
-                margin: const EdgeInsets.all(16),
-                padding: const EdgeInsets.all(16),
+                margin: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(16),
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      AppColors.primary.withValues(alpha: 0.1),
+                      AppColors.primary.withValues(alpha: 0.05),
+                    ],
+                  ),
+                  borderRadius: BorderRadius.circular(20),
                   border: Border.all(
                     color: AppColors.primary.withValues(alpha: 0.2),
-                    width: 1,
+                    width: 1.5,
                   ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.primary.withValues(alpha: 0.1),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
                 ),
                 child: Row(
                   children: [
                     // Loading profile picture
                     Container(
-                      width: 50,
-                      height: 50,
+                      width: 60,
+                      height: 60,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         color: AppColors.primary.withValues(alpha: 0.2),
+                        border: Border.all(
+                          color: AppColors.primary.withValues(alpha: 0.3),
+                          width: 2,
+                        ),
                       ),
                       child: const Center(
                         child: SizedBox(
@@ -1963,12 +2219,13 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
                       ),
                     ),
 
-                    const SizedBox(width: 12),
+                    const SizedBox(width: 16),
 
                     // Loading text
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Container(
                             height: 16,
@@ -1988,24 +2245,6 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
                             ),
                           ),
                         ],
-                      ),
-                    ),
-
-                    // Manual load button
-                    IconButton(
-                      onPressed: _loadPartnerInfo,
-                      icon: Icon(
-                        Icons.person_add,
-                        color: AppColors.primary,
-                        size: 20,
-                      ),
-                      tooltip: 'Load Partner Info',
-                      style: IconButton.styleFrom(
-                        backgroundColor:
-                            AppColors.primary.withValues(alpha: 0.1),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
                       ),
                     ),
                   ],
@@ -2082,33 +2321,6 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
                 ),
                 child: Column(
                   children: [
-                    // Friend request button
-                    if (_partnerInfo != null)
-                      Container(
-                        width: double.infinity,
-                        margin: const EdgeInsets.only(bottom: 12),
-                        child: ElevatedButton.icon(
-                          onPressed: _sendFriendRequest,
-                          icon: const Icon(Icons.person_add, size: 18),
-                          label: const Text('Add as Friend'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor:
-                                AppColors.primary.withValues(alpha: 0.15),
-                            foregroundColor: Colors.white,
-                            elevation: 0,
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              side: BorderSide(
-                                color: AppColors.primary.withValues(alpha: 0.4),
-                                width: 1,
-                              ),
-                            ),
-                            shadowColor:
-                                AppColors.primary.withValues(alpha: 0.2),
-                          ),
-                        ),
-                      ),
                     // Message input row
                     Row(
                       children: [
