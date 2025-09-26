@@ -27,6 +27,7 @@ import 'screens/profile_preview_screen.dart';
 import 'screens/chat_list_screen.dart';
 import 'screens/friends_list_screen.dart';
 import 'screens/account_settings_screen.dart';
+import 'screens/settings_screen.dart';
 import 'screens/likes_matches_screen.dart';
 import 'services/socket_service.dart';
 import 'models/chat.dart'; // Added import for Chat model
@@ -120,6 +121,7 @@ class ChatApp extends StatelessWidget {
                     const ProfileManagementScreen(),
                 '/onboarding': (context) => const OnboardingScreen(),
                 '/account-settings': (context) => const AccountSettingsScreen(),
+                '/settings': (context) => const SettingsScreen(),
                 '/connect': (context) => const ConnectScreen(),
                 '/login': (context) => const LoginScreen(),
                 '/search': (context) => const SearchScreen(),

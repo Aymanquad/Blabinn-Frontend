@@ -207,6 +207,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             ),
           ),
+          // Settings icon
+          IconButton(
+            icon: const Icon(
+              Icons.settings_rounded,
+              color: Colors.white,
+              size: 24,
+            ),
+            onPressed: () => Navigator.pushNamed(context, '/settings'),
+            tooltip: 'Settings',
+            style: IconButton.styleFrom(
+              backgroundColor: Colors.white.withOpacity(0.1),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+          ),
           const SizedBox(width: 8),
         ],
       ),
@@ -217,12 +233,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
             // Complete Unified Profile Card
             _buildUnifiedProfileCard(user, theme),
 
-            const SizedBox(height: 20),
-
-            // App Version
-            _buildAppVersion(theme),
-
-            const SizedBox(height: 20),
 
             // Debug Authentication Status (only in debug mode)
             if (const bool.fromEnvironment('dart.vm.product') == false)
@@ -479,65 +489,53 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  Future<void> _handleLogout() async {
-    // Show confirmation dialog
-    final bool? shouldLogout = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Logout'),
-        content: const Text('Are you sure you want to logout?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Logout'),
-          ),
-        ],
-      ),
-    );
-
-    if (shouldLogout == true) {
-      await _authService.logout();
-      if (mounted) {
-        setState(() {
-          _currentUser = null;
-        });
-        // Optionally navigate to login screen
-        Navigator.pushReplacementNamed(context, '/login');
-      }
-    }
-  }
 
 
-  Widget _buildPremiumFeature({
+  Widget _buildActionCard({
     required IconData icon,
     required String title,
-    required String description,
+    required String subtitle,
+    required Color color,
+    required VoidCallback onTap,
+    bool isFullWidth = false,
   }) {
     final theme = Theme.of(context);
 
-    return Row(
-      children: [
-        Container(
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          height: 140, // Increased height to prevent overflow
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: AppColors.primary,
+            color: Colors.white.withOpacity(0.05),
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: Colors.white.withOpacity(0.2),
+              color: Colors.white.withOpacity(0.1),
               width: 1,
             ),
             boxShadow: [
               BoxShadow(
-                color: AppColors.primary.withOpacity(0.3),
-                blurRadius: 12,
-                offset: const Offset(0, 4),
+                color: color.withOpacity(0.1),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
               ),
+            ],
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: color,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.1),
+                      color: color.withOpacity(0.3),
                 blurRadius: 8,
                 offset: const Offset(0, 2),
               ),
@@ -545,33 +543,37 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           child: Icon(
             icon,
-            size: 20,
             color: Colors.white,
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+                  size: 20,
+                ),
+              ),
+              const SizedBox(height: 8),
               Text(
                 title,
                 style: theme.textTheme.bodyMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
+                  fontWeight: FontWeight.bold,
                   color: theme.colorScheme.onSurface,
+                  fontSize: 12,
                 ),
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
               ),
               const SizedBox(height: 4),
               Text(
-                description,
+                subtitle,
                 style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.onSurface.withOpacity(0.6),
+                  color: theme.colorScheme.onSurface.withOpacity(0.7),
+                  fontSize: 9,
                 ),
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
               ),
             ],
           ),
         ),
-      ],
+      ),
     );
   }
 
@@ -647,619 +649,61 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ],
             ),
 
-            const SizedBox(height: 16),
-
-            // Status badges
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                _buildStatusBadge(
-                  user.isGuest ? 'Guest' : 'Member',
-                  user.isGuest ? Colors.orange : Colors.green,
-                  theme,
-                ),
-                const SizedBox(width: 12),
-                Consumer<UserProvider>(
-                  builder: (context, userProvider, child) {
-                    final currentCredits = userProvider.currentUser?.credits ?? 0;
-                    return _buildStatusBadge(
-                      '$currentCredits Credits',
-                      theme.colorScheme.primary,
-                      theme,
-                      onTap: () => _navigateToCreditShop(),
-                    );
-                  },
-                ),
-              ],
-            ),
 
             const SizedBox(height: 20),
 
-            // Preview Profile Button
+            // Action Buttons Grid - All 3 side by side (symmetrical)
             Container(
-              width: double.infinity,
               margin: const EdgeInsets.symmetric(horizontal: 16),
-              child: Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  onTap: () {
-                    Navigator.pushNamed(context, '/profile-preview');
-                  },
-                  borderRadius: BorderRadius.circular(16),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    decoration: BoxDecoration(
-                      color: AppColors.primary,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: Colors.white.withOpacity(0.2),
-                        width: 1,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppColors.primary.withOpacity(0.3),
-                          blurRadius: 12,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
                     child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Icon(
-                          Icons.visibility_rounded,
-                          size: 18,
-                          color: Colors.white,
-                        ),
-                        const SizedBox(width: 8),
-                        const Text(
-                          'Preview Profile',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-
-            // Premium Upgrade Section (only for non-premium users)
-            if (!user.isPremium) ...[
-              const SizedBox(height: 24),
-              const Divider(color: Colors.white24),
-              const SizedBox(height: 20),
-              
-              // Premium header
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: AppColors.primary,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: Colors.white.withOpacity(0.2),
-                        width: 1,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppColors.primary.withOpacity(0.3),
-                          blurRadius: 12,
-                          offset: const Offset(0, 4),
-                        ),
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: const Icon(
-                      Icons.star_rounded,
-                      color: Colors.white,
-                      size: 24,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
                   Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Upgrade to Premium',
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: theme.colorScheme.onSurface,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'Unlock exclusive features and unlimited connections',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.onSurface.withOpacity(0.7),
-                          ),
-                        ),
-                      ],
+                    child: _buildActionCard(
+                      icon: Icons.visibility_rounded,
+                      title: 'Preview Profile',
+                      subtitle: 'See how others view you',
+                      color: AppColors.primary,
+                      onTap: () => Navigator.pushNamed(context, '/profile-preview'),
                     ),
                   ),
-                ],
-              ),
-
-              const SizedBox(height: 20),
-
-              // Premium features list
-              Column(
-                children: [
-                  _buildPremiumFeature(
-                    icon: Icons.favorite_rounded,
-                    title: 'Unlimited Likes',
-                    description: 'Like as many profiles as you want',
-                  ),
-                  const SizedBox(height: 16),
-                  _buildPremiumFeature(
-                    icon: Icons.visibility_rounded,
-                    title: 'See Who Liked You',
-                    description: 'View all your admirers instantly',
-                  ),
-                  const SizedBox(height: 16),
-                  _buildPremiumFeature(
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _buildActionCard(
                     icon: Icons.rocket_launch_rounded,
-                    title: 'Profile Boosts',
-                    description: 'Get more visibility and matches',
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 24),
-
-              // Upgrade button
-              Container(
-                width: double.infinity,
-                margin: const EdgeInsets.symmetric(horizontal: 16),
-                child: Material(
-                  color: Colors.transparent,
-                  child: InkWell(
-                    onTap: () => _navigateToPremiumUpgrade(),
-                    borderRadius: BorderRadius.circular(16),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      decoration: BoxDecoration(
+                      title: 'Boost Profile',
+                      subtitle: 'Get more visibility',
                         color: AppColors.primary,
-                        borderRadius: BorderRadius.circular(16),
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppColors.primary.withOpacity(0.3),
-                            blurRadius: 12,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(
-                            Icons.star_rounded,
-                            size: 20,
-                            color: Colors.white,
+                      onTap: () => _showBoostProfileDialog(),
+                    ),
                           ),
                           const SizedBox(width: 8),
-                          const Text(
-                            'Upgrade Now',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.white,
+                  Expanded(
+                    child: _buildActionCard(
+                      icon: Icons.star_rounded,
+                      title: 'Upgrade Now',
+                      subtitle: 'Unlock premium features',
+                      color: AppColors.primary,
+                      onTap: () => _navigateToPremiumUpgrade(),
                             ),
                           ),
                         ],
                       ),
                     ),
-                  ),
-                ),
-              ),
-            ],
-
-            // Settings Section
-            const SizedBox(height: 24),
-            const Divider(color: Colors.white24),
-            const SizedBox(height: 20),
-            
-            // Settings header
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                'Settings',
-                style: theme.textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: theme.colorScheme.onSurface,
-                ),
-              ),
-            ),
-            
-            const SizedBox(height: 16),
-
-            // Settings items
-            _buildSettingsItem(
-              icon: Icons.settings_rounded,
-              title: 'Account Settings',
-              subtitle: 'Manage your account preferences',
-              onTap: () => Navigator.pushNamed(context, '/account-settings'),
-            ),
-            _buildSettingsItem(
-              icon: Icons.privacy_tip,
-              title: 'Privacy & Security',
-              subtitle: 'Control your privacy settings',
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const PrivacySecuritySettingsScreen(),
-                  ),
-                );
-              },
-            ),
-            _buildSettingsItem(
-              icon: Icons.help_outline,
-              title: 'Help & Support',
-              subtitle: 'Get help and contact support',
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const HelpSupportSettingsScreen(),
-                  ),
-                );
-              },
-            ),
-            if (!user.isVerified) ...[
-              _buildSettingsItem(
-                icon: Icons.verified_outlined,
-                title: 'Get Verified',
-                subtitle: 'Increase trust and unlock features',
-                onTap: () async {
-                  try {
-                    final res = await _apiService.requestVerification();
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Verification requested')),
-                      );
-                    }
-                  } catch (_) {}
-                },
-              ),
-            ],
 
             // Action Buttons Section
             const SizedBox(height: 24),
             const Divider(color: Colors.white24),
             const SizedBox(height: 20),
 
-            // Boost Profile Button
-            FutureBuilder<bool>(
-              future: BoostProfileService().isProfileBoosted(),
-              builder: (context, snapshot) {
-                final isBoosted = snapshot.data ?? false;
-
-                return Container(
-                  width: double.infinity,
-                  margin: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Material(
-                    color: Colors.transparent,
-                    child: InkWell(
-                      onTap: () => _showBoostProfileDialog(),
-                      borderRadius: BorderRadius.circular(16),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        decoration: BoxDecoration(
-                          color: isBoosted
-                              ? Colors.amber.shade400
-                              : AppColors.primary,
-                          borderRadius: BorderRadius.circular(16),
-                          boxShadow: [
-                            BoxShadow(
-                              color: (isBoosted ? Colors.amber : AppColors.primary).withOpacity(0.3),
-                              blurRadius: 12,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              isBoosted ? Icons.star : Icons.rocket_launch_rounded,
-                              size: 20,
-                              color: Colors.white,
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              isBoosted ? 'Profile Boosted!' : 'Boost Profile',
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.white,
-                              ),
-                            ),
-                            if (isBoosted) ...[
-                              const SizedBox(width: 8),
-                              const Icon(
-                                Icons.timer,
-                                size: 16,
-                                color: Colors.white,
-                              ),
-                            ],
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                );
-              },
-            ),
-
-            const SizedBox(height: 12),
-
-            // Logout Button
-            Container(
-              width: double.infinity,
-              margin: const EdgeInsets.symmetric(horizontal: 16),
-              child: Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  onTap: () => _handleLogout(),
-                  borderRadius: BorderRadius.circular(12),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-                    decoration: BoxDecoration(
-                      color: Colors.transparent,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.red.withOpacity(0.2)),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.logout_outlined,
-                          size: 18,
-                          color: Colors.red.withOpacity(0.8),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Logout',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                            color: Colors.red.withOpacity(0.8),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
           ],
         ),
     );
   }
 
-  Widget _buildStatusBadge(String text, Color color, ThemeData theme, {VoidCallback? onTap}) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              color.withOpacity(0.2),
-              color.withOpacity(0.1),
-            ],
-          ),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: color.withOpacity(0.4),
-            width: 1,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: color.withOpacity(0.2),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Text(
-          text,
-          style: theme.textTheme.labelMedium?.copyWith(
-            color: color,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-      ),
-    );
-  }
 
 
-  // Modern Settings Section
-  Widget _buildModernSettingsSection(User user, ThemeData theme) {
-    return ModernCard(
-      margin: EdgeInsets.zero,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(20),
-            child: Text(
-              'Settings',
-              style: theme.textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: theme.colorScheme.onSurface,
-              ),
-            ),
-          ),
-          _buildSettingsItem(
-            icon: Icons.settings_rounded,
-            title: 'Account Settings',
-            subtitle: 'Manage your account preferences',
-            onTap: () => Navigator.pushNamed(context, '/account-settings'),
-          ),
-          _buildSettingsItem(
-            icon: Icons.privacy_tip,
-            title: 'Privacy & Security',
-            subtitle: 'Control your privacy settings',
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const PrivacySecuritySettingsScreen(),
-                ),
-              );
-            },
-          ),
-          _buildSettingsItem(
-            icon: Icons.help_outline,
-            title: 'Help & Support',
-            subtitle: 'Get help and contact support',
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const HelpSupportSettingsScreen(),
-                ),
-              );
-            },
-          ),
-          if (!user.isVerified) ...[
-            _buildSettingsItem(
-              icon: Icons.verified_outlined,
-              title: 'Get Verified',
-              subtitle: 'Increase trust and unlock features',
-              onTap: () async {
-                try {
-                  final res = await _apiService.requestVerification();
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Verification requested')),
-                    );
-                  }
-                } catch (_) {}
-              },
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSettingsItem({
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required VoidCallback onTap,
-    bool isHighlighted = false,
-  }) {
-    final theme = Theme.of(context);
-
-    return Container(
-      margin: EdgeInsets.zero,
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(12),
-          child: Container(
-            padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-              color: isHighlighted 
-                  ? theme.colorScheme.primary.withOpacity(0.1)
-                  : Colors.transparent,
-              borderRadius: BorderRadius.circular(12),
-              border: isHighlighted 
-                  ? Border.all(color: theme.colorScheme.primary.withOpacity(0.3))
-                  : null,
-            ),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: Colors.white.withOpacity(0.2),
-                      width: 1,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppColors.primary.withOpacity(0.3),
-                        blurRadius: 12,
-                        offset: const Offset(0, 4),
-                      ),
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: Icon(
-                    icon,
-                    color: Colors.white,
-                    size: 20,
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-        title,
-                        style: theme.textTheme.titleMedium?.copyWith(
-          fontWeight: FontWeight.w600,
-                          color: theme.colorScheme.onSurface,
-        ),
-      ),
-                      const SizedBox(height: 2),
-                      Text(
-        subtitle,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurface.withOpacity(0.6),
-        ),
-      ),
-                    ],
-                  ),
-                ),
-                Icon(
-        Icons.arrow_forward_ios,
-        size: 16,
-                  color: theme.colorScheme.onSurface.withOpacity(0.4),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
 
 
-  // App Version
-  Widget _buildAppVersion(ThemeData theme) {
-    return Text(
-      'Version 1.0.0',
-      style: TextStyle(
-        fontSize: 12,
-        color: theme.colorScheme.onSurface.withOpacity(0.5),
-      ),
-    );
-  }
 
   // Debug Status (only in debug mode)
   Widget _buildDebugStatus(ThemeData theme) {
