@@ -50,6 +50,7 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
   Timer? _heartbeatTimer;
   Map<String, dynamic>? _partnerInfo;
   bool _isLoadingPartnerInfo = false;
+  String? _backendSessionId; // Store backend AI session ID
 
   @override
   void initState() {
@@ -88,13 +89,34 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
     print('   🤖 Is AI Chat: ${widget.isAiChat}');
   }
 
-  void _setupAiChat() {
+  void _setupAiChat() async {
     print('🤖 [AI CHAT] Setting up AI chat');
 
     // Set partner info from AI user data
     if (widget.aiUser != null) {
       _partnerInfo = widget.aiUser;
       print('🤖 [AI CHAT] AI user info loaded: ${_partnerInfo?['username']}');
+    }
+
+    // Create backend AI session for intelligent responses
+    try {
+      final currentUser = FirebaseAuth.FirebaseAuth.instance.currentUser;
+      if (currentUser != null) {
+        print('🤖 [AI CHAT] Creating backend AI session...');
+        // This creates a session with the OpenAI service
+        final sessionResponse = await _apiService.postJson('/chatbot/session', {
+          'user_id': currentUser.uid,
+          'template_id': 'general-assistant',
+        });
+        
+        if (sessionResponse['success'] == true && sessionResponse['session_id'] != null) {
+          _backendSessionId = sessionResponse['session_id'];
+          print('🤖 [AI CHAT] Backend session created: $_backendSessionId');
+        }
+      }
+    } catch (e) {
+      print('🤖 [AI CHAT] Failed to create backend session: $e');
+      print('🤖 [AI CHAT] Will use local responses as fallback');
     }
 
     // Add natural welcome message
@@ -843,35 +865,44 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
       }
 
       print('🤖 [AI CHAT DEBUG] User ID: ${currentUser.uid}');
+      print('🤖 [AI CHAT DEBUG] Backend Session ID: $_backendSessionId');
 
-      // Send message to AI
-      final response = await _aiChatbotService.sendAiMessage(
-        userId: currentUser.uid,
-        sessionId: widget.sessionId,
-        message: content,
-      );
+      // Use backend AI if session exists, otherwise use local
+      if (_backendSessionId != null) {
+        // Send message to backend chatbot session
+        final response = await _apiService.postJson(
+          '/chatbot/session/$_backendSessionId/message',
+          {
+            'message': content,
+          },
+        );
 
-      print('🤖 [AI CHAT DEBUG] AI Response: $response');
+        print('🤖 [AI CHAT DEBUG] Backend AI Response: $response');
 
-      if (response['success'] == true) {
-        // Add response to messages
-        final messageId = 'msg_${DateTime.now().millisecondsSinceEpoch}';
-        setState(() {
-          _messages.add({
-            'id': messageId,
-            'content':
-                response['response'], // Fixed: use 'response' not 'message'
-            'senderId': _partnerInfo?['id'] ?? 'partner_user',
-            'timestamp': DateTime.now(),
-            'isFromCurrentUser': false,
-            'type': 'text',
+        if (response['success'] == true && response['response'] != null) {
+          // Add response to messages
+          final messageId = 'msg_${DateTime.now().millisecondsSinceEpoch}';
+          setState(() {
+            _messages.add({
+              'id': messageId,
+              'content': response['response'],
+              'senderId': _partnerInfo?['id'] ?? 'partner_user',
+              'timestamp': DateTime.now(),
+              'isFromCurrentUser': false,
+              'type': 'text',
+            });
           });
-        });
 
-        _scrollToBottom();
-        print('💬 [CHAT] Response added to chat');
+          _scrollToBottom();
+          print('💬 [CHAT] Backend AI (OpenAI) response added to chat');
+        } else {
+          print('💬 [CHAT] Backend AI failed, using local responses');
+          await _generateLocalAiResponse(content);
+          return;
+        }
       } else {
-        print('💬 [CHAT] External service failed, using local responses');
+        // No backend session, use local responses
+        print('💬 [CHAT] No backend session, using local responses');
         await _generateLocalAiResponse(content);
         return;
       }
@@ -880,19 +911,19 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
 
       // Don't remove user's message - just use local AI response as fallback
       // The user's message should stay visible in the chat
-      
+
       // Try local AI responses as fallback
       try {
         await _generateLocalAiResponse(content);
       } catch (localError) {
         print('🤖 [AI_CHAT] Local AI response also failed: $localError');
-        
+
         // Only remove temp message if local AI also fails
         setState(() {
           _messages
               .removeWhere((msg) => msg['id'].toString().startsWith('temp_'));
         });
-        
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Failed to send message: ${e.toString()}'),
@@ -908,7 +939,8 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
     await Future<void>.delayed(const Duration(milliseconds: 1500));
 
     // Get partner name from profile
-    final name = _partnerInfo?['displayName'] ?? _partnerInfo?['username'] ?? 'User';
+    final name =
+        _partnerInfo?['displayName'] ?? _partnerInfo?['username'] ?? 'User';
 
     // Generate natural human-like responses
     String response;
@@ -925,9 +957,11 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
       } else {
         response = "Hmm interesting. What do you think?";
       }
-    } else if (message.contains('where') && (message.contains('from') || message.contains('live'))) {
+    } else if (message.contains('where') &&
+        (message.contains('from') || message.contains('live'))) {
       response = "I'm from around here. You?";
-    } else if (message.contains('what do you') || message.contains('do you like')) {
+    } else if (message.contains('what do you') ||
+        message.contains('do you like')) {
       response = "I like a lot of things. What about you?";
     } else if (message.contains('hello') ||
         message.contains('hii') ||
@@ -2221,8 +2255,349 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
               // Partner Profile Section
               if (_partnerInfo != null)
                 GestureDetector(
-                onTap: _showPartnerProfileModal,
-                child: Container(
+                  onTap: _showPartnerProfileModal,
+                  child: Container(
+                    width: double.infinity,
+                    margin: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          AppColors.primary.withValues(alpha: 0.15),
+                          AppColors.primary.withValues(alpha: 0.08),
+                        ],
+                      ),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: AppColors.primary.withValues(alpha: 0.3),
+                        width: 1.5,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.primary.withValues(alpha: 0.2),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4),
+                        ),
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.1),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      children: [
+                        // Profile Picture
+                        Container(
+                          width: 60,
+                          height: 60,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: AppColors.primary.withValues(alpha: 0.4),
+                              width: 3,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppColors.primary.withValues(alpha: 0.3),
+                                blurRadius: 8,
+                                offset: const Offset(0, 2),
+                              ),
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.15),
+                                blurRadius: 6,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: ClipOval(
+                            child: _partnerInfo!['profilePictureUrl'] != null
+                                ? Image.network(
+                                    _partnerInfo!['profilePictureUrl']
+                                        as String,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (context, error, stackTrace) {
+                                      return Container(
+                                        decoration: BoxDecoration(
+                                          gradient: LinearGradient(
+                                            colors: [
+                                              AppColors.primary
+                                                  .withValues(alpha: 0.3),
+                                              AppColors.primary
+                                                  .withValues(alpha: 0.1),
+                                            ],
+                                          ),
+                                        ),
+                                        child: Icon(
+                                          Icons.person,
+                                          color: AppColors.primary,
+                                          size: 24,
+                                        ),
+                                      );
+                                    },
+                                    loadingBuilder:
+                                        (context, child, loadingProgress) {
+                                      if (loadingProgress == null) return child;
+                                      return Container(
+                                        decoration: BoxDecoration(
+                                          gradient: LinearGradient(
+                                            colors: [
+                                              AppColors.primary
+                                                  .withValues(alpha: 0.3),
+                                              AppColors.primary
+                                                  .withValues(alpha: 0.1),
+                                            ],
+                                          ),
+                                        ),
+                                        child: const Center(
+                                          child: SizedBox(
+                                            width: 20,
+                                            height: 20,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                              valueColor:
+                                                  AlwaysStoppedAnimation<Color>(
+                                                      Colors.white),
+                                            ),
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                  )
+                                : Container(
+                                    decoration: BoxDecoration(
+                                      gradient: LinearGradient(
+                                        colors: [
+                                          AppColors.primary
+                                              .withValues(alpha: 0.3),
+                                          AppColors.primary
+                                              .withValues(alpha: 0.1),
+                                        ],
+                                      ),
+                                    ),
+                                    child: Icon(
+                                      Icons.person,
+                                      color: AppColors.primary,
+                                      size: 24,
+                                    ),
+                                  ),
+                          ),
+                        ),
+
+                        const SizedBox(width: 16),
+
+                        // User Info
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      _buildDisplayNameWithAge(),
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .titleLarge!
+                                          .copyWith(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.w700,
+                                            fontSize: 18,
+                                          ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                  if (_partnerInfo!['isDemo'] == true) ...[
+                                    const SizedBox(width: 8),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 6, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: Colors.orange
+                                            .withValues(alpha: 0.2),
+                                        borderRadius: BorderRadius.circular(8),
+                                        border: Border.all(
+                                          color: Colors.orange
+                                              .withValues(alpha: 0.3),
+                                          width: 1,
+                                        ),
+                                      ),
+                                      child: Text(
+                                        'DEMO',
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .labelSmall!
+                                            .copyWith(
+                                              color: Colors.orange,
+                                              fontWeight: FontWeight.w600,
+                                              fontSize: 9,
+                                            ),
+                                      ),
+                                    ),
+                                  ] else if (_partnerInfo![
+                                          'isConnectedFriend'] ==
+                                      true) ...[
+                                    const SizedBox(width: 8),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 6, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color:
+                                            Colors.green.withValues(alpha: 0.2),
+                                        borderRadius: BorderRadius.circular(8),
+                                        border: Border.all(
+                                          color: Colors.green
+                                              .withValues(alpha: 0.3),
+                                          width: 1,
+                                        ),
+                                      ),
+                                      child: Text(
+                                        'FRIEND',
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .labelSmall!
+                                            .copyWith(
+                                              color: Colors.green,
+                                              fontWeight: FontWeight.w600,
+                                              fontSize: 9,
+                                            ),
+                                      ),
+                                    ),
+                                  ] else if (_partnerInfo!['isPlaceholder'] ==
+                                      true) ...[
+                                    const SizedBox(width: 8),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 6, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color:
+                                            Colors.grey.withValues(alpha: 0.2),
+                                        borderRadius: BorderRadius.circular(8),
+                                        border: Border.all(
+                                          color: Colors.grey
+                                              .withValues(alpha: 0.3),
+                                          width: 1,
+                                        ),
+                                      ),
+                                      child: Text(
+                                        'NO FRIENDS',
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .labelSmall!
+                                            .copyWith(
+                                              color: Colors.grey,
+                                              fontWeight: FontWeight.w600,
+                                              fontSize: 9,
+                                            ),
+                                      ),
+                                    ),
+                                  ] else if (_partnerInfo!['isRandomPartner'] ==
+                                      true) ...[
+                                    const SizedBox(width: 8),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 6, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color:
+                                            Colors.blue.withValues(alpha: 0.2),
+                                        borderRadius: BorderRadius.circular(8),
+                                        border: Border.all(
+                                          color: Colors.blue
+                                              .withValues(alpha: 0.3),
+                                          width: 1,
+                                        ),
+                                      ),
+                                      child: Text(
+                                        'RANDOM',
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .labelSmall!
+                                            .copyWith(
+                                              color: Colors.blue,
+                                              fontWeight: FontWeight.w600,
+                                              fontSize: 9,
+                                            ),
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                              const SizedBox(height: 6),
+                              Row(
+                                children: [
+                                  Container(
+                                    width: 10,
+                                    height: 10,
+                                    decoration: BoxDecoration(
+                                      color: Colors.green,
+                                      shape: BoxShape.circle,
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.green
+                                              .withValues(alpha: 0.5),
+                                          blurRadius: 4,
+                                          offset: const Offset(0, 1),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    'Online',
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodyMedium!
+                                        .copyWith(
+                                          color: Colors.green,
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 14,
+                                        ),
+                                  ),
+                                  if (_partnerInfo!['gender'] != null) ...[
+                                    const SizedBox(width: 16),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 8, vertical: 3),
+                                      decoration: BoxDecoration(
+                                        color:
+                                            Colors.white.withValues(alpha: 0.1),
+                                        borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(
+                                          color: Colors.white
+                                              .withValues(alpha: 0.2),
+                                          width: 1,
+                                        ),
+                                      ),
+                                      child: Text(
+                                        _partnerInfo!['gender'] as String,
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .bodySmall!
+                                            .copyWith(
+                                              color: Colors.white
+                                                  .withValues(alpha: 0.8),
+                                              fontWeight: FontWeight.w500,
+                                              fontSize: 12,
+                                            ),
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+              else
+                // Loading state for partner info
+                Container(
                   width: double.infinity,
                   margin: const EdgeInsets.fromLTRB(16, 8, 16, 16),
                   padding: const EdgeInsets.all(20),
@@ -2231,23 +2606,18 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                       colors: [
-                        AppColors.primary.withValues(alpha: 0.15),
-                        AppColors.primary.withValues(alpha: 0.08),
+                        AppColors.primary.withValues(alpha: 0.1),
+                        AppColors.primary.withValues(alpha: 0.05),
                       ],
                     ),
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(
-                      color: AppColors.primary.withValues(alpha: 0.3),
+                      color: AppColors.primary.withValues(alpha: 0.2),
                       width: 1.5,
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: AppColors.primary.withValues(alpha: 0.2),
-                        blurRadius: 12,
-                        offset: const Offset(0, 4),
-                      ),
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.1),
+                        color: AppColors.primary.withValues(alpha: 0.1),
                         blurRadius: 8,
                         offset: const Offset(0, 2),
                       ),
@@ -2255,300 +2625,55 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
                   ),
                   child: Row(
                     children: [
-                      // Profile Picture
+                      // Loading profile picture
                       Container(
                         width: 60,
                         height: 60,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
+                          color: AppColors.primary.withValues(alpha: 0.2),
                           border: Border.all(
-                            color: AppColors.primary.withValues(alpha: 0.4),
-                            width: 3,
+                            color: AppColors.primary.withValues(alpha: 0.3),
+                            width: 2,
                           ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: AppColors.primary.withValues(alpha: 0.3),
-                              blurRadius: 8,
-                              offset: const Offset(0, 2),
-                            ),
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.15),
-                              blurRadius: 6,
-                              offset: const Offset(0, 2),
-                            ),
-                          ],
                         ),
-                        child: ClipOval(
-                          child: _partnerInfo!['profilePictureUrl'] != null
-                              ? Image.network(
-                                  _partnerInfo!['profilePictureUrl'] as String,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (context, error, stackTrace) {
-                                    return Container(
-                                      decoration: BoxDecoration(
-                                        gradient: LinearGradient(
-                                          colors: [
-                                            AppColors.primary
-                                                .withValues(alpha: 0.3),
-                                            AppColors.primary
-                                                .withValues(alpha: 0.1),
-                                          ],
-                                        ),
-                                      ),
-                                      child: Icon(
-                                        Icons.person,
-                                        color: AppColors.primary,
-                                        size: 24,
-                                      ),
-                                    );
-                                  },
-                                  loadingBuilder:
-                                      (context, child, loadingProgress) {
-                                    if (loadingProgress == null) return child;
-                                    return Container(
-                                      decoration: BoxDecoration(
-                                        gradient: LinearGradient(
-                                          colors: [
-                                            AppColors.primary
-                                                .withValues(alpha: 0.3),
-                                            AppColors.primary
-                                                .withValues(alpha: 0.1),
-                                          ],
-                                        ),
-                                      ),
-                                      child: const Center(
-                                        child: SizedBox(
-                                          width: 20,
-                                          height: 20,
-                                          child: CircularProgressIndicator(
-                                            strokeWidth: 2,
-                                            valueColor:
-                                                AlwaysStoppedAnimation<Color>(
-                                                    Colors.white),
-                                          ),
-                                        ),
-                                      ),
-                                    );
-                                  },
-                                )
-                              : Container(
-                                  decoration: BoxDecoration(
-                                    gradient: LinearGradient(
-                                      colors: [
-                                        AppColors.primary
-                                            .withValues(alpha: 0.3),
-                                        AppColors.primary
-                                            .withValues(alpha: 0.1),
-                                      ],
-                                    ),
-                                  ),
-                                  child: Icon(
-                                    Icons.person,
-                                    color: AppColors.primary,
-                                    size: 24,
-                                  ),
-                                ),
+                        child: const Center(
+                          child: SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor:
+                                  AlwaysStoppedAnimation<Color>(Colors.white),
+                            ),
+                          ),
                         ),
                       ),
 
                       const SizedBox(width: 16),
 
-                      // User Info
+                      // Loading text
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: Text(
-                                    _buildDisplayNameWithAge(),
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .titleLarge!
-                                        .copyWith(
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.w700,
-                                          fontSize: 18,
-                                        ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                                if (_partnerInfo!['isDemo'] == true) ...[
-                                  const SizedBox(width: 8),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 6, vertical: 2),
-                                    decoration: BoxDecoration(
-                                      color:
-                                          Colors.orange.withValues(alpha: 0.2),
-                                      borderRadius: BorderRadius.circular(8),
-                                      border: Border.all(
-                                        color: Colors.orange
-                                            .withValues(alpha: 0.3),
-                                        width: 1,
-                                      ),
-                                    ),
-                                    child: Text(
-                                      'DEMO',
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .labelSmall!
-                                          .copyWith(
-                                            color: Colors.orange,
-                                            fontWeight: FontWeight.w600,
-                                            fontSize: 9,
-                                          ),
-                                    ),
-                                  ),
-                                ] else if (_partnerInfo!['isConnectedFriend'] ==
-                                    true) ...[
-                                  const SizedBox(width: 8),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 6, vertical: 2),
-                                    decoration: BoxDecoration(
-                                      color:
-                                          Colors.green.withValues(alpha: 0.2),
-                                      borderRadius: BorderRadius.circular(8),
-                                      border: Border.all(
-                                        color:
-                                            Colors.green.withValues(alpha: 0.3),
-                                        width: 1,
-                                      ),
-                                    ),
-                                    child: Text(
-                                      'FRIEND',
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .labelSmall!
-                                          .copyWith(
-                                            color: Colors.green,
-                                            fontWeight: FontWeight.w600,
-                                            fontSize: 9,
-                                          ),
-                                    ),
-                                  ),
-                                ] else if (_partnerInfo!['isPlaceholder'] ==
-                                    true) ...[
-                                  const SizedBox(width: 8),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 6, vertical: 2),
-                                    decoration: BoxDecoration(
-                                      color: Colors.grey.withValues(alpha: 0.2),
-                                      borderRadius: BorderRadius.circular(8),
-                                      border: Border.all(
-                                        color:
-                                            Colors.grey.withValues(alpha: 0.3),
-                                        width: 1,
-                                      ),
-                                    ),
-                                    child: Text(
-                                      'NO FRIENDS',
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .labelSmall!
-                                          .copyWith(
-                                            color: Colors.grey,
-                                            fontWeight: FontWeight.w600,
-                                            fontSize: 9,
-                                          ),
-                                    ),
-                                  ),
-                                ] else if (_partnerInfo!['isRandomPartner'] ==
-                                    true) ...[
-                                  const SizedBox(width: 8),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 6, vertical: 2),
-                                    decoration: BoxDecoration(
-                                      color: Colors.blue.withValues(alpha: 0.2),
-                                      borderRadius: BorderRadius.circular(8),
-                                      border: Border.all(
-                                        color:
-                                            Colors.blue.withValues(alpha: 0.3),
-                                        width: 1,
-                                      ),
-                                    ),
-                                    child: Text(
-                                      'RANDOM',
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .labelSmall!
-                                          .copyWith(
-                                            color: Colors.blue,
-                                            fontWeight: FontWeight.w600,
-                                            fontSize: 9,
-                                          ),
-                                    ),
-                                  ),
-                                ],
-                              ],
+                            Container(
+                              height: 16,
+                              width: 120,
+                              decoration: BoxDecoration(
+                                color: AppColors.primary.withValues(alpha: 0.2),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
                             ),
-                            const SizedBox(height: 6),
-                            Row(
-                              children: [
-                                Container(
-                                  width: 10,
-                                  height: 10,
-                                  decoration: BoxDecoration(
-                                    color: Colors.green,
-                                    shape: BoxShape.circle,
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color:
-                                            Colors.green.withValues(alpha: 0.5),
-                                        blurRadius: 4,
-                                        offset: const Offset(0, 1),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                Text(
-                                  'Online',
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .bodyMedium!
-                                      .copyWith(
-                                        color: Colors.green,
-                                        fontWeight: FontWeight.w600,
-                                        fontSize: 14,
-                                      ),
-                                ),
-                                if (_partnerInfo!['gender'] != null) ...[
-                                  const SizedBox(width: 16),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 8, vertical: 3),
-                                    decoration: BoxDecoration(
-                                      color:
-                                          Colors.white.withValues(alpha: 0.1),
-                                      borderRadius: BorderRadius.circular(12),
-                                      border: Border.all(
-                                        color:
-                                            Colors.white.withValues(alpha: 0.2),
-                                        width: 1,
-                                      ),
-                                    ),
-                                    child: Text(
-                                      _partnerInfo!['gender'] as String,
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .bodySmall!
-                                          .copyWith(
-                                            color: Colors.white
-                                                .withValues(alpha: 0.8),
-                                            fontWeight: FontWeight.w500,
-                                            fontSize: 12,
-                                          ),
-                                    ),
-                                  ),
-                                ],
-                              ],
+                            const SizedBox(height: 8),
+                            Container(
+                              height: 12,
+                              width: 80,
+                              decoration: BoxDecoration(
+                                color: AppColors.primary.withValues(alpha: 0.2),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
                             ),
                           ],
                         ),
@@ -2556,259 +2681,173 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
                     ],
                   ),
                 ),
-              )
-            else
-              // Loading state for partner info
-              Container(
-                width: double.infinity,
-                margin: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      AppColors.primary.withValues(alpha: 0.1),
-                      AppColors.primary.withValues(alpha: 0.05),
+              // Messages list
+              Expanded(
+                child: _messages.isEmpty
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.chat_bubble_outline,
+                              size: 64,
+                              color: Colors.grey[400],
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              'Start chatting!',
+                              style: TextStyle(
+                                fontSize: 18,
+                                color: Colors.grey[400],
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Say hello to your random chat partner',
+                              style: TextStyle(
+                                color: Colors.grey[400],
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    : ListView.builder(
+                        controller: _scrollController,
+                        padding: const EdgeInsets.all(16),
+                        itemCount: _messages.length,
+                        itemBuilder: (context, index) {
+                          final message = _messages[index];
+                          final isFromCurrentUser =
+                              message['isFromCurrentUser'] as bool? ?? false;
+
+                          return Align(
+                            alignment: isFromCurrentUser
+                                ? Alignment.centerRight
+                                : Alignment.centerLeft,
+                            child: Container(
+                              margin: const EdgeInsets.only(bottom: 8),
+                              constraints: BoxConstraints(
+                                maxWidth:
+                                    MediaQuery.of(context).size.width * 0.7,
+                              ),
+                              child: _buildMessageBubble(
+                                  message, isFromCurrentUser),
+                            ),
+                          );
+                        },
+                      ),
+              ),
+              // Message input
+              if (_isSessionActive)
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: AppColors.cardBackground,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.1),
+                        blurRadius: 4,
+                        offset: const Offset(0, -2),
+                      ),
                     ],
                   ),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                    color: AppColors.primary.withValues(alpha: 0.2),
-                    width: 1.5,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.primary.withValues(alpha: 0.1),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  children: [
-                    // Loading profile picture
-                    Container(
-                      width: 60,
-                      height: 60,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: AppColors.primary.withValues(alpha: 0.2),
-                        border: Border.all(
-                          color: AppColors.primary.withValues(alpha: 0.3),
-                          width: 2,
-                        ),
-                      ),
-                      child: const Center(
-                        child: SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            valueColor:
-                                AlwaysStoppedAnimation<Color>(Colors.white),
-                          ),
-                        ),
-                      ),
-                    ),
-
-                    const SizedBox(width: 16),
-
-                    // Loading text
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisAlignment: MainAxisAlignment.center,
+                  child: Column(
+                    children: [
+                      // Message input row
+                      Row(
                         children: [
-                          Container(
-                            height: 16,
-                            width: 120,
-                            decoration: BoxDecoration(
-                              color: AppColors.primary.withValues(alpha: 0.2),
-                              borderRadius: BorderRadius.circular(8),
+                          // Attachment button
+                          IconButton(
+                            onPressed: _showAttachmentOptions,
+                            icon: Icon(
+                              Icons.attach_file,
+                              color: AppColors.primary,
+                              size: 24,
                             ),
+                            tooltip: 'Attach Image',
                           ),
-                          const SizedBox(height: 8),
-                          Container(
-                            height: 12,
-                            width: 80,
-                            decoration: BoxDecoration(
-                              color: AppColors.primary.withValues(alpha: 0.2),
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            // Messages list
-            Expanded(
-              child: _messages.isEmpty
-                  ? Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.chat_bubble_outline,
-                            size: 64,
-                            color: Colors.grey[400],
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            'Start chatting!',
-                            style: TextStyle(
-                              fontSize: 18,
-                              color: Colors.grey[400],
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Say hello to your random chat partner',
-                            style: TextStyle(
-                              color: Colors.grey[400],
-                            ),
-                          ),
-                        ],
-                      ),
-                    )
-                  : ListView.builder(
-                      controller: _scrollController,
-                      padding: const EdgeInsets.all(16),
-                      itemCount: _messages.length,
-                      itemBuilder: (context, index) {
-                        final message = _messages[index];
-                        final isFromCurrentUser =
-                            message['isFromCurrentUser'] as bool? ?? false;
-
-                        return Align(
-                          alignment: isFromCurrentUser
-                              ? Alignment.centerRight
-                              : Alignment.centerLeft,
-                          child: Container(
-                            margin: const EdgeInsets.only(bottom: 8),
-                            constraints: BoxConstraints(
-                              maxWidth: MediaQuery.of(context).size.width * 0.7,
-                            ),
-                            child:
-                                _buildMessageBubble(message, isFromCurrentUser),
-                          ),
-                        );
-                      },
-                    ),
-            ),
-            // Message input
-            if (_isSessionActive)
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: AppColors.cardBackground,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.1),
-                      blurRadius: 4,
-                      offset: const Offset(0, -2),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  children: [
-                    // Message input row
-                    Row(
-                      children: [
-                        // Attachment button
-                        IconButton(
-                          onPressed: _showAttachmentOptions,
-                          icon: Icon(
-                            Icons.attach_file,
-                            color: AppColors.primary,
-                            size: 24,
-                          ),
-                          tooltip: 'Attach Image',
-                        ),
-                        Expanded(
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              TextField(
-                                controller: _messageController,
-                                decoration: InputDecoration(
-                                  hintText: 'Type a message...',
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(24),
-                                    borderSide: BorderSide.none,
+                          Expanded(
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                TextField(
+                                  controller: _messageController,
+                                  decoration: InputDecoration(
+                                    hintText: 'Type a message...',
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(24),
+                                      borderSide: BorderSide.none,
+                                    ),
+                                    filled: true,
+                                    fillColor: AppColors.inputBackground,
+                                    contentPadding: const EdgeInsets.symmetric(
+                                      horizontal: 20,
+                                      vertical: 10,
+                                    ),
+                                    suffixIcon:
+                                        _messageController.text.length > 900
+                                            ? Icon(
+                                                Icons.warning,
+                                                color: _messageController
+                                                            .text.length >=
+                                                        1000
+                                                    ? Colors.red
+                                                    : Colors.orange,
+                                                size: 16,
+                                              )
+                                            : null,
                                   ),
-                                  filled: true,
-                                  fillColor: AppColors.inputBackground,
-                                  contentPadding: const EdgeInsets.symmetric(
-                                    horizontal: 20,
-                                    vertical: 10,
-                                  ),
-                                  suffixIcon: _messageController.text.length >
-                                          900
-                                      ? Icon(
-                                          Icons.warning,
-                                          color:
-                                              _messageController.text.length >=
-                                                      1000
-                                                  ? Colors.red
-                                                  : Colors.orange,
-                                          size: 16,
-                                        )
-                                      : null,
+                                  onChanged: (value) {
+                                    setState(() {});
+                                  },
+                                  onSubmitted: (_) => _sendMessage(),
+                                  textInputAction: TextInputAction.send,
+                                  maxLines:
+                                      2, // Reduced from 4 to 2 for shorter height
+                                  maxLength: 1000,
+                                  maxLengthEnforcement:
+                                      MaxLengthEnforcement.enforced,
                                 ),
-                                onChanged: (value) {
-                                  setState(() {});
-                                },
-                                onSubmitted: (_) => _sendMessage(),
-                                textInputAction: TextInputAction.send,
-                                maxLines:
-                                    2, // Reduced from 4 to 2 for shorter height
-                                maxLength: 1000,
-                                maxLengthEnforcement:
-                                    MaxLengthEnforcement.enforced,
-                              ),
-                              if (_messageController.text.length > 900)
-                                Padding(
-                                  padding:
-                                      const EdgeInsets.only(top: 4, left: 16),
-                                  child: Text(
-                                    '${_messageController.text.length}/1000',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color:
-                                          _messageController.text.length >= 1000
-                                              ? Colors.red
-                                              : Colors.orange,
-                                      fontWeight: FontWeight.w500,
+                                if (_messageController.text.length > 900)
+                                  Padding(
+                                    padding:
+                                        const EdgeInsets.only(top: 4, left: 16),
+                                    child: Text(
+                                      '${_messageController.text.length}/1000',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: _messageController.text.length >=
+                                                1000
+                                            ? Colors.red
+                                            : Colors.orange,
+                                        fontWeight: FontWeight.w500,
+                                      ),
                                     ),
                                   ),
-                                ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        GestureDetector(
-                          onTap: _sendMessage,
-                          child: Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: AppColors.primary,
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(
-                              Icons.send,
-                              color: Colors.white,
-                              size: 20,
+                              ],
                             ),
                           ),
-                        ),
-                      ],
-                    ),
-                  ],
+                          const SizedBox(width: 8),
+                          GestureDetector(
+                            onTap: _sendMessage,
+                            child: Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: AppColors.primary,
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.send,
+                                color: Colors.white,
+                                size: 20,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
-              ),
             ],
           ),
         ),
