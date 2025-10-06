@@ -105,6 +105,7 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
       'timestamp': DateTime.now().toIso8601String(),
       'type': 'text',
       'isAi': true,
+      'isFromCurrentUser': false,
     });
 
     setState(() {});
@@ -2650,7 +2651,7 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
                       itemBuilder: (context, index) {
                         final message = _messages[index];
                         final isFromCurrentUser =
-                            message['isFromCurrentUser'] as bool;
+                            message['isFromCurrentUser'] as bool? ?? false;
 
                         return Align(
                           alignment: isFromCurrentUser
