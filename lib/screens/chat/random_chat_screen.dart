@@ -41,9 +41,9 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
   final ChatModerationService _moderationService = ChatModerationService();
   final ImagePicker _imagePicker = ImagePicker();
   final AiChatbotService _aiChatbotService = AiChatbotService();
-  late StreamSubscription<dynamic> _messageSubscription;
-  late StreamSubscription<String> _errorSubscription;
-  late StreamSubscription<SocketEvent> _eventSubscription;
+  StreamSubscription<dynamic>? _messageSubscription;
+  StreamSubscription<String>? _errorSubscription;
+  StreamSubscription<SocketEvent>? _eventSubscription;
   bool _isSessionActive = true;
   bool _hasShownEndDialog = false; // Prevent multiple dialogs
   bool _isDisposing = false; // Prevent multiple dispose calls
@@ -892,7 +892,7 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
 
   Future<void> _generateLocalAiResponse(String userMessage) async {
     // Simulate AI thinking time
-    await Future.delayed(const Duration(milliseconds: 1500));
+    await Future<void>.delayed(const Duration(milliseconds: 1500));
 
     // Generate contextual responses based on user input
     String aiResponse;
@@ -2184,11 +2184,13 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
             ),
           ],
         ),
-        body: Column(
-          children: [
-            // Partner Profile Section
-            if (_partnerInfo != null)
-              GestureDetector(
+        body: SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.max,
+            children: [
+              // Partner Profile Section
+              if (_partnerInfo != null)
+                GestureDetector(
                 onTap: _showPartnerProfileModal,
                 child: Container(
                   width: double.infinity,
@@ -2777,7 +2779,8 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
                   ],
                 ),
               ),
-          ],
+            ],
+          ),
         ),
       ),
     );
