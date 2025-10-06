@@ -4,7 +4,7 @@
 
 class EnvConfig {
   // Environment
-  static const String environment = 'production';
+  static const String environment = 'development';
 
   // ===== HISHAM PC CONFIG (COMMENTED OUT) =====
   // API Configuration
@@ -39,19 +39,21 @@ class EnvConfig {
   // Physical Device IP (for Android physical devices)
   // static const String physicalDeviceIp = '192.168.1.5';  // Updated to correct IP
 
-  // ===== RENDER BACKEND CONFIG =====
+  // ===== LOCAL DEVELOPMENT CONFIG =====
   // API Configuration
-  static const String apiBaseUrlAndroid = 'https://blabbin-backend.onrender.com';
-  static const String apiBaseUrlIos = 'https://blabbin-backend.onrender.com';
-  static const String apiBaseUrlWeb = 'https://blabbin-backend.onrender.com';
-  static const String apiBaseUrlDefault = 'https://blabbin-backend.onrender.com';
+  static const String apiBaseUrlAndroid =
+      'http://10.0.2.2:8000'; // Android emulator localhost mapping
+  static const String apiBaseUrlIos = 'http://localhost:8000';
+  static const String apiBaseUrlWeb = 'http://localhost:8000';
+  static const String apiBaseUrlDefault = 'http://localhost:8000';
   static const String apiVersion = 'v1';
 
   // WebSocket Configuration - Socket.IO uses HTTP URLs for base
-  static const String wsUrlAndroid = 'https://blabbin-backend.onrender.com';
-  static const String wsUrlIos = 'https://blabbin-backend.onrender.com';
-  static const String wsUrlWeb = 'https://blabbin-backend.onrender.com';
-  static const String wsUrlDefault = 'https://blabbin-backend.onrender.com';
+  static const String wsUrlAndroid =
+      'http://10.0.2.2:8000'; // Android emulator localhost mapping
+  static const String wsUrlIos = 'http://localhost:8000';
+  static const String wsUrlWeb = 'http://localhost:8000';
+  static const String wsUrlDefault = 'http://localhost:8000';
 
   // Physical Device IP (for Android physical devices) - Not needed for deployed backend
   // static const String physicalDeviceIp = '';

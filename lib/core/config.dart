@@ -122,7 +122,7 @@ class AppConfig {
   static bool get isStaging => environment == 'staging';
 
   // API URLs - Updated to match backend structure
-  static String get apiUrl => '$apiBaseUrl/api';
+  static String get apiUrl => '$apiBaseUrl/api/v1';
   static String get wsEndpoint => '$wsBaseUrl/socket.io';
 
   // Debug info

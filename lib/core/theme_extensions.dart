@@ -42,12 +42,20 @@ class AppThemeTokens extends ThemeExtension<AppThemeTokens> {
         primaryGradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFF8B5CF6), Color(0xFFC4B5FD)], // Vibrant purple gradient
+          colors: [
+            Color(0xFF6B46C1),
+            Color(0xFF9333EA),
+            Color(0xFFA855F7)
+          ], // Deep purple to vibrant purple
         ),
         secondaryGradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFF5B21B6), Color(0xFF8B5CF6)], // Dark to light purple
+          colors: [
+            Color(0xFF3B0764),
+            Color(0xFF581C87),
+            Color(0xFF7C3AED)
+          ], // Dark purple gradient
         ),
         radiusSmall: 12, // More rounded for modern look
         radiusMedium: 20, // Increased for better visual appeal
@@ -57,18 +65,23 @@ class AppThemeTokens extends ThemeExtension<AppThemeTokens> {
         spacingLarge: const EdgeInsets.all(24),
         softShadows: [
           BoxShadow(
-            color: const Color(0xFF8B5CF6).withOpacity(0.15), // Purple-tinted shadow
+            color: const Color(0xFF8B5CF6)
+                .withOpacity(0.15), // Purple-tinted shadow
             blurRadius: 24,
             spreadRadius: 0,
             offset: const Offset(0, 8),
           ),
         ],
-        glassTint: const Color(0xFF8B5CF6).withOpacity(0.10), // Purple glass tint
-        surfaceTint: const Color(0xFF8B5CF6).withOpacity(0.05), // Subtle purple tint
-        overlayTint: const Color(0xFF000000).withOpacity(0.50), // Darker overlay
+        glassTint:
+            const Color(0xFF8B5CF6).withOpacity(0.10), // Purple glass tint
+        surfaceTint:
+            const Color(0xFF8B5CF6).withOpacity(0.05), // Subtle purple tint
+        overlayTint:
+            const Color(0xFF000000).withOpacity(0.50), // Darker overlay
         microShadows: [
           BoxShadow(
-            color: const Color(0xFF8B5CF6).withOpacity(0.10), // Purple micro shadow
+            color: const Color(0xFF8B5CF6)
+                .withOpacity(0.10), // Purple micro shadow
             blurRadius: 12,
             spreadRadius: 0,
             offset: const Offset(0, 4),
@@ -76,7 +89,8 @@ class AppThemeTokens extends ThemeExtension<AppThemeTokens> {
         ],
         macroShadows: [
           BoxShadow(
-            color: const Color(0xFF8B5CF6).withOpacity(0.20), // Purple macro shadow
+            color: const Color(0xFF8B5CF6)
+                .withOpacity(0.20), // Purple macro shadow
             blurRadius: 40,
             spreadRadius: 0,
             offset: const Offset(0, 12),
@@ -123,8 +137,8 @@ class AppThemeTokens extends ThemeExtension<AppThemeTokens> {
   AppThemeTokens lerp(ThemeExtension<AppThemeTokens>? other, double t) {
     if (other is! AppThemeTokens) return this;
     return AppThemeTokens(
-      primaryGradient: Gradient.lerp(primaryGradient, other.primaryGradient, t)!
-          as Gradient,
+      primaryGradient:
+          Gradient.lerp(primaryGradient, other.primaryGradient, t)! as Gradient,
       secondaryGradient:
           Gradient.lerp(secondaryGradient, other.secondaryGradient, t)!
               as Gradient,
@@ -143,4 +157,3 @@ class AppThemeTokens extends ThemeExtension<AppThemeTokens> {
     );
   }
 }
-

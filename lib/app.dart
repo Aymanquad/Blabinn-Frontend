@@ -12,27 +12,27 @@ import 'providers/user_provider.dart';
 import 'services/notification_service.dart';
 import 'widgets/in_app_notification.dart';
 import 'widgets/banner_ad_widget.dart';
-import 'screens/splash_screen.dart';
-import 'screens/home_screen.dart';
-import 'screens/profile_screen.dart';
-import 'screens/profile_management_screen.dart';
-import 'screens/onboarding_screen.dart';
-import 'screens/connect_screen.dart';
-import 'screens/login_screen.dart';
-import 'screens/search_screen.dart';
-import 'screens/friend_requests_screen.dart';
-import 'screens/friends_screen.dart';
-import 'screens/user_profile_screen.dart';
-import 'screens/profile_preview_screen.dart';
-import 'screens/chat_list_screen.dart';
-import 'screens/friends_list_screen.dart';
-import 'screens/account_settings_screen.dart';
-import 'screens/likes_matches_screen.dart';
+import 'screens/auth/splash_screen.dart';
+import 'screens/home/home_screen.dart';
+import 'screens/profile/profile_screen.dart';
+import 'screens/profile/profile_management_screen.dart';
+import 'screens/auth/onboarding_screen.dart';
+import 'screens/social/connect_screen.dart';
+import 'screens/auth/login_screen.dart';
+import 'screens/social/search_screen.dart';
+import 'screens/social/friend_requests_screen.dart';
+import 'screens/social/friends_screen.dart';
+import 'screens/profile/user_profile_screen.dart';
+import 'screens/profile/profile_preview_screen.dart';
+import 'screens/chat/chat_list_screen.dart';
+import 'screens/social/friends_list_screen.dart';
+import 'screens/settings/account_settings_screen.dart';
+import 'screens/social/likes_matches_screen.dart';
 import 'services/socket_service.dart';
 import 'models/chat.dart'; // Added import for Chat model
-import 'screens/chat_screen.dart'; // Added import for ChatScreen
-import 'screens/random_chat_screen.dart'; // Added import for RandomChatScreen
-import 'screens/test_interstitial_screen.dart';
+import 'screens/chat/chat_screen.dart'; // Added import for ChatScreen
+import 'screens/chat/random_chat_screen.dart'; // Added import for RandomChatScreen
+import 'screens/utils/test_interstitial_screen.dart';
 import 'widgets/interstitial_ad_manager.dart';
 import 'services/global_matching_service.dart';
 import 'widgets/enhanced_background.dart';
@@ -149,10 +149,15 @@ class ChatApp extends StatelessWidget {
                   if (args != null) {
                     final sessionId = args['sessionId'] as String?;
                     final chatRoomId = args['chatRoomId'] as String?;
+                    final isAiChat = args['isAiChat'] as bool? ?? false;
+                    final aiUser = args['aiUser'] as Map<String, dynamic>?;
+
                     if (sessionId != null && chatRoomId != null) {
                       return RandomChatScreen(
                         sessionId: sessionId,
                         chatRoomId: chatRoomId,
+                        isAiChat: isAiChat,
+                        aiUser: aiUser,
                       );
                     }
                   }

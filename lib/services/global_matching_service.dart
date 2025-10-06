@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart' as FirebaseAuth;
 import 'socket_service.dart';
 import 'api_service.dart';
+import 'ai_chatbot_service.dart';
 import '../app.dart'; // Import for navigatorKey
 import '../widgets/match_popup.dart';
 import '../models/user.dart';
@@ -22,6 +23,11 @@ class GlobalMatchingService {
   String _genderPreference = 'any';
   Map<String, dynamic> _filters = {};
 
+  // AI Chatbot fallback state
+  bool _isAiChat = false;
+  String? _currentUserId;
+  Timer? _aiFallbackTimer;
+
   // Stream controllers for state changes
   final StreamController<bool> _matchingStateController =
       StreamController<bool>.broadcast();
@@ -35,6 +41,7 @@ class GlobalMatchingService {
   // Services
   final SocketService _socketService = SocketService();
   final ApiService _apiService = ApiService();
+  final AiChatbotService _aiChatbotService = AiChatbotService();
 
   // Stream subscriptions
   StreamSubscription<Map<String, dynamic>>? _matchSubscription;
@@ -48,6 +55,7 @@ class GlobalMatchingService {
   int get queueTime => _queueTime;
   String get genderPreference => _genderPreference;
   Map<String, dynamic> get filters => _filters;
+  bool get isAiChat => _isAiChat;
 
   // Streams
   Stream<bool> get matchingStateStream => _matchingStateController.stream;
@@ -58,6 +66,26 @@ class GlobalMatchingService {
   void initialize() {
     _setupSocketListeners();
     _initializeFilters();
+  }
+
+  Future<void> _initializeSocketConnection() async {
+    try {
+      // Get Firebase auth token
+      final currentUser = FirebaseAuth.FirebaseAuth.instance.currentUser;
+      if (currentUser == null) {
+        throw Exception('User not authenticated');
+      }
+
+      // Get ID token for socket authentication
+      final token = await currentUser.getIdToken();
+
+      // Connect to socket
+      await _socketService.connect(token ?? '');
+      print('[SOCKET] Socket connection initialized successfully');
+    } catch (e) {
+      print('[SOCKET] Failed to initialize socket connection: $e');
+      throw Exception('Failed to connect to chat server: $e');
+    }
   }
 
   void _setupSocketListeners() {
@@ -293,63 +321,72 @@ class GlobalMatchingService {
 
       // Try multiple times with delay in case session data isn't ready yet
       for (int attempt = 1; attempt <= 3; attempt++) {
-        print('🔍 [GLOBAL MATCHING DEBUG] Attempt $attempt to get session data');
-        
+        print(
+            '🔍 [GLOBAL MATCHING DEBUG] Attempt $attempt to get session data');
+
         // Try to get partner info from the session
         final responseData = await _apiService.getActiveRandomChatSession();
-        print('🔍 [GLOBAL MATCHING DEBUG] Response data (attempt $attempt): $responseData');
-        
+        print(
+            '🔍 [GLOBAL MATCHING DEBUG] Response data (attempt $attempt): $responseData');
+
         // Extract session data from response
         final sessionData = responseData['session'] as Map<String, dynamic>?;
-        print('🔍 [GLOBAL MATCHING DEBUG] Session data (attempt $attempt): $sessionData');
-      
-      if (sessionData != null && sessionData['sessionId'] == sessionId) {
-        // Get current user ID to find the partner
-        final currentUserId = FirebaseAuth.FirebaseAuth.instance.currentUser?.uid;
-        print('🔍 [GLOBAL MATCHING DEBUG] Current user ID: $currentUserId');
-        String? partnerId;
-        
-        // First try the direct partnerId field (for backward compatibility)
-        partnerId = sessionData['partnerId'] as String?;
-        print('🔍 [GLOBAL MATCHING DEBUG] Direct partnerId: $partnerId');
-        
-        // If no direct partnerId, extract from participants array
-        if (partnerId?.isEmpty != false && currentUserId != null) {
-          final participants = sessionData['participants'] as List<dynamic>?;
-          print('🔍 [GLOBAL MATCHING DEBUG] Participants: $participants');
-          if (participants != null && participants.isNotEmpty) {
-            // Find the participant that is not the current user
-            for (final participant in participants) {
-              print('🔍 [GLOBAL MATCHING DEBUG] Checking participant: $participant vs current: $currentUserId');
-              if (participant != currentUserId) {
-                partnerId = participant as String?;
-                print('🔍 [GLOBAL MATCHING DEBUG] Found partner in participants: $partnerId');
-                break;
+        print(
+            '🔍 [GLOBAL MATCHING DEBUG] Session data (attempt $attempt): $sessionData');
+
+        if (sessionData != null && sessionData['sessionId'] == sessionId) {
+          // Get current user ID to find the partner
+          final currentUserId =
+              FirebaseAuth.FirebaseAuth.instance.currentUser?.uid;
+          print('🔍 [GLOBAL MATCHING DEBUG] Current user ID: $currentUserId');
+          String? partnerId;
+
+          // First try the direct partnerId field (for backward compatibility)
+          partnerId = sessionData['partnerId'] as String?;
+          print('🔍 [GLOBAL MATCHING DEBUG] Direct partnerId: $partnerId');
+
+          // If no direct partnerId, extract from participants array
+          if (partnerId?.isEmpty != false && currentUserId != null) {
+            final participants = sessionData['participants'] as List<dynamic>?;
+            print('🔍 [GLOBAL MATCHING DEBUG] Participants: $participants');
+            if (participants != null && participants.isNotEmpty) {
+              // Find the participant that is not the current user
+              for (final participant in participants) {
+                print(
+                    '🔍 [GLOBAL MATCHING DEBUG] Checking participant: $participant vs current: $currentUserId');
+                if (participant != currentUserId) {
+                  partnerId = participant as String?;
+                  print(
+                      '🔍 [GLOBAL MATCHING DEBUG] Found partner in participants: $partnerId');
+                  break;
+                }
               }
             }
           }
-        }
-        
-        if (partnerId?.isNotEmpty == true) {
-          print('🔍 [GLOBAL MATCHING DEBUG] Fetching user profile for partner ID: $partnerId');
-          final userProfile = await _apiService.getUserProfile(partnerId!);
-          print('🔍 [GLOBAL MATCHING DEBUG] User profile: $userProfile');
-          if (userProfile?.isNotEmpty == true) {
-            return User.fromJson(userProfile);
+
+          if (partnerId?.isNotEmpty == true) {
+            print(
+                '🔍 [GLOBAL MATCHING DEBUG] Fetching user profile for partner ID: $partnerId');
+            final userProfile = await _apiService.getUserProfile(partnerId!);
+            print('🔍 [GLOBAL MATCHING DEBUG] User profile: $userProfile');
+            if (userProfile.isNotEmpty) {
+              return User.fromJson(userProfile);
+            }
+          } else {
+            print(
+                '❌ [GLOBAL MATCHING DEBUG] No partner ID found on attempt $attempt');
           }
         } else {
-          print('❌ [GLOBAL MATCHING DEBUG] No partner ID found on attempt $attempt');
+          print(
+              '❌ [GLOBAL MATCHING DEBUG] Session data null or sessionId mismatch on attempt $attempt');
         }
-      } else {
-        print('❌ [GLOBAL MATCHING DEBUG] Session data null or sessionId mismatch on attempt $attempt');
+
+        // If this attempt failed and we have more attempts, wait and try again
+        if (attempt < 3) {
+          print('⏳ [GLOBAL MATCHING DEBUG] Waiting 1 second before retry...');
+          await Future<void>.delayed(const Duration(seconds: 1));
+        }
       }
-      
-      // If this attempt failed and we have more attempts, wait and try again
-      if (attempt < 3) {
-        print('⏳ [GLOBAL MATCHING DEBUG] Waiting 1 second before retry...');
-        await Future.delayed(const Duration(seconds: 1));
-      }
-    }
 
       // Fallback: create a demo user for testing
       print('🔍 [GLOBAL MATCHING DEBUG] Creating demo user for match popup');
@@ -419,24 +456,26 @@ class GlobalMatchingService {
           try {
             // Check if this is a demo user
             if (matchedUser.id.startsWith('demo_matched_user_')) {
-              print('❌ [GLOBAL MATCHING DEBUG] Cannot send friend request to demo user');
+              print(
+                  '❌ [GLOBAL MATCHING DEBUG] Cannot send friend request to demo user');
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
-                  content: Text('Cannot send friend request to demo users. Connect with real people first!'),
+                  content: Text(
+                      'Cannot send friend request to demo users. Connect with real people first!'),
                   backgroundColor: Colors.orange,
                   duration: Duration(seconds: 3),
                 ),
               );
               return;
             }
-            
+
             await _apiService.sendFriendRequest(
               matchedUser.id,
               message:
                   'Hi! I met you in a random chat and would like to connect.',
               type: 'random_chat',
             );
-            
+
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
                 content: Text('Friend request sent successfully!'),
@@ -446,10 +485,10 @@ class GlobalMatchingService {
             );
           } catch (e) {
             print('❌ [GLOBAL MATCHING DEBUG] Error sending friend request: $e');
-            
+
             String errorMessage = 'Failed to send friend request';
             Color backgroundColor = Colors.red;
-            
+
             // Provide specific error messages
             if (e.toString().contains('Friend request already sent')) {
               errorMessage = 'Friend request already sent to this user';
@@ -463,7 +502,7 @@ class GlobalMatchingService {
             } else {
               errorMessage = 'Failed to send friend request: ${e.toString()}';
             }
-            
+
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(errorMessage),
@@ -534,7 +573,15 @@ class GlobalMatchingService {
     }
 
     try {
+      // Get current user ID
+      final currentUser = FirebaseAuth.FirebaseAuth.instance.currentUser;
+      if (currentUser == null) {
+        throw Exception('User not authenticated');
+      }
+
+      _currentUserId = currentUser.uid;
       _isMatching = true;
+      _isAiChat = false;
       _matchMessage = null;
       _queueTime = 0;
       _notifyStateChanges();
@@ -547,7 +594,28 @@ class GlobalMatchingService {
         _genderPreference = 'any';
       }
 
+      // Initialize socket connection first
+      print('[SOCKET] Initializing socket connection...');
+      await _initializeSocketConnection();
+
+      // Set matching state in backend for AI fallback tracking
+      try {
+        await _aiChatbotService.setMatchingState(
+          userId: _currentUserId!,
+          preferences: {
+            'gender': _genderPreference,
+            'interests': userInterests,
+            'filters': _filters,
+          },
+        );
+        print('[AI_CHATBOT] Matching state set successfully');
+      } catch (e) {
+        print('[AI_CHATBOT] Failed to set matching state: $e');
+        print('[AI_CHATBOT] Continuing with regular matching...');
+      }
+
       await _socketService.startRandomConnection(
+        userId: _currentUserId!,
         country: _filters['region'] as String?,
         language: _filters['language'] as String?,
         interests: userInterests,
@@ -555,6 +623,7 @@ class GlobalMatchingService {
       );
 
       _startQueueTimer();
+      _startAiFallbackTimer(); // Start AI fallback timer
     } catch (e) {
       _isMatching = false;
       _matchMessage = 'Error: ${e.toString()}';
@@ -565,7 +634,7 @@ class GlobalMatchingService {
   void _startQueueTimer() {
     if (!_isMatching) return;
 
-    Future.delayed(const Duration(seconds: 1), () {
+    Future<void>.delayed(const Duration(seconds: 1), () {
       if (_isMatching) {
         _queueTime++;
         _notifyStateChanges();
@@ -580,12 +649,22 @@ class GlobalMatchingService {
     try {
       _isMatching = false;
       _isConnected = false;
+      _isAiChat = false;
       _queueTime = 0;
+
+      // Stop timers
+      _aiFallbackTimer?.cancel();
+
+      // Clear matching state from backend
+      if (_currentUserId != null) {
+        await _aiChatbotService.clearMatchingState(userId: _currentUserId!);
+      }
+
       _notifyStateChanges();
 
-      await _socketService.stopRandomConnection();
+      await _socketService.stopRandomConnection(userId: _currentUserId);
     } catch (e) {
-      // Handle error
+      print('[AI_CHATBOT] Error stopping matching: $e');
     }
   }
 
@@ -618,10 +697,311 @@ class GlobalMatchingService {
   void dispose() {
     _matchSubscription?.cancel();
     _errorSubscription?.cancel();
+    _aiFallbackTimer?.cancel();
     _matchingStateController.close();
     _connectionStateController.close();
     _messageController.close();
     _queueTimeController.close();
     stopMatching();
+  }
+
+  // AI Chatbot Fallback Methods
+
+  void _startAiFallbackTimer() {
+    if (!_isMatching || _currentUserId == null) {
+      print(
+          '[AI_CHATBOT] Cannot start timer - isMatching: $_isMatching, userId: $_currentUserId');
+      return;
+    }
+
+    print('[AI_CHATBOT] Starting AI fallback timer (5 seconds)');
+
+    // Cancel any existing timer
+    _aiFallbackTimer?.cancel();
+
+    // Start checking for AI fallback after 5 seconds
+    _aiFallbackTimer = Timer(const Duration(seconds: 5), () {
+      print(
+          '[AI_CHATBOT] Timer callback triggered - isMatching: $_isMatching, isConnected: $_isConnected');
+      if (_isMatching && !_isConnected) {
+        print(
+            '[AI_CHATBOT] 5-second timeout reached, checking for AI fallback');
+        _checkForAiFallback();
+      } else {
+        print(
+            '[AI_CHATBOT] Timer triggered but conditions not met - skipping AI fallback');
+      }
+    });
+  }
+
+  Future<void> _checkForAiFallback() async {
+    if (!_isMatching || _isConnected || _currentUserId == null) return;
+
+    try {
+      print('[AI_CHATBOT] Checking for AI fallback...');
+
+      // Try external service first
+      try {
+        final response = await _aiChatbotService.checkAiFallback(
+          userId: _currentUserId!,
+        );
+
+        print('[AI_CHATBOT] AI fallback response: $response');
+
+        if (response['success'] == true && response['is_ai_match'] == true) {
+          print('[AI_CHATBOT] AI fallback triggered via external service!');
+          await _handleAiFallback(response);
+          return;
+        }
+      } catch (e) {
+        print('[AI_CHATBOT] External service failed: $e');
+      }
+
+      // Fallback to local AI simulation if external service fails
+      print('[AI_CHATBOT] Using local AI fallback simulation...');
+      await _handleLocalAiFallback();
+    } catch (e) {
+      print('[AI_CHATBOT] Error checking AI fallback: $e');
+      // If there's an error with AI fallback, show error message
+      _isMatching = false;
+      _matchMessage =
+          'Connection error. Please check your internet connection and try again.';
+      _notifyStateChanges();
+    }
+  }
+
+  Future<void> _handleLocalAiFallback() async {
+    try {
+      print('[AI_CHATBOT] Creating local AI fallback...');
+
+      // Create a fake AI session
+      final aiSessionId = 'ai_session_${DateTime.now().millisecondsSinceEpoch}';
+
+      // Create fake AI user profile
+      final aiUser = User(
+        id: 'ai_user_local_${DateTime.now().millisecondsSinceEpoch}',
+        username: 'AI Chat Partner',
+        email: null,
+        bio: 'Ready to chat with you! I\'m an AI assistant here to help.',
+        profileImage: null,
+        interests: ['chatting', 'helping', 'conversation'],
+        language: 'en',
+        location: null,
+        latitude: null,
+        longitude: null,
+        isOnline: true,
+        lastSeen: DateTime.now(),
+        isPremium: false,
+        adsFree: false,
+        credits: 100,
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+        isBlocked: false,
+        isFriend: false,
+        deviceId: null,
+        age: 25,
+        gender: 'Other',
+        userType: 'ai_chatbot',
+        isVerified: false,
+        verificationDate: null,
+        connectCount: 0,
+        pageSwitchCount: 0,
+        lastPageSwitchTime: null,
+        dailyAdViews: 0,
+        lastAdViewDate: null,
+        superLikesUsed: 0,
+        boostsUsed: 0,
+        friendsCount: 0,
+        whoLikedViews: 0,
+        lastWhoLikedViewDate: null,
+      );
+
+      // Stop matching
+      _isMatching = false;
+      _isConnected = true;
+      _isAiChat = true;
+      _currentSessionId = aiSessionId;
+      _matchMessage = 'AI Chat Partner found! Starting chat...';
+
+      // Stop timers
+      _aiFallbackTimer?.cancel();
+
+      // Stop socket connection
+      await _socketService.stopRandomConnection(userId: _currentUserId);
+
+      _notifyStateChanges();
+
+      // Navigate to AI chat
+      _navigateToAiChat(aiSessionId, aiUser);
+
+      print('[AI_CHATBOT] Local AI fallback completed successfully');
+    } catch (e) {
+      print('[AI_CHATBOT] Error in local AI fallback: $e');
+      _isMatching = false;
+      _matchMessage = 'Error starting AI chat. Please try again.';
+      _notifyStateChanges();
+    }
+  }
+
+  Future<void> _handleAiFallback(Map<String, dynamic> response) async {
+    try {
+      final sessionData = response['session_data'] as Map<String, dynamic>?;
+      final aiUserProfile =
+          response['ai_user_profile'] as Map<String, dynamic>?;
+
+      if (sessionData == null || aiUserProfile == null) {
+        print('[AI_CHATBOT] Invalid AI fallback response');
+        return;
+      }
+
+      // Stop matching
+      _isMatching = false;
+      _isConnected = true;
+      _isAiChat = true;
+      _currentSessionId = sessionData['session_id'] as String?;
+      _matchMessage = 'Match found! Starting chat...';
+
+      // Stop timers
+      _aiFallbackTimer?.cancel();
+
+      // Stop socket connection
+      await _socketService.stopRandomConnection(userId: _currentUserId);
+
+      _notifyStateChanges();
+
+      // Convert AI profile to User model
+      final aiUser = User.fromJson(
+          _aiChatbotService.convertAiProfileToUser(aiUserProfile));
+
+      // Navigate to AI chat
+      _navigateToAiChat(sessionData['session_id'] as String, aiUser);
+    } catch (e) {
+      print('[AI_CHATBOT] Error handling AI fallback: $e');
+      _isMatching = false;
+      _matchMessage = 'Error starting AI chat. Please try again.';
+      _notifyStateChanges();
+    }
+  }
+
+  void _navigateToAiChat(String sessionId, User aiUser) {
+    try {
+      print('[AI_CHATBOT] Navigating to AI chat with session: $sessionId');
+      print('[AI_CHATBOT] Navigator key state: ${navigatorKey.currentState}');
+
+      // Convert User object to Map for navigation
+      final aiUserMap = {
+        'id': aiUser.id,
+        'username': aiUser.username,
+        'bio': aiUser.bio,
+        'profileImage': aiUser.profileImage,
+        'interests': aiUser.interests,
+        'language': aiUser.language,
+        'isOnline': aiUser.isOnline,
+        'lastSeen': aiUser.lastSeen?.toIso8601String(),
+        'isPremium': aiUser.isPremium,
+        'age': aiUser.age,
+        'gender': aiUser.gender,
+        'userType': aiUser.userType,
+        'isVerified': aiUser.isVerified,
+      };
+
+      print('[AI_CHATBOT] AI User Map: $aiUserMap');
+
+      // Use dynamic navigation to avoid import issues
+      navigatorKey.currentState?.pushNamed(
+        '/random-chat',
+        arguments: {
+          'sessionId': sessionId,
+          'chatRoomId': sessionId, // Use session ID as chat room ID for AI
+          'isAiChat': true,
+          'aiUser': aiUserMap,
+        },
+      ).then((_) {
+        print('[AI_CHATBOT] Returned from AI chat, resetting state');
+        // When returning from AI chat, reset state
+        _isMatching = false;
+        _isConnected = false;
+        _isAiChat = false;
+        _currentSessionId = null;
+        _matchMessage = null;
+        _notifyStateChanges();
+      }).catchError((Object error) {
+        print('[AI_CHATBOT] Navigation error: $error');
+        _isMatching = false;
+        _isConnected = false;
+        _isAiChat = false;
+        _currentSessionId = null;
+        _matchMessage = 'Navigation error. Please try again.';
+        _notifyStateChanges();
+      });
+    } catch (e) {
+      print('[AI_CHATBOT] Error during AI chat navigation: $e');
+      _isMatching = false;
+      _isConnected = false;
+      _isAiChat = false;
+      _currentSessionId = null;
+      _matchMessage = 'Error starting AI chat. Please try again.';
+      _notifyStateChanges();
+    }
+  }
+
+  // Method to send message to AI chatbot
+  Future<Map<String, dynamic>?> sendAiMessage(String message) async {
+    if (!_isAiChat || _currentUserId == null) {
+      print('[AI_CHATBOT] Not in AI chat or user ID missing');
+      return null;
+    }
+
+    try {
+      print('[AI_CHATBOT] Sending message to AI: $message');
+
+      final response = await _aiChatbotService.sendAiMessage(
+        userId: _currentUserId!,
+        sessionId: _currentSessionId ?? '',
+        message: message,
+      );
+
+      if (response['success'] == true) {
+        print('[AI_CHATBOT] Message sent to AI successfully');
+        return response;
+      } else {
+        print(
+            '[AI_CHATBOT] Failed to send message to AI: ${response['error']}');
+        return null;
+      }
+    } catch (e) {
+      print('[AI_CHATBOT] Error sending message to AI: $e');
+      return null;
+    }
+  }
+
+  // Method to end AI chat
+  Future<bool> endAiChat() async {
+    if (!_isAiChat || _currentUserId == null) {
+      return false;
+    }
+
+    try {
+      print('[AI_CHATBOT] Ending AI chat');
+
+      final success = await _aiChatbotService.endAiSession(
+        userId: _currentUserId!,
+      );
+
+      if (success) {
+        print('[AI_CHATBOT] AI chat ended successfully');
+        _isAiChat = false;
+        _isConnected = false;
+        _currentSessionId = null;
+        _notifyStateChanges();
+        return true;
+      } else {
+        print('[AI_CHATBOT] Failed to end AI chat');
+        return false;
+      }
+    } catch (e) {
+      print('[AI_CHATBOT] Error ending AI chat: $e');
+      return false;
+    }
   }
 }

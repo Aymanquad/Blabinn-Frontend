@@ -14,6 +14,7 @@ class SocketConnection {
   Timer? _pingTimer;
   Timer? _reconnectTimer;
   Timer? _heartbeatTimer;
+  Completer<void>? _connectCompleter;
   int _reconnectAttempts = 0;
   final int _maxReconnectAttempts = AppConfig.wsMaxReconnectAttempts;
   final Duration _reconnectDelay = AppConfig.wsReconnectDelay;
@@ -27,15 +28,23 @@ class SocketConnection {
 
   // Initialize socket connection
   Future<void> connect(String authToken, Function(SocketEvent) onEvent) async {
-    if (_isConnected || _isConnecting) return;
+    if (_isConnected) {
+      return;
+    }
+
+    if (_isConnecting) {
+      if (_connectCompleter != null) {
+        await _connectCompleter!.future;
+      }
+      return;
+    }
 
     _isConnecting = true;
     _intentionalDisconnect = false;
-    onEvent(SocketEvent.connect);
+    _authToken = authToken;
+    _connectCompleter = Completer<void>();
 
     try {
-      _authToken = authToken;
-
       _socket = IO.io(
         AppConfig.wsBaseUrl,
         IO.OptionBuilder()
@@ -59,12 +68,17 @@ class SocketConnection {
         _startPingTimer();
         _startHeartbeat();
         onEvent(SocketEvent.connect);
+        _completeConnectSuccess();
 
         Timer(const Duration(milliseconds: 100), () {
           if (_isConnected) {
             _sendJoinEvent(onEvent);
           }
         });
+      });
+
+      _socket!.onConnectError((error) {
+        _handleError(error, onEvent);
       });
 
       _socket!.onDisconnect((reason) {
@@ -79,6 +93,10 @@ class SocketConnection {
     } catch (e) {
       _isConnecting = false;
       _handleError(e, onEvent);
+    }
+
+    if (_connectCompleter != null) {
+      await _connectCompleter!.future;
     }
   }
 
@@ -101,11 +119,21 @@ class SocketConnection {
 
   // Handle disconnect
   void _handleDisconnect(Function(SocketEvent) onEvent) {
+    final wasIntentional = _intentionalDisconnect;
+
     _isConnected = false;
     _isConnecting = false;
     onEvent(SocketEvent.disconnect);
 
-    if (!_intentionalDisconnect) {
+    if (_connectCompleter != null && !_connectCompleter!.isCompleted) {
+      if (wasIntentional) {
+        _completeConnectError(Exception('Socket connection cancelled'));
+      } else {
+        _completeConnectError(Exception('Socket disconnected unexpectedly'));
+      }
+    }
+
+    if (!wasIntentional) {
       _attemptReconnect(onEvent);
     } else {
       _intentionalDisconnect = false;
@@ -117,6 +145,7 @@ class SocketConnection {
     _isConnected = false;
     _isConnecting = false;
     onEvent(SocketEvent.error);
+    _completeConnectError(error);
     _attemptReconnect(onEvent);
   }
 
@@ -164,6 +193,25 @@ class SocketConnection {
   void _stopReconnectTimer() {
     _reconnectTimer?.cancel();
     _reconnectTimer = null;
+  }
+
+  void _completeConnectSuccess() {
+    if (_connectCompleter != null && !_connectCompleter!.isCompleted) {
+      _connectCompleter!.complete();
+    }
+    _connectCompleter = null;
+  }
+
+  void _completeConnectError([dynamic error]) {
+    if (_connectCompleter != null && !_connectCompleter!.isCompleted) {
+      if (error != null) {
+        _connectCompleter!.completeError(error);
+      } else {
+        _connectCompleter!
+            .completeError(Exception('Failed to connect to socket server'));
+      }
+    }
+    _connectCompleter = null;
   }
 
   // Start heartbeat

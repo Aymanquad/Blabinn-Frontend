@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../screens/credit_shop_screen.dart';
+import '../screens/commerce/credit_shop_screen.dart';
 
 /// Premium Popup Widget
 /// Shows a gold-themed popup when non-premium users try to access premium features

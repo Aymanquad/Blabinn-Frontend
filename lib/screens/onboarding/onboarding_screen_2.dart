@@ -15,8 +15,30 @@ class OnboardingScreen2 extends StatefulWidget {
   State<OnboardingScreen2> createState() => _OnboardingScreen2State();
 }
 
-class _OnboardingScreen2State extends State<OnboardingScreen2> {
+class _OnboardingScreen2State extends State<OnboardingScreen2>
+    with TickerProviderStateMixin {
   String? selectedUserType;
+  late AnimationController _animationController;
+  late Animation<double> _fadeAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _animationController = AnimationController(
+      duration: const Duration(milliseconds: 800),
+      vsync: this,
+    );
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeOut),
+    );
+    _animationController.forward();
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -26,135 +48,281 @@ class _OnboardingScreen2State extends State<OnboardingScreen2> {
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
-          gradient: tokens.backgroundGradient,
+          gradient: tokens.primaryGradient,
         ),
         child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(24.0),
-            child: Column(
-              children: [
-                const SizedBox(height: 32),
-                
-                // Header
-                Text(
-                  'Choose Your Experience',
-                  style: theme.textTheme.headlineMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                
-                const SizedBox(height: 16),
-                
-                Text(
-                  'Select how you\'d like to use Chatify',
-                  style: theme.textTheme.bodyLarge?.copyWith(
-                    color: Colors.white.withOpacity(0.8),
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                
-                const SizedBox(height: 48),
-                
-                // User Type Options
-                Expanded(
-                  child: Column(
+          child: FadeTransition(
+            opacity: _fadeAnimation,
+            child: Padding(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
+              child: Column(
+                children: [
+                  const SizedBox(height: 20),
+
+                  // Header with emoji and modern styling
+                  Column(
                     children: [
-                      _buildUserTypeOption(
-                        context,
-                        userType: 'guest',
-                        title: 'Anonymous',
-                        subtitle: 'Quick start, no signup required',
-                        icon: Icons.person_outline,
-                        color: const Color(0xFF6B7280),
-                        features: [
-                          'Match with other guests only',
-                          'Basic chat features',
-                          'No account required',
-                        ],
+                      // Animated emoji
+                      TweenAnimationBuilder(
+                        duration: const Duration(seconds: 1),
+                        tween: Tween<double>(begin: 0.0, end: 1.0),
+                        builder: (context, double value, child) {
+                          return Transform.scale(
+                            scale: 0.8 + (0.2 * value),
+                            child: const Text(
+                              '🎯',
+                              style: TextStyle(fontSize: 60),
+                            ),
+                          );
+                        },
                       ),
-                      
+
                       const SizedBox(height: 24),
-                      
-                      _buildUserTypeOption(
-                        context,
-                        userType: 'signed_up_free',
-                        title: 'Free Account',
-                        subtitle: 'Sign up for more features',
-                        icon: Icons.star_outline,
-                        color: const Color(0xFF3B82F6),
-                        features: [
-                          'Match with free and premium users',
-                          'Add friends and send images',
-                          'Profile verification available',
-                        ],
+
+                      Text(
+                        'Choose Your Vibe',
+                        style: theme.textTheme.headlineLarge?.copyWith(
+                          fontWeight: FontWeight.w900,
+                          color: Colors.white,
+                          letterSpacing: -0.5,
+                        ),
+                        textAlign: TextAlign.center,
                       ),
-                      
-                      const SizedBox(height: 24),
-                      
-                      _buildUserTypeOption(
-                        context,
-                        userType: 'premium',
-                        title: 'Premium',
-                        subtitle: 'Unlock all features',
-                        icon: Icons.workspace_premium,
-                        color: const Color(0xFFF59E0B),
-                        features: [
-                          'Match with everyone',
-                          'Ad-free experience',
-                          'Unlimited friends and features',
-                          'Instant matches and boosts',
-                        ],
+
+                      const SizedBox(height: 12),
+
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          'Select how you\'d like to experience Blabinn ✨',
+                          style: theme.textTheme.bodyLarge?.copyWith(
+                            color: Colors.white.withOpacity(0.9),
+                            fontWeight: FontWeight.w500,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
                       ),
                     ],
                   ),
-                ),
-                
-                const SizedBox(height: 32),
-                
-                // Continue Button
-                SizedBox(
-                  width: double.infinity,
-                  height: 56,
-                  child: ElevatedButton(
-                    onPressed: selectedUserType != null
-                        ? () => widget.onUserTypeSelected(selectedUserType!)
-                        : null,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: selectedUserType != null
-                          ? tokens.primaryColor
-                          : Colors.grey.withOpacity(0.3),
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(tokens.radiusL),
-                      ),
-                      elevation: 0,
-                    ),
-                    child: Text(
-                      'Continue',
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
+
+                  const SizedBox(height: 40),
+
+                  // Enhanced user type cards with staggered animations
+                  Expanded(
+                    child: SingleChildScrollView(
+                      child: Column(
+                        children: [
+                          TweenAnimationBuilder(
+                            duration: const Duration(milliseconds: 800),
+                            tween: Tween<double>(begin: 0.0, end: 1.0),
+                            builder: (context, double cardValue, child) {
+                              return Transform.translate(
+                                offset: Offset(-50 * (1 - cardValue), 0),
+                                child: Opacity(
+                                  opacity: cardValue,
+                                  child: _buildUserTypeOption(
+                                    context,
+                                    userType: 'guest',
+                                    title: 'Anonymous Explorer',
+                                    subtitle:
+                                        'Quick start, no strings attached',
+                                    emoji: '🕶️',
+                                    gradientColors: [
+                                      const Color(0xFF64748B),
+                                      const Color(0xFF94A3B8)
+                                    ],
+                                    features: [
+                                      'Match with other explorers',
+                                      'Basic chat features',
+                                      'No signup needed',
+                                    ],
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                          const SizedBox(height: 20),
+                          TweenAnimationBuilder(
+                            duration: const Duration(milliseconds: 1000),
+                            tween: Tween<double>(begin: 0.0, end: 1.0),
+                            builder: (context, double cardValue, child) {
+                              return Transform.translate(
+                                offset: Offset(50 * (1 - cardValue), 0),
+                                child: Opacity(
+                                  opacity: cardValue,
+                                  child: _buildUserTypeOption(
+                                    context,
+                                    userType: 'signed_up_free',
+                                    title: 'Community Member',
+                                    subtitle: 'Join the vibrant community',
+                                    emoji: '🌟',
+                                    gradientColors: [
+                                      const Color(0xFF3B82F6),
+                                      const Color(0xFF60A5FA)
+                                    ],
+                                    features: [
+                                      'Match with free & premium users',
+                                      'Build lasting connections',
+                                      'Profile verification available',
+                                    ],
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                          const SizedBox(height: 20),
+                          TweenAnimationBuilder(
+                            duration: const Duration(milliseconds: 1200),
+                            tween: Tween<double>(begin: 0.0, end: 1.0),
+                            builder: (context, double cardValue, child) {
+                              return Transform.translate(
+                                offset: Offset(-50 * (1 - cardValue), 0),
+                                child: Opacity(
+                                  opacity: cardValue,
+                                  child: _buildUserTypeOption(
+                                    context,
+                                    userType: 'premium',
+                                    title: 'VIP Experience',
+                                    subtitle: 'Unlock the full potential',
+                                    emoji: '👑',
+                                    gradientColors: [
+                                      const Color(0xFFEAB308),
+                                      const Color(0xFFF59E0B)
+                                    ],
+                                    features: [
+                                      'Priority matching with everyone',
+                                      'Ad-free premium experience',
+                                      'Unlimited features & boosts',
+                                      'Exclusive premium perks',
+                                    ],
+                                    isRecommended: true,
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ],
                       ),
                     ),
                   ),
-                ),
-                
-                const SizedBox(height: 16),
-                
-                // Back Button
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: Text(
-                    'Back',
-                    style: theme.textTheme.bodyLarge?.copyWith(
-                      color: Colors.white.withOpacity(0.7),
+
+                  const SizedBox(height: 32),
+
+                  // Modern Continue Button
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 300),
+                    height: 60,
+                    margin: const EdgeInsets.only(bottom: 16),
+                    decoration: BoxDecoration(
+                      gradient: selectedUserType != null
+                          ? const LinearGradient(
+                              colors: [Color(0xFF84CC16), Color(0xFF65A30D)],
+                            )
+                          : LinearGradient(
+                              colors: [
+                                Colors.grey.withOpacity(0.3),
+                                Colors.grey.withOpacity(0.2),
+                              ],
+                            ),
+                      borderRadius: BorderRadius.circular(30),
+                      boxShadow: selectedUserType != null
+                          ? [
+                              BoxShadow(
+                                color: const Color(0xFF84CC16).withOpacity(0.4),
+                                blurRadius: 20,
+                                offset: const Offset(0, 8),
+                              ),
+                            ]
+                          : [],
+                    ),
+                    child: Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap: selectedUserType != null
+                            ? () => widget.onUserTypeSelected(selectedUserType!)
+                            : null,
+                        borderRadius: BorderRadius.circular(30),
+                        child: Container(
+                          alignment: Alignment.center,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                selectedUserType != null
+                                    ? 'Continue'
+                                    : 'Select an Option',
+                                style: theme.textTheme.titleLarge?.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                  color: selectedUserType != null
+                                      ? Colors.white
+                                      : Colors.white.withOpacity(0.5),
+                                  fontSize: 18,
+                                ),
+                              ),
+                              if (selectedUserType != null) ...[
+                                const SizedBox(width: 12),
+                                const Icon(
+                                  Icons.arrow_forward_rounded,
+                                  color: Colors.white,
+                                  size: 24,
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                      ),
                     ),
                   ),
-                ),
-                
-                const SizedBox(height: 32),
-              ],
+
+                  // Modern Back Button
+                  Container(
+                    height: 50,
+                    decoration: BoxDecoration(
+                      border: Border.all(
+                        color: Colors.white.withOpacity(0.3),
+                        width: 1.5,
+                      ),
+                      borderRadius: BorderRadius.circular(25),
+                    ),
+                    child: Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap: () => Navigator.of(context).pop(),
+                        borderRadius: BorderRadius.circular(25),
+                        child: Container(
+                          alignment: Alignment.center,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(
+                                Icons.arrow_back_rounded,
+                                color: Colors.white,
+                                size: 20,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Back',
+                                style: theme.textTheme.titleMedium?.copyWith(
+                                  color: Colors.white.withOpacity(0.8),
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 20),
+                ],
+              ),
             ),
           ),
         ),
@@ -167,9 +335,10 @@ class _OnboardingScreen2State extends State<OnboardingScreen2> {
     required String userType,
     required String title,
     required String subtitle,
-    required IconData icon,
-    required Color color,
+    required String emoji,
+    required List<Color> gradientColors,
     required List<String> features,
+    bool isRecommended = false,
   }) {
     final theme = Theme.of(context);
     final isSelected = selectedUserType == userType;
@@ -181,93 +350,157 @@ class _OnboardingScreen2State extends State<OnboardingScreen2> {
         });
       },
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.all(20),
+        duration: const Duration(milliseconds: 300),
+        padding: const EdgeInsets.all(24),
         decoration: BoxDecoration(
-          color: isSelected
-              ? color.withOpacity(0.2)
-              : Colors.white.withOpacity(0.05),
-          borderRadius: BorderRadius.circular(16),
+          gradient: isSelected
+              ? LinearGradient(colors: gradientColors)
+              : LinearGradient(
+                  colors: [
+                    Colors.white.withOpacity(0.1),
+                    Colors.white.withOpacity(0.05),
+                  ],
+                ),
+          borderRadius: BorderRadius.circular(24),
           border: Border.all(
-            color: isSelected ? color : Colors.white.withOpacity(0.2),
+            color: isSelected
+                ? Colors.white.withOpacity(0.5)
+                : Colors.white.withOpacity(0.2),
             width: isSelected ? 2 : 1,
           ),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: gradientColors.first.withOpacity(0.3),
+                    blurRadius: 20,
+                    offset: const Offset(0, 8),
+                  ),
+                ]
+              : [],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Header row with emoji and title
             Row(
               children: [
+                // Emoji in a circular container
                 Container(
-                  width: 48,
-                  height: 48,
+                  width: 60,
+                  height: 60,
                   decoration: BoxDecoration(
-                    color: color.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(12),
+                    color: Colors.white.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(20),
                   ),
-                  child: Icon(
-                    icon,
-                    color: color,
-                    size: 24,
+                  child: Center(
+                    child: Text(
+                      emoji,
+                      style: const TextStyle(fontSize: 28),
+                    ),
                   ),
                 ),
-                
+
                 const SizedBox(width: 16),
-                
+
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        title,
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white,
-                        ),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              title,
+                              style: theme.textTheme.titleLarge?.copyWith(
+                                fontWeight: FontWeight.w700,
+                                color: Colors.white,
+                                fontSize: 20,
+                              ),
+                            ),
+                          ),
+                          if (isRecommended)
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF84CC16),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                'POPULAR',
+                                style: theme.textTheme.labelSmall?.copyWith(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 10,
+                                ),
+                              ),
+                            ),
+                        ],
                       ),
+                      const SizedBox(height: 4),
                       Text(
                         subtitle,
                         style: theme.textTheme.bodyMedium?.copyWith(
-                          color: Colors.white.withOpacity(0.7),
+                          color: Colors.white.withOpacity(0.8),
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
                     ],
                   ),
                 ),
-                
+
                 if (isSelected)
-                  Icon(
-                    Icons.check_circle,
-                    color: color,
-                    size: 24,
+                  Container(
+                    width: 28,
+                    height: 28,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: Icon(
+                      Icons.check_rounded,
+                      color: gradientColors.first,
+                      size: 20,
+                    ),
                   ),
               ],
             ),
-            
-            const SizedBox(height: 16),
-            
-            // Features
+
+            const SizedBox(height: 20),
+
+            // Features with cool icons
             ...features.map((feature) => Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.check,
-                    color: color,
-                    size: 16,
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      feature,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: Colors.white.withOpacity(0.8),
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 24,
+                        height: 24,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(
+                          Icons.star_rounded,
+                          color: Colors.white,
+                          size: 16,
+                        ),
                       ),
-                    ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          feature,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: Colors.white.withOpacity(0.9),
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
-            )),
+                )),
           ],
         ),
       ),

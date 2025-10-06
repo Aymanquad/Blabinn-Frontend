@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/user.dart';
 import '../widgets/premium_popup.dart';
 import '../providers/user_provider.dart';
-import '../screens/credit_shop_screen.dart';
+import '../screens/commerce/credit_shop_screen.dart';
 import '../services/api_service.dart';
 import 'package:provider/provider.dart';
 
@@ -18,7 +18,7 @@ class PremiumService {
   }) async {
     final userProvider = Provider.of<UserProvider>(context, listen: false);
     final user = userProvider.currentUser;
-    
+
     if (user == null) {
       // User not logged in, show premium popup anyway
       await PremiumPopup.show(
@@ -29,11 +29,11 @@ class PremiumService {
       );
       return false;
     }
-    
+
     if (user.isPremium) {
       return true;
     }
-    
+
     // User is not premium, show popup
     await PremiumPopup.show(
       context: context,
@@ -41,7 +41,7 @@ class PremiumService {
       description: description,
       onBuyPremium: onBuyPremium ?? () => navigateToPremiumPurchase(context),
     );
-    
+
     return false;
   }
 
@@ -67,7 +67,7 @@ class PremiumService {
   }) async {
     final userProvider = Provider.of<UserProvider>(context, listen: false);
     final user = userProvider.currentUser;
-    
+
     if (user == null) {
       // User not logged in, show premium popup anyway
       await PremiumPopup.show(
@@ -78,26 +78,27 @@ class PremiumService {
       );
       return false;
     }
-    
+
     // Check if user has premium (premium users get all features for free)
     if (user.isPremium) {
       return true;
     }
-    
+
     // Check if user has enough credits
     if (user.credits >= requiredCredits) {
       // User has enough credits, spend them
       return await spendCredits(context, requiredCredits, feature);
     }
-    
+
     // User doesn't have enough credits, show popup
     await PremiumPopup.show(
       context: context,
       feature: feature,
-      description: '$description\n\nCost: $requiredCredits credits\nYou have: ${user.credits} credits',
+      description:
+          '$description\n\nCost: $requiredCredits credits\nYou have: ${user.credits} credits',
       onBuyPremium: onBuyCredits ?? () => navigateToPremiumPurchase(context),
     );
-    
+
     return false;
   }
 
@@ -116,7 +117,8 @@ class PremiumService {
     return checkCreditsOrShowPopup(
       context: context,
       feature: 'Send Images in Chat',
-      description: 'Share photos and images with your friends in conversations.',
+      description:
+          'Share photos and images with your friends in conversations.',
       requiredCredits: 10,
     );
   }
@@ -126,11 +128,11 @@ class PremiumService {
     return checkCreditsOrShowPopup(
       context: context,
       feature: 'Gender Preferences',
-      description: 'Choose your preferred gender for random connections and find the right matches.',
+      description:
+          'Choose your preferred gender for random connections and find the right matches.',
       requiredCredits: 20,
     );
   }
-
 
   /// Get premium features list
   static List<String> getPremiumFeatures() {
@@ -147,38 +149,42 @@ class PremiumService {
   }
 
   /// Spend credits for a specific feature
-  static Future<bool> spendCredits(BuildContext context, int amount, String feature) async {
+  static Future<bool> spendCredits(
+      BuildContext context, int amount, String feature) async {
     final userProvider = Provider.of<UserProvider>(context, listen: false);
     final user = userProvider.currentUser;
-    
+
     if (user == null) return false;
-    
+
     // Premium users don't spend credits
     if (user.isPremium) return true;
-    
+
     // Check if user has enough credits
     if (user.credits < amount) {
       await PremiumPopup.show(
         context: context,
         feature: feature,
-        description: 'You need $amount credits but have ${user.credits} credits.\n\nBuy more credits to continue!',
+        description:
+            'You need $amount credits but have ${user.credits} credits.\n\nBuy more credits to continue!',
         onBuyPremium: () => navigateToPremiumPurchase(context),
       );
       return false;
     }
-    
+
     // Show confirmation dialog
-    final shouldProceed = await _showCreditConfirmationDialog(context, amount, feature);
+    final shouldProceed =
+        await _showCreditConfirmationDialog(context, amount, feature);
     if (!shouldProceed) return false;
-    
+
     // Call backend to deduct credits
     try {
       final result = await _deductCreditsFromBackend(amount, feature);
       if (result != null) {
         // Update local state from server truth if available
-        final remaining = (result['remaining'] as int?) ?? (user.credits - amount);
+        final remaining =
+            (result['remaining'] as int?) ?? (user.credits - amount);
         userProvider.updateCurrentUser(user.copyWith(credits: remaining));
-        
+
         // Show success message
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -187,7 +193,7 @@ class PremiumService {
             duration: const Duration(seconds: 2),
           ),
         );
-        
+
         return true;
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -210,32 +216,36 @@ class PremiumService {
   }
 
   /// Show confirmation dialog for credit spending
-  static Future<bool> _showCreditConfirmationDialog(BuildContext context, int amount, String feature) async {
+  static Future<bool> _showCreditConfirmationDialog(
+      BuildContext context, int amount, String feature) async {
     return await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Use Credits'),
-        content: Text('This will use $amount credits for $feature. Continue?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Use Credits'),
+            content:
+                Text('This will use $amount credits for $feature. Continue?'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green,
+                  foregroundColor: Colors.white,
+                ),
+                child: const Text('Use Credits'),
+              ),
+            ],
           ),
-          ElevatedButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.green,
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('Use Credits'),
-          ),
-        ],
-      ),
-    ) ?? false;
+        ) ??
+        false;
   }
 
   /// Deduct credits from backend
-  static Future<Map<String, dynamic>?> _deductCreditsFromBackend(int amount, String feature) async {
+  static Future<Map<String, dynamic>?> _deductCreditsFromBackend(
+      int amount, String feature) async {
     try {
       final api = ApiService();
       final result = await api.spendCredits(amount: amount, feature: feature);
@@ -273,7 +283,6 @@ mixin PremiumCheckMixin<T extends StatefulWidget> on State<T> {
   Future<bool> checkGenderPreferences() {
     return PremiumService.checkGenderPreferences(context);
   }
-
 
   /// Check if user has premium
   bool get hasActivePremium =>

@@ -5,7 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import '../models/message.dart';
 import '../models/user.dart';
-import '../screens/media_folder_screen.dart';
+import '../screens/media/media_folder_screen.dart';
 import 'api_service.dart';
 import 'dart:convert';
 

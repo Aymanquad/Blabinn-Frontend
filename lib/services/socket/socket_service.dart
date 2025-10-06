@@ -149,18 +149,32 @@ class SocketService {
       throw Exception('WebSocket not connected');
     }
 
+    final currentUserId =
+        FirebaseAuth.FirebaseAuth.instance.currentUser?.uid;
+
+    if (currentUserId == null || currentUserId.isEmpty) {
+      throw Exception('Unable to send message: missing user identity');
+    }
+
+    final messageType = type.toString().split('.').last;
+
     final message = {
-      'event': 'message',
+      'event': 'send_message',
       'data': {
         'chatId': chatId,
+        'chatRoomId': chatId,
+        'message': content,
         'content': content,
-        'type': type.toString().split('.').last,
+        'userId': currentUserId,
+        'type': messageType,
+        'messageType': messageType,
         'timestamp': DateTime.now().toIso8601String(),
       },
     };
 
     _connection.sendToSocket(message);
   }
+
 
   // Send message to friend (for friend chat)
   Future<void> sendFriendMessage(String receiverId, String content,
@@ -235,15 +249,27 @@ class SocketService {
       return;
     }
 
+    final currentUserId =
+        FirebaseAuth.FirebaseAuth.instance.currentUser?.uid;
+
+    if (currentUserId == null || currentUserId.isEmpty) {
+      print('[SOCKET DEBUG] Cannot join chat - missing user ID');
+      return;
+    }
+
     final message = {
       'event': 'join_chat',
       'data': {
+        'chatRoomId': chatId,
         'chatId': chatId,
+        'userId': currentUserId,
       },
     };
 
     _connection.sendToSocket(message);
   }
+
+
 
   // Leave chat room
   Future<void> leaveChat(String chatId) async {
@@ -253,24 +279,37 @@ class SocketService {
           _connection.isConnected && _connection.socket?.connected == true;
 
       if (!isActuallyConnected) {
-        print('⚠️ [SOCKET DEBUG] Cannot leave chat - socket not connected');
+        print('[SOCKET DEBUG] Cannot leave chat - socket not connected');
+        return;
+      }
+
+      final currentUserId =
+          FirebaseAuth.FirebaseAuth.instance.currentUser?.uid;
+
+      if (currentUserId == null || currentUserId.isEmpty) {
+        print('[SOCKET DEBUG] Cannot leave chat - missing user ID');
         return;
       }
 
       final message = {
         'event': 'leave_chat',
         'data': {
+          'chatRoomId': chatId,
           'chatId': chatId,
+          'userId': currentUserId,
         },
       };
 
       _connection.sendToSocket(message);
-      print('✅ [SOCKET DEBUG] Leave chat message sent for: $chatId');
+      print('[SOCKET DEBUG] Leave chat message sent for: $chatId');
     } catch (e) {
-      print('❌ [SOCKET DEBUG] Error leaving chat: $e');
+      print('[SOCKET DEBUG] Error leaving chat: $e');
       throw Exception('Failed to leave chat: $e');
     }
   }
+
+
+
 
   // Start random connection
   Future<void> startRandomConnection({
@@ -278,6 +317,7 @@ class SocketService {
     String? language,
     List<String>? interests,
     String? genderPreference,
+    String? userId,
   }) async {
     // Check both _isConnected flag AND actual socket state
     final isActuallyConnected =
@@ -292,9 +332,18 @@ class SocketService {
       }
     }
 
+    final effectiveUserId =
+        userId ?? FirebaseAuth.FirebaseAuth.instance.currentUser?.uid;
+
+    if (effectiveUserId == null || effectiveUserId.isEmpty) {
+      print('[SOCKET DEBUG] Cannot start random connection - missing user ID');
+      return;
+    }
+
     final message = {
       'event': 'start_random_connection',
       'data': {
+        'userId': effectiveUserId,
         if (country != null) 'country': country,
         if (language != null) 'language': language,
         if (interests != null) 'interests': interests,
@@ -305,31 +354,42 @@ class SocketService {
     _connection.sendToSocket(message);
   }
 
-  // Stop random connection
-  Future<void> stopRandomConnection() async {
+  Future<void> stopRandomConnection({String? userId}) async {
     try {
       // Check both connection flag and actual socket state
       final isActuallyConnected =
           _connection.isConnected && _connection.socket?.connected == true;
 
       if (!isActuallyConnected) {
-        print(
-            '⚠️ [SOCKET DEBUG] Cannot stop random connection - socket not connected');
+        print('[SOCKET DEBUG] Cannot stop random connection - socket not connected');
+        return;
+      }
+
+      final effectiveUserId =
+          userId ?? FirebaseAuth.FirebaseAuth.instance.currentUser?.uid;
+
+      if (effectiveUserId == null || effectiveUserId.isEmpty) {
+        print('[SOCKET DEBUG] Cannot stop random connection - missing user ID');
         return;
       }
 
       final message = {
         'event': 'stop_random_connection',
-        'data': {},
+        'data': {
+          'userId': effectiveUserId,
+        },
       };
 
       _connection.sendToSocket(message);
-      print('✅ [SOCKET DEBUG] Stop random connection message sent');
+      print('[SOCKET DEBUG] Stop random connection message sent');
     } catch (e) {
-      print('❌ [SOCKET DEBUG] Error stopping random connection: $e');
+      print('[SOCKET DEBUG] Error stopping random connection: $e');
       throw Exception('Failed to stop random connection: $e');
     }
   }
+
+
+
 
   // Send call request
   Future<void> sendCallRequest(String chatId, String callType) async {
@@ -389,32 +449,40 @@ class SocketService {
   }
 
   // End random chat session
-  Future<void> endRandomChatSession(String sessionId, String reason) async {
+  Future<void> endRandomChatSession(String sessionId, String reason,
+      {String? userId}) async {
     try {
       // Check both connection flag and actual socket state
       final isActuallyConnected =
           _connection.isConnected && _connection.socket?.connected == true;
 
       if (!isActuallyConnected) {
-        print(
-            '⚠️ [SOCKET DEBUG] Cannot end random chat session - socket not connected');
-        throw Exception('Socket not connected');
+        print('[SOCKET DEBUG] Cannot end random chat session - socket not connected');
+        return;
       }
 
+      final effectiveUserId =
+          userId ?? FirebaseAuth.FirebaseAuth.instance.currentUser?.uid;
+
       final message = {
-        'sessionId': sessionId,
-        'reason': reason,
+        'event': 'end_random_chat_session',
+        'data': {
+          'sessionId': sessionId,
+          'reason': reason,
+          if (effectiveUserId != null && effectiveUserId.isNotEmpty)
+            'userId': effectiveUserId,
+        },
       };
 
-      // Use the Socket.IO emit method directly
-      _connection.socket!.emit('end_random_chat_session', message);
-      print(
-          '✅ [SOCKET DEBUG] End random chat session message sent for: $sessionId');
+      _connection.sendToSocket(message);
+      print('[SOCKET DEBUG] End random chat session message sent');
     } catch (e) {
-      print('❌ [SOCKET DEBUG] Error ending random chat session: $e');
+      print('[SOCKET DEBUG] Error ending random chat session: $e');
       throw Exception('Failed to end random chat session: $e');
     }
   }
+
+
 
   // Dispose resources
   void dispose() {
