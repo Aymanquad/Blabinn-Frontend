@@ -870,20 +870,24 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
     } catch (e) {
       print('🤖 [AI CHAT] Error sending message to AI: $e');
 
-      // Remove the optimistic message on error
-      setState(() {
-        _messages
-            .removeWhere((msg) => msg['id'].toString().startsWith('temp_'));
-      });
-
+      // Don't remove user's message - just use local AI response as fallback
+      // The user's message should stay visible in the chat
+      
       // Try local AI responses as fallback
       try {
         await _generateLocalAiResponse(content);
       } catch (localError) {
         print('🤖 [AI_CHAT] Local AI response also failed: $localError');
+        
+        // Only remove temp message if local AI also fails
+        setState(() {
+          _messages
+              .removeWhere((msg) => msg['id'].toString().startsWith('temp_'));
+        });
+        
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to send message to AI: ${e.toString()}'),
+            content: Text('Failed to send message: ${e.toString()}'),
             backgroundColor: Colors.red,
           ),
         );
