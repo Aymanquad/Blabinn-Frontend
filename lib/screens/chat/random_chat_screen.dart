@@ -914,17 +914,31 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
     String response;
     final message = userMessage.toLowerCase();
 
-    if (message.contains('hello') ||
-        message.contains('hi') ||
+    // Intelligent pattern matching
+    if (message.contains('personality') || message.contains('type')) {
+      response = "I'm pretty chill and easy going. You?";
+    } else if (message.contains('think about') || message.contains('opinion')) {
+      if (message.contains('car')) {
+        response = "Cars are cool! Do you have one?";
+      } else if (message.contains('music')) {
+        response = "Love music! What kind?";
+      } else {
+        response = "Hmm interesting. What do you think?";
+      }
+    } else if (message.contains('where') && (message.contains('from') || message.contains('live'))) {
+      response = "I'm from around here. You?";
+    } else if (message.contains('what do you') || message.contains('do you like')) {
+      response = "I like a lot of things. What about you?";
+    } else if (message.contains('hello') ||
+        message.contains('hii') ||
         message.contains('hey')) {
       response = "Hey! How's it going?";
-    } else if (message.contains('how are you') ||
-        message.contains('how do you do')) {
+    } else if (message.contains('how are you')) {
       response = "I'm good, thanks! You?";
-    } else if (message.contains('what') && message.contains('your name')) {
+    } else if (message.contains('what') && message.contains('name')) {
       response = "I'm $name. What's yours?";
     } else if (message.contains('weather')) {
-      response = "Weather's nice today! What's it like where you are?";
+      response = "Weather's nice today!";
     } else if (message.contains('hobby') || message.contains('interest')) {
       response = "I'm into a lot of things. What about you?";
     } else if (message.contains('music')) {
@@ -934,20 +948,30 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
     } else if (message.contains('travel')) {
       response = "Would love to travel more. Where have you been?";
     } else if (message.contains('thank') || message.contains('thanks')) {
-      response = "Np! 😊";
+      response = "Np!";
     } else if (message.contains('bye') || message.contains('goodbye')) {
       response = "See you! It was fun chatting 👋";
+    } else if (message.contains('?')) {
+      // If it's a question we don't recognize
+      final questionResponses = [
+        "Hmm good question. What do you think?",
+        "Not sure. What about you?",
+        "Interesting question. You tell me",
+        "What do you mean?",
+      ];
+      response = questionResponses[
+          DateTime.now().millisecond % questionResponses.length];
     } else {
-      // Natural, casual responses
+      // Natural, casual responses for statements
       final responses = [
-        "That's cool! Tell me more",
-        "Oh nice! What else?",
-        "Interesting! ",
-        "That's pretty cool",
-        "Oh really? That sounds fun",
+        "That's cool",
+        "Oh nice!",
+        "Interesting",
+        "Oh really?",
         "Haha nice",
-        "That's awesome!",
-        "Cool! What do you think about it?",
+        "That's awesome",
+        "Cool",
+        "Right",
       ];
       response =
           responses[DateTime.now().millisecondsSinceEpoch % responses.length];
