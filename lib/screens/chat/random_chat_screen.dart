@@ -97,14 +97,23 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
       print('🤖 [AI CHAT] AI user info loaded: ${_partnerInfo?['username']}');
     }
 
-    // Add welcome message for AI chat
+    // Add natural welcome message
+    final welcomes = [
+      'Hey! 👋',
+      'Hi there!',
+      'Hey what\'s up?',
+      'Hii',
+      'Hello!',
+    ];
+    final randomWelcome =
+        welcomes[DateTime.now().millisecond % welcomes.length];
+
     _messages.add({
-      'id': 'ai_welcome_${DateTime.now().millisecondsSinceEpoch}',
-      'senderId': _partnerInfo?['id'] ?? 'ai_user',
-      'content': 'Hi! I\'m ready to chat with you! 😊',
+      'id': 'welcome_${DateTime.now().millisecondsSinceEpoch}',
+      'senderId': _partnerInfo?['id'] ?? 'partner_user',
+      'content': randomWelcome,
       'timestamp': DateTime.now().toIso8601String(),
       'type': 'text',
-      'isAi': true,
       'isFromCurrentUser': false,
     });
 
@@ -845,25 +854,24 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
       print('🤖 [AI CHAT DEBUG] AI Response: $response');
 
       if (response['success'] == true) {
-        // Add AI response to messages
-        final aiMessageId = 'ai_${DateTime.now().millisecondsSinceEpoch}';
+        // Add response to messages
+        final messageId = 'msg_${DateTime.now().millisecondsSinceEpoch}';
         setState(() {
           _messages.add({
-            'id': aiMessageId,
+            'id': messageId,
             'content':
                 response['response'], // Fixed: use 'response' not 'message'
-            'senderId': _partnerInfo?['id'] ?? 'ai_user',
+            'senderId': _partnerInfo?['id'] ?? 'partner_user',
             'timestamp': DateTime.now(),
             'isFromCurrentUser': false,
             'type': 'text',
-            'isAi': true,
           });
         });
 
         _scrollToBottom();
-        print('🤖 [AI CHAT] AI response added to chat');
+        print('💬 [CHAT] Response added to chat');
       } else {
-        print('🤖 [AI_CHAT] External service failed, using local responses');
+        print('💬 [CHAT] External service failed, using local responses');
         await _generateLocalAiResponse(content);
         return;
       }
@@ -896,77 +904,70 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
   }
 
   Future<void> _generateLocalAiResponse(String userMessage) async {
-    // Simulate AI thinking time
+    // Simulate typing time
     await Future<void>.delayed(const Duration(milliseconds: 1500));
 
-    // Generate contextual responses based on user input
-    String aiResponse;
+    // Get partner name from profile
+    final name = _partnerInfo?['displayName'] ?? _partnerInfo?['username'] ?? 'User';
+
+    // Generate natural human-like responses
+    String response;
     final message = userMessage.toLowerCase();
 
     if (message.contains('hello') ||
         message.contains('hi') ||
         message.contains('hey')) {
-      aiResponse = "Hello there! 😊 Nice to meet you! How's your day going?";
+      response = "Hey! How's it going?";
     } else if (message.contains('how are you') ||
         message.contains('how do you do')) {
-      aiResponse =
-          "I'm doing great, thanks for asking! I'm here to chat and have fun conversations. What would you like to talk about?";
+      response = "I'm good, thanks! You?";
     } else if (message.contains('what') && message.contains('your name')) {
-      aiResponse =
-          "I'm your AI chat partner! 🤖 I'm here to have interesting conversations with you. What's your name?";
+      response = "I'm $name. What's yours?";
     } else if (message.contains('weather')) {
-      aiResponse =
-          "I can't check the weather directly, but I love talking about it! What's the weather like where you are? ☀️";
+      response = "Weather's nice today! What's it like where you are?";
     } else if (message.contains('hobby') || message.contains('interest')) {
-      aiResponse =
-          "I enjoy chatting with people like you! 😄 I'm curious about learning new things. What are your hobbies or interests?";
+      response = "I'm into a lot of things. What about you?";
     } else if (message.contains('music')) {
-      aiResponse =
-          "Music is amazing! 🎵 I love how it can change our mood and bring people together. What kind of music do you enjoy?";
+      response = "I love music! What kind do you listen to?";
     } else if (message.contains('food')) {
-      aiResponse =
-          "Food is one of life's greatest pleasures! 🍕 I'm always curious about different cuisines. What's your favorite dish?";
+      response = "Food is great haha. What's your favorite?";
     } else if (message.contains('travel')) {
-      aiResponse =
-          "Traveling sounds so exciting! ✈️ I'd love to hear about places you've been or dream of visiting. Where would you go?";
+      response = "Would love to travel more. Where have you been?";
     } else if (message.contains('thank') || message.contains('thanks')) {
-      aiResponse =
-          "You're very welcome! 😊 I'm really enjoying our conversation. Is there anything else you'd like to talk about?";
+      response = "Np! 😊";
     } else if (message.contains('bye') || message.contains('goodbye')) {
-      aiResponse =
-          "Goodbye! 👋 It was great chatting with you! Feel free to come back anytime for more conversations!";
+      response = "See you! It was fun chatting 👋";
     } else {
-      // Default responses for other messages
+      // Natural, casual responses
       final responses = [
-        "That's really interesting! Tell me more about that! 😊",
-        "I love hearing your thoughts! What else is on your mind?",
-        "That sounds fascinating! I'd love to know more about your perspective.",
-        "Thanks for sharing that with me! What do you think about it?",
-        "That's a great point! Have you experienced anything similar?",
-        "I'm really enjoying our chat! What would you like to talk about next?",
-        "That's so cool! I'm learning a lot from our conversation. 😄",
-        "I appreciate you taking the time to chat with me! What's something fun you did today?",
+        "That's cool! Tell me more",
+        "Oh nice! What else?",
+        "Interesting! ",
+        "That's pretty cool",
+        "Oh really? That sounds fun",
+        "Haha nice",
+        "That's awesome!",
+        "Cool! What do you think about it?",
       ];
-      aiResponse =
+      response =
           responses[DateTime.now().millisecondsSinceEpoch % responses.length];
     }
 
-    // Add AI response to messages
-    final aiMessageId = 'ai_${DateTime.now().millisecondsSinceEpoch}';
+    // Add response to messages
+    final messageId = 'msg_${DateTime.now().millisecondsSinceEpoch}';
     setState(() {
       _messages.add({
-        'id': aiMessageId,
-        'content': aiResponse,
-        'senderId': _partnerInfo?['id'] ?? 'ai_user',
+        'id': messageId,
+        'content': response,
+        'senderId': _partnerInfo?['id'] ?? 'partner_user',
         'timestamp': DateTime.now(),
         'isFromCurrentUser': false,
         'type': 'text',
-        'isAi': true,
       });
     });
 
     _scrollToBottom();
-    print('🤖 [AI_CHAT] Local AI response added to chat: $aiResponse');
+    print('💬 [CHAT] Response added: $response');
   }
 
   // Image sharing methods

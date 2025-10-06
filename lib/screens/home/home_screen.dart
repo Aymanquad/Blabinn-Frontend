@@ -348,23 +348,68 @@ class _HomeScreenState extends State<HomeScreen>
     final aiSessionId =
         'test_ai_session_${DateTime.now().millisecondsSinceEpoch}';
 
-    // Create fake AI user profile
+    // Generate random personality
+    final personalities = [
+      {
+        'name': 'Emma',
+        'age': 22,
+        'gender': 'Female',
+        'bio': 'Just here to meet new people and have fun convos 😊',
+        'interests': ['music', 'movies', 'travel'],
+      },
+      {
+        'name': 'Jake',
+        'age': 24,
+        'gender': 'Male',
+        'bio': 'Always down for a good chat',
+        'interests': ['gaming', 'sports', 'food'],
+      },
+      {
+        'name': 'Sophie',
+        'age': 21,
+        'gender': 'Female',
+        'bio': 'Love meeting new people from different places',
+        'interests': ['art', 'fashion', 'photography'],
+      },
+      {
+        'name': 'Alex',
+        'age': 23,
+        'gender': 'Male',
+        'bio': 'Chill person who likes to chat',
+        'interests': ['tech', 'music', 'books'],
+      },
+      {
+        'name': 'Mia',
+        'age': 20,
+        'gender': 'Female',
+        'bio': 'Here for interesting conversations',
+        'interests': ['dance', 'fitness', 'cooking'],
+      },
+    ];
+
+    final personality =
+        personalities[DateTime.now().millisecond % personalities.length];
+
+    // Create fake AI user profile with personality
     final aiUser = {
       'id': 'test_ai_user_${DateTime.now().millisecondsSinceEpoch}',
-      'username': 'AI Test Partner',
-      'bio': 'This is a test AI partner for debugging!',
+      'username': personality['name'],
+      'displayName': personality['name'],
+      'bio': personality['bio'],
       'profileImage': null,
-      'interests': ['testing', 'debugging', 'chatting'],
+      'interests': personality['interests'],
       'language': 'en',
       'isOnline': true,
       'lastSeen': DateTime.now().toIso8601String(),
       'isPremium': false,
-      'age': 25,
-      'gender': 'Other',
-      'userType': 'ai_chatbot',
+      'age': personality['age'],
+      'gender': personality['gender'],
+      'userType': 'human', // Never identify as AI
       'isVerified': false,
     };
 
+    print(
+        '[DEBUG] Created personality: ${personality['name']}, ${personality['age']}, ${personality['gender']}');
     print('[DEBUG] Navigating to test AI chat with session: $aiSessionId');
 
     _navigateToRandomChat(
