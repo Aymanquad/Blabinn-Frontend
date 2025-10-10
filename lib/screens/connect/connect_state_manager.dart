@@ -2,13 +2,15 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 import '../../services/api_service.dart';
 import '../../services/socket_service.dart';
-import '../../services/premium_service.dart';
+// import '../../services/premium_service.dart';
 import '../../services/global_matching_service.dart';
+import 'personality_selection_screen.dart';
+import '../../app.dart';
 
 class ConnectStateManager {
   // Use global matching service
   final GlobalMatchingService globalMatchingService = GlobalMatchingService();
-  
+
   // Local state for UI
   bool isMatching = false;
   bool isConnected = false;
@@ -18,19 +20,20 @@ class ConnectStateManager {
   String? matchMessage;
   int queueTime = 0;
   String genderPreference = 'any';
-  
+
   late ApiService apiService;
   late SocketService socketService;
-  late StreamSubscription matchSubscription;
-  late StreamSubscription errorSubscription;
+  late StreamSubscription<Map<String, dynamic>> matchSubscription;
+  late StreamSubscription<String> errorSubscription;
   late AnimationController animationController;
   late Animation<double> scaleAnimation;
 
   // Callbacks for state changes
   final VoidCallback onStateChanged;
-  final Function(String, String) onNavigateToChat; // No longer used but kept for compatibility
+  final void Function(String, String)
+      onNavigateToChat; // No longer used but kept for compatibility
   final VoidCallback onShowTimeoutDialog;
-  final Function(String, Color) onShowWarningSnackBar;
+  final void Function(String, Color) onShowWarningSnackBar;
   final VoidCallback onShowClearSessionDialog;
 
   ConnectStateManager({
@@ -44,7 +47,7 @@ class ConnectStateManager {
   void initializeServices() {
     apiService = ApiService();
     socketService = SocketService();
-    
+
     // Sync with global matching service
     _syncWithGlobalService();
     _setupGlobalServiceListeners();
@@ -67,7 +70,7 @@ class ConnectStateManager {
       'distance': '1-5',
       'language': 'any',
       'ageRange': 'all',
-      'interests': [],
+      'interests': <String>[],
     };
     genderPreference = 'any';
   }
@@ -102,6 +105,36 @@ class ConnectStateManager {
       queueTime = time;
       onStateChanged();
     });
+
+    // Listen for personality selection trigger
+    globalMatchingService.showPersonalitySelectionStream.listen((_) {
+      _showPersonalitySelection();
+    });
+  }
+
+  void _showPersonalitySelection() {
+    final context = navigatorKey.currentContext;
+    if (context != null) {
+      Navigator.push(
+        context,
+        MaterialPageRoute<void>(
+          builder: (context) => PersonalitySelectionScreen(
+            onPersonalitySelected: (personality) {
+              Navigator.pop(context);
+              globalMatchingService.selectPersonality(personality);
+            },
+            onBack: () {
+              Navigator.pop(context);
+              // Reset to matching state
+              isMatching = false;
+              isConnected = false;
+              matchMessage = null;
+              onStateChanged();
+            },
+          ),
+        ),
+      );
+    }
   }
 
   Future<void> loadUserInterests() async {
@@ -172,7 +205,7 @@ class ConnectStateManager {
       // Update global service filters and preferences
       globalMatchingService.setFilters(filters);
       globalMatchingService.setGenderPreference(genderPreference);
-      
+
       // Start matching using global service
       await globalMatchingService.startMatching();
     } catch (e) {
@@ -208,4 +241,4 @@ class ConnectStateManager {
     // Only dispose animation controller
     animationController.dispose();
   }
-} 
+}

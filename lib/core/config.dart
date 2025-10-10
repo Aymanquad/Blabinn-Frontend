@@ -104,9 +104,9 @@ class AppConfig {
   static const int maxRetryAttempts = 3;
   static const Duration retryDelay = Duration(seconds: 2);
   static const Duration cacheExpiration = Duration(hours: 24);
-  // Timeouts - Reduced for faster failures
-  static const Duration apiTimeout = Duration(seconds: 5);
-  static const Duration connectionTimeout = Duration(seconds: 5);
+  // Timeouts - Increased for AI chat responses
+  static const Duration apiTimeout = Duration(seconds: 15);
+  static const Duration connectionTimeout = Duration(seconds: 10);
 
   // WebSocket Configuration
   static const int wsMaxReconnectAttempts = 2; // Reduced from 5 to 2

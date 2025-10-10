@@ -719,8 +719,8 @@ class GlobalMatchingService {
     // Cancel any existing timer
     _aiFallbackTimer?.cancel();
 
-    // Start checking for AI fallback after 5 seconds
-    _aiFallbackTimer = Timer(const Duration(seconds: 5), () {
+    // Start checking for AI fallback after 10 seconds to match backend timeout
+    _aiFallbackTimer = Timer(const Duration(seconds: 10), () {
       print(
           '[AI_CHATBOT] Timer callback triggered - isMatching: $_isMatching, isConnected: $_isConnected');
       if (_isMatching && !_isConnected) {

@@ -151,6 +151,7 @@ class ChatApp extends StatelessWidget {
                     final chatRoomId = args['chatRoomId'] as String?;
                     final isAiChat = args['isAiChat'] as bool? ?? false;
                     final aiUser = args['aiUser'] as Map<String, dynamic>?;
+                    final personalityId = args['personalityId'] as String?;
 
                     if (sessionId != null && chatRoomId != null) {
                       return RandomChatScreen(
@@ -158,6 +159,7 @@ class ChatApp extends StatelessWidget {
                         chatRoomId: chatRoomId,
                         isAiChat: isAiChat,
                         aiUser: aiUser,
+                        personalityId: personalityId,
                       );
                     }
                   }

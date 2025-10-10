@@ -46,9 +46,9 @@ class AppConstants {
   static const String appName = 'Chatify';
   static const String appVersion = '1.0.0';
 
-  // Timeouts - Reduced for faster failures
-  static const Duration connectionTimeout = Duration(seconds: 5);
-  static const Duration receiveTimeout = Duration(seconds: 5);
+  // Timeouts - Increased for AI chat responses
+  static const Duration connectionTimeout = Duration(seconds: 10);
+  static const Duration receiveTimeout = Duration(seconds: 15);
 
   // File Upload
   static const int maxImageSize = 5 * 1024 * 1024; // 5MB
@@ -104,7 +104,7 @@ class AppConstants {
     'Dancing',
     'Theater',
     'Art & Design',
-    
+
     // Sports & Fitness
     'Fitness & Lifestyle',
     'Running',
@@ -121,7 +121,7 @@ class AppConstants {
     'Rock Climbing',
     'Surfing',
     'Skiing',
-    
+
     // Food & Drink
     'Cooking',
     'Wine',
@@ -131,7 +131,7 @@ class AppConstants {
     'Baking',
     'Cocktails',
     'Travel Food',
-    
+
     // Lifestyle & Hobbies
     'Travel',
     'Adventure',
@@ -148,7 +148,7 @@ class AppConstants {
     'Wellness',
     'Meditation',
     'Spirituality',
-    
+
     // Technology & Learning
     'Technology',
     'Science',
@@ -165,7 +165,7 @@ class AppConstants {
     'Languages',
     'History',
     'Philosophy',
-    
+
     // Social & Relationships
     'Networking',
     'Volunteering',
@@ -180,7 +180,7 @@ class AppConstants {
     'Relationships',
     'Marriage',
     'Kids',
-    
+
     // Creative & Arts
     'Writing',
     'Poetry',
@@ -196,7 +196,7 @@ class AppConstants {
     'Music Production',
     'Singing',
     'Playing Instruments',
-    
+
     // Health & Wellness
     'Mental Health',
     'Therapy',
@@ -209,7 +209,7 @@ class AppConstants {
     'Organic',
     'Supplements',
     'Alternative Medicine',
-    
+
     // Career & Business
     'Career Development',
     'Business',

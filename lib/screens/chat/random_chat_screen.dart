@@ -19,6 +19,7 @@ class RandomChatScreen extends StatefulWidget {
   final String chatRoomId;
   final bool isAiChat;
   final Map<String, dynamic>? aiUser;
+  final String? personalityId;
 
   const RandomChatScreen({
     super.key,
@@ -26,6 +27,7 @@ class RandomChatScreen extends StatefulWidget {
     required this.chatRoomId,
     this.isAiChat = false,
     this.aiUser,
+    this.personalityId,
   });
 
   @override
@@ -51,6 +53,9 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
   Map<String, dynamic>? _partnerInfo;
   bool _isLoadingPartnerInfo = false;
   String? _backendSessionId; // Store backend AI session ID
+
+  // Developer debugging info for AI chat termination
+  Map<String, dynamic>? _debugInfo;
 
   @override
   void initState() {
@@ -106,17 +111,49 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
         // This creates a session with the OpenAI service
         final sessionResponse = await _apiService.postJson('/chatbot/session', {
           'user_id': currentUser.uid,
-          'template_id': 'general-assistant',
+          'template_id': widget.personalityId ?? 'general-assistant',
         });
-        
-        if (sessionResponse['success'] == true && sessionResponse['session_id'] != null) {
-          _backendSessionId = sessionResponse['session_id'];
+
+        if (sessionResponse['success'] == true &&
+            sessionResponse['session_id'] != null) {
+          _backendSessionId = sessionResponse['session_id'] as String?;
           print('🤖 [AI CHAT] Backend session created: $_backendSessionId');
+
+          // Store initial debug info
+          if (sessionResponse['debug_info'] != null) {
+            setState(() {
+              _debugInfo = Map<String, dynamic>.from(
+                  sessionResponse['debug_info'] as Map);
+            });
+            print('🐛 [DEBUG] Initial debug info: $_debugInfo');
+          } else {
+            // Fallback debug info if backend doesn't return it
+            setState(() {
+              _debugInfo = {
+                'response_limit': 6, // Default value (5-8 range average)
+                'exchange_count': 0,
+                'seen_messages_ignored': 0,
+                'is_on_seen': false
+              };
+            });
+            print('🐛 [DEBUG] Using fallback debug info: $_debugInfo');
+          }
         }
       }
     } catch (e) {
       print('🤖 [AI CHAT] Failed to create backend session: $e');
       print('🤖 [AI CHAT] Will use local responses as fallback');
+
+      // Set fallback debug info for local responses
+      setState(() {
+        _debugInfo = {
+          'response_limit': 6, // Local fallback limit (5-8 range average)
+          'exchange_count': 0,
+          'seen_messages_ignored': 0,
+          'is_on_seen': false
+        };
+      });
+      print('🐛 [DEBUG] Using local fallback debug info: $_debugInfo');
     }
 
     // Add natural welcome message
@@ -166,6 +203,55 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
               _safeNavigateBack();
             },
             child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showChatTerminatedDialog(String reason) {
+    if (!mounted || _hasShownEndDialog) return;
+
+    _hasShownEndDialog = true;
+
+    String title = 'Chat Ended';
+    String message = 'The chat has ended naturally.';
+    IconData icon = Icons.chat_bubble_outline;
+
+    switch (reason) {
+      case 'response_limit_reached':
+        title = 'Chat Ended';
+        message = 'They left the chat. Try connecting with someone new!';
+        icon = Icons.chat_bubble_outline;
+        break;
+      case 'conversation_dried_up':
+        title = 'Chat Ended';
+        message = 'They stopped responding. Find someone more engaging!';
+        icon = Icons.sentiment_neutral;
+        break;
+      default:
+        break;
+    }
+
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(icon, color: Theme.of(context).primaryColor),
+            const SizedBox(width: 8),
+            Text(title),
+          ],
+        ),
+        content: Text(message),
+        actions: [
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context); // Close dialog
+              _safeNavigateBack();
+            },
+            child: const Text('Find New Chat'),
           ),
         ],
       ),
@@ -879,6 +965,52 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
 
         print('🤖 [AI CHAT DEBUG] Backend AI Response: $response');
 
+        // Handle termination
+        if (response['success'] == true && response['terminated'] == true) {
+          print(
+              '🚪 [AI CHAT] Chat terminated: ${response['termination_reason']}');
+
+          // Add termination message if provided
+          if (response['message'] != null) {
+            final messageId = 'msg_${DateTime.now().millisecondsSinceEpoch}';
+            setState(() {
+              _messages.add({
+                'id': messageId,
+                'content': response['message'],
+                'senderId': _partnerInfo?['id'] ?? 'partner_user',
+                'timestamp': DateTime.now(),
+                'isFromCurrentUser': false,
+                'type': 'text',
+              });
+            });
+            _scrollToBottom();
+          }
+
+          // Show termination dialog after a short delay
+          Future.delayed(const Duration(seconds: 2), () {
+            _showChatTerminatedDialog(
+                response['termination_reason'] as String? ?? 'unknown');
+          });
+          return;
+        }
+
+        // Handle "on seen" behavior
+        if (response['success'] == true && response['on_seen'] == true) {
+          print('👁️ [AI CHAT] Bot is leaving user on seen');
+
+          // Update debug info in state
+          if (response['debug_info'] != null) {
+            setState(() {
+              _debugInfo =
+                  Map<String, dynamic>.from(response['debug_info'] as Map);
+            });
+          }
+
+          // Don't add any response - user is left on "seen"
+          return;
+        }
+
+        // Handle normal response
         if (response['success'] == true && response['response'] != null) {
           // Add response to messages
           final messageId = 'msg_${DateTime.now().millisecondsSinceEpoch}';
@@ -895,6 +1027,17 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
 
           _scrollToBottom();
           print('💬 [CHAT] Backend AI (OpenAI) response added to chat');
+
+          // Update debug info in state
+          if (response['debug_info'] != null) {
+            setState(() {
+              _debugInfo =
+                  Map<String, dynamic>.from(response['debug_info'] as Map);
+            });
+            final debugInfo = response['debug_info'] as Map;
+            print(
+                '🐛 [DEBUG] Exchange: ${debugInfo['exchange_count']}/${debugInfo['response_limit']}, Seen: ${debugInfo['seen_messages_ignored']}');
+          }
         } else {
           print('💬 [CHAT] Backend AI failed, using local responses');
           await _generateLocalAiResponse(content);
@@ -935,81 +1078,69 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
   }
 
   Future<void> _generateLocalAiResponse(String userMessage) async {
-    // Simulate typing time
+    // Update debug counter for local responses
+    if (_debugInfo != null) {
+      setState(() {
+        _debugInfo!['exchange_count'] =
+            (_debugInfo!['exchange_count'] ?? 0) + 1;
+      });
+      print(
+          '🐛 [LOCAL DEBUG] Exchange: ${_debugInfo!['exchange_count']}/${_debugInfo!['response_limit']}');
+    }
+
+    // Check if we should terminate (local termination logic)
+    final shouldTerminate = _shouldTerminateLocally(userMessage);
+    if (shouldTerminate) {
+      print('🚪 [LOCAL AI] Chat terminated locally');
+
+      // Show termination after delay
+      Future.delayed(const Duration(seconds: 1), () {
+        _showChatTerminatedDialog('conversation_dried_up');
+      });
+      return;
+    }
+
+    // Check if should go "on seen" (local logic)
+    final shouldGoOnSeen = _shouldGoOnSeenLocally();
+    if (shouldGoOnSeen) {
+      print('👁️ [LOCAL AI] Going on seen');
+
+      if (_debugInfo != null) {
+        setState(() {
+          _debugInfo!['seen_messages_ignored'] =
+              (_debugInfo!['seen_messages_ignored'] ?? 0) + 1;
+        });
+      }
+
+      // Don't respond - leave on seen
+      return;
+    }
+
+    // Simulate realistic typing delay
     await Future<void>.delayed(const Duration(milliseconds: 1500));
 
-    // Get partner name from profile
-    final name =
-        _partnerInfo?['displayName'] ?? _partnerInfo?['username'] ?? 'User';
+    // Realistic short responses like dating apps
+    final responses = [
+      "cool",
+      "nice",
+      "ok",
+      "sure",
+      "maybe",
+      "lol",
+      "haha",
+      "yeah",
+      "nah",
+      "idk",
+      "whatever",
+      "k",
+      "same",
+      "right",
+      "true",
+      "yep"
+    ];
 
-    // Generate natural human-like responses
-    String response;
-    final message = userMessage.toLowerCase();
-
-    // Intelligent pattern matching
-    if (message.contains('personality') || message.contains('type')) {
-      response = "I'm pretty chill and easy going. You?";
-    } else if (message.contains('think about') || message.contains('opinion')) {
-      if (message.contains('car')) {
-        response = "Cars are cool! Do you have one?";
-      } else if (message.contains('music')) {
-        response = "Love music! What kind?";
-      } else {
-        response = "Hmm interesting. What do you think?";
-      }
-    } else if (message.contains('where') &&
-        (message.contains('from') || message.contains('live'))) {
-      response = "I'm from around here. You?";
-    } else if (message.contains('what do you') ||
-        message.contains('do you like')) {
-      response = "I like a lot of things. What about you?";
-    } else if (message.contains('hello') ||
-        message.contains('hii') ||
-        message.contains('hey')) {
-      response = "Hey! How's it going?";
-    } else if (message.contains('how are you')) {
-      response = "I'm good, thanks! You?";
-    } else if (message.contains('what') && message.contains('name')) {
-      response = "I'm $name. What's yours?";
-    } else if (message.contains('weather')) {
-      response = "Weather's nice today!";
-    } else if (message.contains('hobby') || message.contains('interest')) {
-      response = "I'm into a lot of things. What about you?";
-    } else if (message.contains('music')) {
-      response = "I love music! What kind do you listen to?";
-    } else if (message.contains('food')) {
-      response = "Food is great haha. What's your favorite?";
-    } else if (message.contains('travel')) {
-      response = "Would love to travel more. Where have you been?";
-    } else if (message.contains('thank') || message.contains('thanks')) {
-      response = "Np!";
-    } else if (message.contains('bye') || message.contains('goodbye')) {
-      response = "See you! It was fun chatting 👋";
-    } else if (message.contains('?')) {
-      // If it's a question we don't recognize
-      final questionResponses = [
-        "Hmm good question. What do you think?",
-        "Not sure. What about you?",
-        "Interesting question. You tell me",
-        "What do you mean?",
-      ];
-      response = questionResponses[
-          DateTime.now().millisecond % questionResponses.length];
-    } else {
-      // Natural, casual responses for statements
-      final responses = [
-        "That's cool",
-        "Oh nice!",
-        "Interesting",
-        "Oh really?",
-        "Haha nice",
-        "That's awesome",
-        "Cool",
-        "Right",
-      ];
-      response =
-          responses[DateTime.now().millisecondsSinceEpoch % responses.length];
-    }
+    final response =
+        responses[DateTime.now().millisecondsSinceEpoch % responses.length];
 
     // Add response to messages
     final messageId = 'msg_${DateTime.now().millisecondsSinceEpoch}';
@@ -1025,7 +1156,47 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
     });
 
     _scrollToBottom();
-    print('💬 [CHAT] Response added: $response');
+    print('💬 [LOCAL CHAT] Response added: $response');
+  }
+
+  bool _shouldTerminateLocally(String userMessage) {
+    if (_debugInfo == null) return false;
+
+    final exchangeCount = (_debugInfo!['exchange_count'] as int?) ?? 0;
+    final responseLimit = (_debugInfo!['response_limit'] as int?) ?? 6;
+
+    // Terminate if hit limit
+    if (exchangeCount >= responseLimit) return true;
+
+    // Moderate local termination for boring messages
+    final message = userMessage.toLowerCase().trim();
+
+    // Single words or very short after 2 exchanges
+    if (exchangeCount >= 2 &&
+        (message.length <= 3 || userMessage.split(' ').length == 1)) {
+      return true;
+    }
+
+    // Boring questions after 3 exchanges
+    final boringQuestions = ["wyd", "what's up", "hru", "how are you"];
+    if (exchangeCount >= 3 && boringQuestions.any((q) => message.contains(q))) {
+      return true;
+    }
+
+    return false;
+  }
+
+  bool _shouldGoOnSeenLocally() {
+    if (_debugInfo == null) return false;
+
+    final exchangeCount = (_debugInfo!['exchange_count'] as int?) ?? 0;
+    final responseLimit = (_debugInfo!['response_limit'] as int?) ?? 6;
+
+    // Don't go on seen if near limit or too early
+    if (exchangeCount < 1 || exchangeCount >= responseLimit - 1) return false;
+
+    // 60% chance of going on seen
+    return DateTime.now().millisecond % 10 < 6;
   }
 
   // Image sharing methods
@@ -2208,7 +2379,32 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
       },
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('Random Chat'),
+          title: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('Random Chat'),
+              // Developer counter for AI chat - always show during AI chats
+              if (widget.isAiChat)
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: Colors.black54,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    _debugInfo != null
+                        ? 'Debug: ${_debugInfo!['exchange_count']}/${_debugInfo!['response_limit']} | Seen: ${_debugInfo!['seen_messages_ignored']}'
+                        : 'Debug: Loading...',
+                    style: const TextStyle(
+                      fontSize: 10,
+                      color: Colors.yellow,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+            ],
+          ),
           centerTitle: true,
           backgroundColor: Colors.transparent,
           elevation: 0,
