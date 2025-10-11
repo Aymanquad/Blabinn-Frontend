@@ -133,7 +133,8 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
                 'response_limit': 6, // Default value (5-8 range average)
                 'exchange_count': 0,
                 'seen_messages_ignored': 0,
-                'is_on_seen': false
+                'is_on_seen': false,
+                'enthusiasm': 3 // Default enthusiasm level
               };
             });
             print('🐛 [DEBUG] Using fallback debug info: $_debugInfo');
@@ -150,7 +151,8 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
           'response_limit': 6, // Local fallback limit (5-8 range average)
           'exchange_count': 0,
           'seen_messages_ignored': 0,
-          'is_on_seen': false
+          'is_on_seen': false,
+          'enthusiasm': 3 // Default enthusiasm level
         };
       });
       print('🐛 [DEBUG] Using local fallback debug info: $_debugInfo');
@@ -2394,7 +2396,7 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
                   ),
                   child: Text(
                     _debugInfo != null
-                        ? 'Debug: ${_debugInfo!['exchange_count']}/${_debugInfo!['response_limit']} | Seen: ${_debugInfo!['seen_messages_ignored']}'
+                        ? 'Debug: ${_debugInfo!['exchange_count']}/${_debugInfo!['response_limit']} | Seen: ${_debugInfo!['seen_messages_ignored']} | 💖${_debugInfo!['enthusiasm'] ?? 3}'
                         : 'Debug: Loading...',
                     style: const TextStyle(
                       fontSize: 10,

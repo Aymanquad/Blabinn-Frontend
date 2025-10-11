@@ -37,6 +37,8 @@ class GlobalMatchingService {
       StreamController<String?>.broadcast();
   final StreamController<int> _queueTimeController =
       StreamController<int>.broadcast();
+  final StreamController<void> _showPersonalitySelectionController =
+      StreamController<void>.broadcast();
 
   // Services
   final SocketService _socketService = SocketService();
@@ -62,6 +64,8 @@ class GlobalMatchingService {
   Stream<bool> get connectionStateStream => _connectionStateController.stream;
   Stream<String?> get messageStream => _messageController.stream;
   Stream<int> get queueTimeStream => _queueTimeController.stream;
+  Stream<void> get showPersonalitySelectionStream =>
+      _showPersonalitySelectionController.stream;
 
   void initialize() {
     _setupSocketListeners();
@@ -702,6 +706,7 @@ class GlobalMatchingService {
     _connectionStateController.close();
     _messageController.close();
     _queueTimeController.close();
+    _showPersonalitySelectionController.close();
     stopMatching();
   }
 
@@ -738,34 +743,129 @@ class GlobalMatchingService {
     if (!_isMatching || _isConnected || _currentUserId == null) return;
 
     try {
-      print('[AI_CHATBOT] Checking for AI fallback...');
+      print(
+          '[AI_CHATBOT] 10-second timeout reached - showing personality selection');
 
-      // Try external service first
+      // Stop matching state but don't set connected yet
+      _isMatching = false;
+      _matchMessage = 'Choose your AI chat partner';
+      _notifyStateChanges();
+
+      // Trigger personality selection
+      _showPersonalitySelectionController.add(null);
+    } catch (e) {
+      print('[AI_CHATBOT] Error triggering personality selection: $e');
+      // If there's an error, fall back to automatic AI selection
+      await _handleLocalAiFallback();
+    }
+  }
+
+  // Method to handle personality selection
+  Future<void> selectPersonality(Map<String, dynamic> personalityData) async {
+    if (_currentUserId == null) {
+      print('[AI_CHATBOT] Cannot select personality - no user ID');
+      return;
+    }
+
+    try {
+      print(
+          '[AI_CHATBOT] Selected personality: ${personalityData['name']} (${personalityData['id']})');
+
+      // Update message to show loading
+      _matchMessage = 'Connecting to ${personalityData['name']}...';
+      _notifyStateChanges();
+
+      // Try to create AI session through backend API first
       try {
-        final response = await _aiChatbotService.checkAiFallback(
+        // Create AI fallback session with selected personality
+        final sessionData = {
+          'user_id': _currentUserId!,
+          'personality': personalityData['id'],
+          'preferences': {
+            'selected_personality': personalityData['id'],
+            'personality_name': personalityData['name'],
+          },
+          'start_time': DateTime.now().toIso8601String(),
+        };
+
+        // Set matching state with personality preference
+        await _aiChatbotService.setMatchingState(
           userId: _currentUserId!,
+          preferences: sessionData['preferences'] as Map<String, dynamic>,
         );
 
-        print('[AI_CHATBOT] AI fallback response: $response');
-
-        if (response['success'] == true && response['is_ai_match'] == true) {
-          print('[AI_CHATBOT] AI fallback triggered via external service!');
-          await _handleAiFallback(response);
-          return;
-        }
+        print('[AI_CHATBOT] Matching state set with selected personality');
       } catch (e) {
-        print('[AI_CHATBOT] External service failed: $e');
+        print(
+            '[AI_CHATBOT] Backend session creation failed, using local fallback: $e');
       }
 
-      // Fallback to local AI simulation if external service fails
-      print('[AI_CHATBOT] Using local AI fallback simulation...');
-      await _handleLocalAiFallback();
+      // Create AI user with selected personality
+      final aiUser = User(
+        id: 'ai_user_${personalityData['id']}_${DateTime.now().millisecondsSinceEpoch}',
+        username: personalityData['name'] as String,
+        email: null,
+        bio: personalityData['bio'] as String,
+        profileImage: null,
+        interests:
+            (personalityData['interests'] as List<dynamic>).cast<String>(),
+        language: 'en',
+        location: null,
+        latitude: null,
+        longitude: null,
+        isOnline: true,
+        lastSeen: DateTime.now(),
+        isPremium: false,
+        adsFree: false,
+        credits: 100,
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+        isBlocked: false,
+        isFriend: false,
+        deviceId: null,
+        age: 25, // Will be randomized in backend
+        gender: 'Other', // Will be randomized in backend
+        userType: 'ai_chatbot',
+        isVerified: false,
+        verificationDate: null,
+        connectCount: 0,
+        pageSwitchCount: 0,
+        lastPageSwitchTime: null,
+        dailyAdViews: 0,
+        lastAdViewDate: null,
+        superLikesUsed: 0,
+        boostsUsed: 0,
+        friendsCount: 0,
+        whoLikedViews: 0,
+        lastWhoLikedViewDate: null,
+      );
+
+      // Create session ID
+      final aiSessionId =
+          'personality_${personalityData['id']}_${DateTime.now().millisecondsSinceEpoch}';
+
+      // Update state
+      _isMatching = false;
+      _isConnected = true;
+      _isAiChat = true;
+      _currentSessionId = aiSessionId;
+      _matchMessage = 'Connected to ${personalityData['name']}!';
+
+      // Stop socket connection
+      await _socketService.stopRandomConnection(userId: _currentUserId);
+
+      _notifyStateChanges();
+
+      // Navigate to AI chat
+      _navigateToAiChat(aiSessionId, aiUser,
+          personalityId: personalityData['id'] as String?);
+
+      print('[AI_CHATBOT] Personality selection completed successfully');
     } catch (e) {
-      print('[AI_CHATBOT] Error checking AI fallback: $e');
-      // If there's an error with AI fallback, show error message
+      print('[AI_CHATBOT] Error selecting personality: $e');
       _isMatching = false;
       _matchMessage =
-          'Connection error. Please check your internet connection and try again.';
+          'Error starting chat with ${personalityData['name']}. Please try again.';
       _notifyStateChanges();
     }
   }
@@ -883,7 +983,8 @@ class GlobalMatchingService {
     }
   }
 
-  void _navigateToAiChat(String sessionId, User aiUser) {
+  void _navigateToAiChat(String sessionId, User aiUser,
+      {String? personalityId}) {
     try {
       print('[AI_CHATBOT] Navigating to AI chat with session: $sessionId');
       print('[AI_CHATBOT] Navigator key state: ${navigatorKey.currentState}');
@@ -915,6 +1016,7 @@ class GlobalMatchingService {
           'chatRoomId': sessionId, // Use session ID as chat room ID for AI
           'isAiChat': true,
           'aiUser': aiUserMap,
+          'personalityId': personalityId,
         },
       ).then((_) {
         print('[AI_CHATBOT] Returned from AI chat, resetting state');

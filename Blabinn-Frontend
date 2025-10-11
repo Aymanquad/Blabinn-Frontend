@@ -1,0 +1,34 @@
+warning: in the working copy of 'lib/screens/chat/random_chat_screen.dart', LF will be replaced by CRLF the next time Git touches it
+[1mdiff --git a/lib/screens/chat/random_chat_screen.dart b/lib/screens/chat/random_chat_screen.dart[m
+[1mindex c9caefd..c1d05ec 100644[m
+[1m--- a/lib/screens/chat/random_chat_screen.dart[m
+[1m+++ b/lib/screens/chat/random_chat_screen.dart[m
+[36m@@ -133,7 +133,8 @@[m [mclass _RandomChatScreenState extends State<RandomChatScreen> {[m
+                 'response_limit': 6, // Default value (5-8 range average)[m
+                 'exchange_count': 0,[m
+                 'seen_messages_ignored': 0,[m
+[31m-                'is_on_seen': false[m
+[32m+[m[32m                'is_on_seen': false,[m
+[32m+[m[32m                'enthusiasm': 3 // Default enthusiasm level[m
+               };[m
+             });[m
+             print('🐛 [DEBUG] Using fallback debug info: $_debugInfo');[m
+[36m@@ -150,7 +151,8 @@[m [mclass _RandomChatScreenState extends State<RandomChatScreen> {[m
+           'response_limit': 6, // Local fallback limit (5-8 range average)[m
+           'exchange_count': 0,[m
+           'seen_messages_ignored': 0,[m
+[31m-          'is_on_seen': false[m
+[32m+[m[32m          'is_on_seen': false,[m
+[32m+[m[32m          'enthusiasm': 3 // Default enthusiasm level[m
+         };[m
+       });[m
+       print('🐛 [DEBUG] Using local fallback debug info: $_debugInfo');[m
+[36m@@ -2394,7 +2396,7 @@[m [mclass _RandomChatScreenState extends State<RandomChatScreen> {[m
+                   ),[m
+                   child: Text([m
+                     _debugInfo != null[m
+[31m-                        ? 'Debug: ${_debugInfo!['exchange_count']}/${_debugInfo!['response_limit']} | Seen: ${_debugInfo!['seen_messages_ignored']}'[m
+[32m+[m[32m                        ? 'Debug: ${_debugInfo!['exchange_count']}/${_debugInfo!['response_limit']} | Seen: ${_debugInfo!['seen_messages_ignored']} | 💖${_debugInfo!['enthusiasm'] ?? 3}'[m
+                         : 'Debug: Loading...',[m
+                     style: const TextStyle([m
+                       fontSize: 10,[m
