@@ -482,7 +482,88 @@ class SocketService {
     }
   }
 
+  // ==================== AI CHATBOT METHODS ====================
 
+  // Start AI chatbot session
+  Future<void> startAiChatbotSession({String? personalityId}) async {
+    try {
+      final isActuallyConnected =
+          _connection.isConnected && _connection.socket?.connected == true;
+
+      if (!isActuallyConnected) {
+        print('[AI CHATBOT DEBUG] Cannot start AI session - socket not connected');
+        return;
+      }
+
+      final effectiveUserId = FirebaseAuth.FirebaseAuth.instance.currentUser?.uid;
+      if (effectiveUserId == null) {
+        throw Exception('User not authenticated');
+      }
+
+      print('🤖 [AI CHATBOT] Starting AI session for user: $effectiveUserId');
+      print('🤖 [AI CHATBOT] Personality: ${personalityId ?? 'general-assistant'}');
+
+      _connection.socket?.emit('ai_chatbot_start', {
+        'personality_id': personalityId ?? 'general-assistant',
+      });
+
+      print('[AI CHATBOT DEBUG] Start session message sent');
+    } catch (e) {
+      print('[AI CHATBOT DEBUG] Error starting AI session: $e');
+      throw Exception('Failed to start AI chatbot session: $e');
+    }
+  }
+
+  // Send message to AI chatbot
+  Future<void> sendAiChatbotMessage(String message) async {
+    try {
+      final isActuallyConnected =
+          _connection.isConnected && _connection.socket?.connected == true;
+
+      if (!isActuallyConnected) {
+        print('[AI CHATBOT DEBUG] Cannot send AI message - socket not connected');
+        return;
+      }
+
+      print('🤖 [AI CHATBOT] Sending message to AI: $message');
+
+      _connection.socket?.emit('ai_chatbot_message', {
+        'message': message,
+      });
+
+      print('[AI CHATBOT DEBUG] AI message sent');
+    } catch (e) {
+      print('[AI CHATBOT DEBUG] Error sending AI message: $e');
+      throw Exception('Failed to send AI chatbot message: $e');
+    }
+  }
+
+  // End AI chatbot session
+  Future<void> endAiChatbotSession() async {
+    try {
+      final isActuallyConnected =
+          _connection.isConnected && _connection.socket?.connected == true;
+
+      if (!isActuallyConnected) {
+        print('[AI CHATBOT DEBUG] Cannot end AI session - socket not connected');
+        return;
+      }
+
+      print('🤖 [AI CHATBOT] Ending AI session');
+
+      _connection.socket?.emit('ai_chatbot_end', {});
+
+      print('[AI CHATBOT DEBUG] End AI session message sent');
+    } catch (e) {
+      print('[AI CHATBOT DEBUG] Error ending AI session: $e');
+      throw Exception('Failed to end AI chatbot session: $e');
+    }
+  }
+
+  // Get AI chatbot session data
+  Map<String, dynamic>? get aiChatbotSessionData => _eventHandlers.aiChatbotSessionData;
+
+  // ==================== END AI CHATBOT METHODS ====================
 
   // Dispose resources
   void dispose() {

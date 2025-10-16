@@ -851,8 +851,8 @@ class GlobalMatchingService {
       _currentSessionId = aiSessionId;
       _matchMessage = 'Connected to ${personalityData['name']}!';
 
-      // Stop socket connection
-      await _socketService.stopRandomConnection(userId: _currentUserId);
+      // Note: Keeping random connection active - user can switch between chats
+      // await _socketService.stopRandomConnection(userId: _currentUserId);
 
       _notifyStateChanges();
 
@@ -926,8 +926,8 @@ class GlobalMatchingService {
       // Stop timers
       _aiFallbackTimer?.cancel();
 
-      // Stop socket connection
-      await _socketService.stopRandomConnection(userId: _currentUserId);
+      // Note: Keeping random connection active - user can switch between chats
+      // await _socketService.stopRandomConnection(userId: _currentUserId);
 
       _notifyStateChanges();
 
@@ -964,8 +964,8 @@ class GlobalMatchingService {
       // Stop timers
       _aiFallbackTimer?.cancel();
 
-      // Stop socket connection
-      await _socketService.stopRandomConnection(userId: _currentUserId);
+      // Note: Keeping random connection active - user can switch between chats
+      // await _socketService.stopRandomConnection(userId: _currentUserId);
 
       _notifyStateChanges();
 

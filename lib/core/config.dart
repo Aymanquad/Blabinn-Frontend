@@ -121,8 +121,8 @@ class AppConfig {
   static bool get isDevelopment => environment == 'development';
   static bool get isStaging => environment == 'staging';
 
-  // API URLs - Updated to match backend structure
-  static String get apiUrl => '$apiBaseUrl/api/v1';
+  // API URLs - Updated to match backend structure (no v1 prefix)
+  static String get apiUrl => '$apiBaseUrl/api';
   static String get wsEndpoint => '$wsBaseUrl/socket.io';
 
   // Debug info

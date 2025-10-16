@@ -33,7 +33,7 @@ class SocketEventHandlers {
   ) {
     try {
       print('📡 [SOCKET EVENT DEBUG] Received event: $event with data: $data');
-      
+
       // Add null safety check
       if (data != null && data is! Map<String, dynamic> && data is! List) {
         // Convert to safe format if possible
@@ -118,6 +118,16 @@ class SocketEventHandlers {
           break;
         case 'random_chat_session_ended':
           handleRandomChatSessionEndedEvent(data);
+          break;
+        case 'ai_chatbot_session_created':
+          _handleAiChatbotSessionCreatedEvent(data, eventController);
+          break;
+        case 'ai_chatbot_response':
+          _handleAiChatbotResponseEvent(
+              data, messageController, eventController);
+          break;
+        case 'ai_chatbot_session_ended':
+          _handleAiChatbotSessionEndedEvent(data, eventController);
           break;
         default:
         // Unknown socket event
@@ -248,4 +258,67 @@ class SocketEventHandlers {
     matchController.add(eventData);
     eventController.add(SocketEvent.randomConnectionStopped);
   }
+
+  // Handle AI chatbot session created event
+  void _handleAiChatbotSessionCreatedEvent(
+    dynamic data,
+    StreamController<SocketEvent> eventController,
+  ) {
+    if (data == null) {
+      return;
+    }
+
+    print('🤖 [AI CHATBOT] Session created: $data');
+    // Store session data for use in AI chatbot service
+    _aiChatbotSessionData = data is Map<String, dynamic> ? data : {};
+    eventController.add(SocketEvent.aiChatbotSessionCreated);
+  }
+
+  // Handle AI chatbot response event
+  void _handleAiChatbotResponseEvent(
+    dynamic data,
+    StreamController<Message> messageController,
+    StreamController<SocketEvent> eventController,
+  ) {
+    if (data == null) {
+      return;
+    }
+
+    print('🤖 [AI CHATBOT] Response received: $data');
+
+    if (data is Map<String, dynamic> && data['response'] != null) {
+      // Create a message object from AI response
+      final message = Message(
+        id: 'ai_${DateTime.now().millisecondsSinceEpoch}',
+        chatId: 'ai_chat',
+        senderId: 'ai_chatbot',
+        receiverId: 'current_user', // Required parameter
+        content: data['response'].toString(),
+        type: MessageType.text, // Fixed parameter name
+        timestamp: DateTime.now(),
+      );
+
+      messageController.add(message);
+    }
+
+    eventController.add(SocketEvent.aiChatbotResponse);
+  }
+
+  // Handle AI chatbot session ended event
+  void _handleAiChatbotSessionEndedEvent(
+    dynamic data,
+    StreamController<SocketEvent> eventController,
+  ) {
+    if (data == null) {
+      return;
+    }
+
+    print('🤖 [AI CHATBOT] Session ended: $data');
+    _aiChatbotSessionData = null; // Clear session data
+    eventController.add(SocketEvent.aiChatbotSessionEnded);
+  }
+
+  // Store AI chatbot session data
+  Map<String, dynamic>? _aiChatbotSessionData;
+  Map<String, dynamic>? get aiChatbotSessionData => _aiChatbotSessionData;
 }

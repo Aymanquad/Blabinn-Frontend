@@ -20,4 +20,7 @@ enum SocketEvent {
   randomChatEvent,
   randomChatTimeout,
   randomChatSessionEnded,
+  aiChatbotSessionCreated,
+  aiChatbotResponse,
+  aiChatbotSessionEnded,
 }

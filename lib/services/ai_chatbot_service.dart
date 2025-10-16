@@ -1,4 +1,5 @@
 import 'api_service.dart';
+import 'socket/socket_service.dart';
 
 /// AI Chatbot Service
 /// Handles communication with the AI chatbot fallback system
@@ -8,6 +9,7 @@ class AiChatbotService {
   AiChatbotService._internal();
 
   final ApiService _apiService = ApiService();
+  final SocketService _socketService = SocketService();
 
   /// Start matching monitoring in Redis service
   /// Called when user starts matching - triggers Redis timeout monitoring
@@ -366,4 +368,48 @@ class AiChatbotService {
       };
     }
   }
+
+  // ==================== SOCKET-BASED AI CHATBOT METHODS ====================
+
+  /// Start AI chatbot session using Socket.IO
+  Future<void> startAiChatbotSessionSocket({String? personalityId}) async {
+    try {
+      print('🤖 [AI CHATBOT SERVICE] Starting AI session via socket...');
+      await _socketService.startAiChatbotSession(personalityId: personalityId);
+    } catch (e) {
+      print('❌ [AI CHATBOT SERVICE] Failed to start AI session: $e');
+      rethrow;
+    }
+  }
+
+  /// Send message to AI chatbot using Socket.IO
+  Future<void> sendAiChatbotMessageSocket(String message) async {
+    try {
+      print('🤖 [AI CHATBOT SERVICE] Sending message to AI via socket: $message');
+      await _socketService.sendAiChatbotMessage(message);
+    } catch (e) {
+      print('❌ [AI CHATBOT SERVICE] Failed to send AI message: $e');
+      rethrow;
+    }
+  }
+
+  /// End AI chatbot session using Socket.IO
+  Future<void> endAiChatbotSessionSocket() async {
+    try {
+      print('🤖 [AI CHATBOT SERVICE] Ending AI session via socket...');
+      await _socketService.endAiChatbotSession();
+    } catch (e) {
+      print('❌ [AI CHATBOT SERVICE] Failed to end AI session: $e');
+      rethrow;
+    }
+  }
+
+  /// Get AI chatbot session data
+  Map<String, dynamic>? get aiChatbotSessionData => _socketService.aiChatbotSessionData;
+
+  /// Listen to AI chatbot events
+  Stream<dynamic> get aiChatbotEventStream => _socketService.eventStream;
+  Stream<dynamic> get aiChatbotMessageStream => _socketService.messageStream;
+
+  // ==================== END SOCKET-BASED METHODS ====================
 }
