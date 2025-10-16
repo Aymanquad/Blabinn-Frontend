@@ -1868,7 +1868,12 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
       try {
         final currentUser = FirebaseAuth.FirebaseAuth.instance.currentUser;
         if (currentUser != null) {
-          await _aiChatbotService.endAiSession(userId: currentUser.uid);
+          // Note: For AI chat cleanup, we'll use the sessionId or userId as fallback
+          final sessionId = widget.sessionId;
+          await _aiChatbotService.endAiSession(
+            userId: currentUser.uid,
+            sessionId: sessionId,
+          );
           print('✅ [AI CHAT] AI session ended successfully');
         }
       } catch (e) {
@@ -2381,32 +2386,7 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
       },
       child: Scaffold(
         appBar: AppBar(
-          title: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text('Random Chat'),
-              // Developer counter for AI chat - always show during AI chats
-              if (widget.isAiChat)
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: Colors.black54,
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Text(
-                    _debugInfo != null
-                        ? 'Debug: ${_debugInfo!['exchange_count']}/${_debugInfo!['response_limit']} | Seen: ${_debugInfo!['seen_messages_ignored']} | 💖${_debugInfo!['enthusiasm'] ?? 3}'
-                        : 'Debug: Loading...',
-                    style: const TextStyle(
-                      fontSize: 10,
-                      color: Colors.yellow,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-            ],
-          ),
+          title: const Text('Random Chat'),
           centerTitle: true,
           backgroundColor: Colors.transparent,
           elevation: 0,

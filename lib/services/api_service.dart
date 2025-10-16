@@ -253,6 +253,11 @@ class ApiService {
     return _handleResponse(response);
   }
 
+  Future<Map<String, dynamic>> deleteJson(String endpoint) async {
+    final response = await _delete(endpoint);
+    return _handleResponse(response);
+  }
+
   // Authentication methods (these are handled by Firebase now)
   Future<Map<String, dynamic>> verifyAuth() async {
     final response = await _get('/auth/verify');

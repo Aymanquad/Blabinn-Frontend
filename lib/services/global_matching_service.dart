@@ -1088,6 +1088,7 @@ class GlobalMatchingService {
 
       final success = await _aiChatbotService.endAiSession(
         userId: _currentUserId!,
+        sessionId: _currentSessionId ?? _currentUserId!,
       );
 
       if (success) {

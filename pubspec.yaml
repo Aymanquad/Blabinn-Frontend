@@ -43,7 +43,7 @@ dependencies:
   permission_handler: ^11.3.1
   image_picker: ^1.0.4
   path_provider: ^2.1.4
-  cached_network_image: ^3.4.1
+hello  cached_network_image: ^3.4.1
   image: ^4.1.7
   firebase_core: ^3.6.0
   firebase_auth: ^5.3.1

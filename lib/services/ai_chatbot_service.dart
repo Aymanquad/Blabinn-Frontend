@@ -9,29 +9,32 @@ class AiChatbotService {
 
   final ApiService _apiService = ApiService();
 
-  /// Set user matching state in backend
-  /// Called when user starts matching
+  /// Start matching monitoring in Redis service
+  /// Called when user starts matching - triggers Redis timeout monitoring
   Future<Map<String, dynamic>> setMatchingState({
     required String userId,
     Map<String, dynamic>? preferences,
   }) async {
     try {
-      print('[AI_CHATBOT] Setting matching state for user: $userId');
+      print('[AI_CHATBOT] Starting matching monitoring for user: $userId');
 
       final response =
-          await _apiService.postJson('/ai-fallback/set-matching-state', {
-        'user_id': userId,
-        'preferences': preferences ?? {},
-        'start_time': DateTime.now().toIso8601String(),
+          await _apiService.postJson('/ai-fallback/start-matching', {
+        'matchingData': {
+          'user_id': userId,
+          'preferences': preferences ?? {},
+          'start_time': DateTime.now().toIso8601String(),
+        },
       });
 
       if (response['success'] == true) {
-        print('[AI_CHATBOT] Matching state set successfully');
+        print('[AI_CHATBOT] Matching monitoring started successfully');
         return response;
       } else {
         print(
-            '[AI_CHATBOT] Failed to set matching state: ${response['error']}');
-        throw Exception(response['error'] ?? 'Failed to set matching state');
+            '[AI_CHATBOT] Failed to start matching monitoring: ${response['error']}');
+        throw Exception(
+            response['error'] ?? 'Failed to start matching monitoring');
       }
     } catch (e) {
       print('[AI_CHATBOT] Error setting matching state: $e');
@@ -92,7 +95,34 @@ class AiChatbotService {
     }
   }
 
-  /// Send message to AI chatbot
+  /// Create AI session through backend orchestrator
+  /// Called when AI fallback is triggered
+  Future<Map<String, dynamic>> createAiSession({
+    required String userId,
+    String? templateId,
+  }) async {
+    try {
+      print('[AI_CHATBOT] Creating AI session for user: $userId');
+
+      final response = await _apiService.postJson('/chatbot/session', {
+        'template_id': templateId ?? 'general-assistant',
+      });
+
+      if (response['success'] == true) {
+        print(
+            '[AI_CHATBOT] AI session created successfully: ${response['session_id']}');
+        return response;
+      } else {
+        print('[AI_CHATBOT] Failed to create AI session: ${response['error']}');
+        throw Exception(response['error'] ?? 'Failed to create AI session');
+      }
+    } catch (e) {
+      print('[AI_CHATBOT] Error creating AI session: $e');
+      rethrow;
+    }
+  }
+
+  /// Send message to AI chatbot through backend orchestrator
   /// Called when user sends a message in AI chat
   Future<Map<String, dynamic>> sendAiMessage({
     required String userId,
@@ -104,8 +134,7 @@ class AiChatbotService {
       print('[AI_CHATBOT] Message: $message');
 
       final response =
-          await _apiService.postJson('/ai-fallback/send-ai-message', {
-        'user_id': userId,
+          await _apiService.postJson('/chatbot/session/$sessionId/message', {
         'message': message,
       });
 
@@ -123,16 +152,17 @@ class AiChatbotService {
     }
   }
 
-  /// End AI session
+  /// End AI session through backend orchestrator
   /// Called when user ends AI chat
   Future<bool> endAiSession({
     required String userId,
+    required String sessionId,
   }) async {
     try {
       print('[AI_CHATBOT] Ending AI session for user: $userId');
 
       final response =
-          await _apiService.postJson('/ai-fallback/end-ai-session/$userId', {});
+          await _apiService.deleteJson('/chatbot/session/$sessionId');
 
       if (response['success'] == true) {
         print('[AI_CHATBOT] AI session ended successfully');
@@ -147,27 +177,27 @@ class AiChatbotService {
     }
   }
 
-  /// Clear matching state
+  /// Stop matching monitoring
   /// Called when user stops matching or gets matched
   Future<bool> clearMatchingState({
     required String userId,
   }) async {
     try {
-      print('[AI_CHATBOT] Clearing matching state for user: $userId');
+      print('[AI_CHATBOT] Stopping matching monitoring for user: $userId');
 
-      final response = await _apiService
-          .postJson('/ai-fallback/clear-matching-state/$userId', {});
+      final response =
+          await _apiService.postJson('/ai-fallback/stop-matching', {});
 
       if (response['success'] == true) {
-        print('[AI_CHATBOT] Matching state cleared successfully');
+        print('[AI_CHATBOT] Matching monitoring stopped successfully');
         return true;
       } else {
         print(
-            '[AI_CHATBOT] Failed to clear matching state: ${response['error']}');
+            '[AI_CHATBOT] Failed to stop matching monitoring: ${response['error']}');
         return false;
       }
     } catch (e) {
-      print('[AI_CHATBOT] Error clearing matching state: $e');
+      print('[AI_CHATBOT] Error stopping matching monitoring: $e');
       return false;
     }
   }

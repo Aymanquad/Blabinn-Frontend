@@ -233,31 +233,32 @@ class _HomeScreenState extends State<HomeScreen>
                 ),
               ),
 
-              const SizedBox(height: 2),
+              const SizedBox(height: 24),
 
               // Connect Button
               Container(
                 width: double.infinity,
-                height: 56,
+                height: 60,
                 decoration: BoxDecoration(
                   gradient: const LinearGradient(
                     colors: [Color(0xFF8B5CF6), Color(0xFF7C3AED)],
                     begin: Alignment.centerLeft,
                     end: Alignment.centerRight,
                   ),
-                  borderRadius: BorderRadius.circular(28),
+                  borderRadius: BorderRadius.circular(30),
                   boxShadow: const [
                     BoxShadow(
                       color: Color(0x4D8B5CF6),
-                      blurRadius: 15,
-                      offset: Offset(0, 5),
+                      blurRadius: 20,
+                      offset: Offset(0, 8),
+                      spreadRadius: 2,
                     ),
                   ],
                 ),
                 child: Material(
                   color: Colors.transparent,
                   child: InkWell(
-                    borderRadius: BorderRadius.circular(28),
+                    borderRadius: BorderRadius.circular(30),
                     onTap: () {
                       if (mounted) {
                         _stateManager.startMatching();
@@ -268,7 +269,8 @@ class _HomeScreenState extends State<HomeScreen>
                         'Connect Now',
                         style: Theme.of(context).textTheme.titleLarge!.copyWith(
                               color: Colors.white,
-                              fontWeight: FontWeight.w700,
+                              fontWeight: FontWeight.w800,
+                              fontSize: 18,
                             ),
                       ),
                     ),
@@ -276,51 +278,7 @@ class _HomeScreenState extends State<HomeScreen>
                 ),
               ),
 
-              const SizedBox(height: 16),
-
-              // Test AI Button (for debugging)
-              Container(
-                width: double.infinity,
-                height: 48,
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF10B981), Color(0xFF059669)],
-                    begin: Alignment.centerLeft,
-                    end: Alignment.centerRight,
-                  ),
-                  borderRadius: BorderRadius.circular(24),
-                  boxShadow: const [
-                    BoxShadow(
-                      color: Color(0x4D10B981),
-                      blurRadius: 12,
-                      offset: Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: Material(
-                  color: Colors.transparent,
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(24),
-                    onTap: () {
-                      if (mounted) {
-                        _testAiChat();
-                      }
-                    },
-                    child: Center(
-                      child: Text(
-                        'Test AI Chat (Debug)',
-                        style:
-                            Theme.of(context).textTheme.titleMedium!.copyWith(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 16),
+              const SizedBox(height: 32),
 
               // Descriptive text
               Text(
@@ -338,85 +296,6 @@ class _HomeScreenState extends State<HomeScreen>
           ),
         ),
       ),
-    );
-  }
-
-  void _testAiChat() {
-    print('[DEBUG] Test AI Chat button pressed');
-
-    // Create a fake AI session
-    final aiSessionId =
-        'test_ai_session_${DateTime.now().millisecondsSinceEpoch}';
-
-    // Generate random personality
-    final personalities = [
-      {
-        'name': 'Emma',
-        'age': 22,
-        'gender': 'Female',
-        'bio': 'Just here to meet new people and have fun convos 😊',
-        'interests': ['music', 'movies', 'travel'],
-      },
-      {
-        'name': 'Jake',
-        'age': 24,
-        'gender': 'Male',
-        'bio': 'Always down for a good chat',
-        'interests': ['gaming', 'sports', 'food'],
-      },
-      {
-        'name': 'Sophie',
-        'age': 21,
-        'gender': 'Female',
-        'bio': 'Love meeting new people from different places',
-        'interests': ['art', 'fashion', 'photography'],
-      },
-      {
-        'name': 'Alex',
-        'age': 23,
-        'gender': 'Male',
-        'bio': 'Chill person who likes to chat',
-        'interests': ['tech', 'music', 'books'],
-      },
-      {
-        'name': 'Mia',
-        'age': 20,
-        'gender': 'Female',
-        'bio': 'Here for interesting conversations',
-        'interests': ['dance', 'fitness', 'cooking'],
-      },
-    ];
-
-    final personality =
-        personalities[DateTime.now().millisecond % personalities.length];
-
-    // Create fake AI user profile with personality
-    final aiUser = {
-      'id': 'test_ai_user_${DateTime.now().millisecondsSinceEpoch}',
-      'username': personality['name'],
-      'displayName': personality['name'],
-      'bio': personality['bio'],
-      'profileImage': null,
-      'interests': personality['interests'],
-      'language': 'en',
-      'isOnline': true,
-      'lastSeen': DateTime.now().toIso8601String(),
-      'isPremium': false,
-      'age': personality['age'],
-      'gender': personality['gender'],
-      'userType': 'human', // Never identify as AI
-      'isVerified': false,
-    };
-
-    print(
-        '[DEBUG] Created personality: ${personality['name']}, ${personality['age']}, ${personality['gender']}');
-    print('[DEBUG] Navigating to test AI chat with session: $aiSessionId');
-
-    _navigateToRandomChat(
-      aiSessionId,
-      aiSessionId,
-      isAiChat: true,
-      aiUser: aiUser,
     );
   }
 }
