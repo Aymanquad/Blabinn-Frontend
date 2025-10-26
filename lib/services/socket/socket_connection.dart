@@ -48,9 +48,10 @@ class SocketConnection {
       _socket = IO.io(
         AppConfig.wsBaseUrl,
         IO.OptionBuilder()
-            .setTransports(['websocket'])
+            .setTransports(['polling', 'websocket'])
             .setAuth({'token': _authToken})
-            .setTimeout(5000)
+            .setTimeout(10000)
+            .enableAutoConnect()
             .build(),
       );
 
