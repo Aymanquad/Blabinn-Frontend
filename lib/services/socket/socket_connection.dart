@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:io';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import 'package:firebase_auth/firebase_auth.dart' as FirebaseAuth;
 import '../../core/config.dart';
@@ -45,23 +44,27 @@ class SocketConnection {
     _connectCompleter = Completer<void>();
 
     try {
+      print('🔌 [SOCKET] Attempting to connect to: ${AppConfig.wsBaseUrl}');
+      print('🔑 [SOCKET] Auth token: ${_authToken?.substring(0, 10)}...');
+      
       _socket = IO.io(
         AppConfig.wsBaseUrl,
         IO.OptionBuilder()
             .setTransports(['polling', 'websocket'])
             .setAuth({'token': _authToken})
-            .setTimeout(10000)
+            .setTimeout(30000) // Increased from 10000 to 30000 (30 seconds)
             .enableAutoConnect()
             .build(),
       );
 
       _socket!.onConnect((_) {
+        print('✅ [SOCKET] Connected successfully!');
         _isConnected = true;
         _isConnecting = false;
         _connectionTime = DateTime.now();
 
         if (_reconnectAttempts > 0) {
-          // Successfully reconnected
+          print('🔄 [SOCKET] Successfully reconnected after ${_reconnectAttempts} attempts');
         }
 
         _reconnectAttempts = 0;
@@ -79,14 +82,23 @@ class SocketConnection {
       });
 
       _socket!.onConnectError((error) {
+        print('❌ [SOCKET] Connection error: $error');
         _handleError(error, onEvent);
       });
 
       _socket!.onDisconnect((reason) {
+        print('🔌 [SOCKET] Disconnected: $reason');
         _handleDisconnect(onEvent);
       });
 
       _socket!.onError((error) {
+        print('❌ [SOCKET] Socket error: $error');
+        _handleError(error, onEvent);
+      });
+
+      // Add connection timeout handler (using available methods)
+      _socket!.onConnectError((error) {
+        print('⏰ [SOCKET] Connection timeout or error: $error');
         _handleError(error, onEvent);
       });
 
@@ -153,14 +165,18 @@ class SocketConnection {
   // Attempt to reconnect
   void _attemptReconnect(Function(SocketEvent) onEvent) {
     if (_reconnectAttempts >= _maxReconnectAttempts) {
+      print('🚫 [SOCKET] Max reconnection attempts reached (${_maxReconnectAttempts})');
       return;
     }
 
     _reconnectAttempts++;
+    print('🔄 [SOCKET] Attempting reconnection ${_reconnectAttempts}/${_maxReconnectAttempts}');
 
     _reconnectTimer = Timer(_reconnectDelay, () {
       if (!_isConnected && !_isConnecting && _authToken != null) {
+        print('🔄 [SOCKET] Starting reconnection...');
         connect(_authToken!, onEvent).catchError((error) {
+          print('❌ [SOCKET] Reconnection failed: $error');
           if (_reconnectAttempts < _maxReconnectAttempts) {
             _attemptReconnect(onEvent);
           }
@@ -239,7 +255,7 @@ class SocketConnection {
   void _sendToSocket(Map<String, dynamic> message) {
     if (_socket != null && _isConnected && _socket!.connected) {
       try {
-        _socket!.emit(message['event'], message['data']);
+        _socket!.emit(message['event'] as String, message['data']);
         print('📤 [SOCKET DEBUG] Message sent: ${message['event']}');
       } catch (e) {
         print('❌ [SOCKET DEBUG] Error sending message: $e');
@@ -257,14 +273,14 @@ class SocketConnection {
   }
 
   // Send join event with Firebase user data
-  void _sendJoinEvent(Function(SocketEvent) onEvent) async {
+  Future<void> _sendJoinEvent(Function(SocketEvent) onEvent) async {
     try {
       final user = await _getCurrentUser();
       if (user != null) {
         final joinData = {
-          'userId': user['uid'],
-          'displayName': user['displayName'] ?? 'User',
-          'photoURL': user['photoURL'],
+          'userId': user['uid'] as String,
+          'displayName': (user['displayName'] as String?) ?? 'User',
+          'photoURL': user['photoURL'] as String?,
         };
 
         _sendToSocket({
@@ -302,7 +318,7 @@ class SocketConnection {
   }
 
   // Set up event listeners
-  void setupEventListeners(Function(String, dynamic) onEvent) {
+  void setupEventListeners(Function(String, Object?) onEvent) {
     if (_socket != null) {
       _socket!.onAny((event, data) {
         onEvent(event, data);
