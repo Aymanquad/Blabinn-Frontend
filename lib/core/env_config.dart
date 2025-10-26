@@ -39,7 +39,7 @@ class EnvConfig {
   // Physical Device IP (for Android physical devices)
   // static const String physicalDeviceIp = '192.168.1.5';  // Updated to correct IP
 
-  // ===== LOCAL DEVELOPMENT CONFIG (For Testing with Local Backend) =====
+  // ===== LOCAL DEVELOPMENT CONFIG (COMMENTED OUT - For Testing with Local Backend) =====
   // NEW MODULAR FLOW: Frontend → Backend Orchestrator → Chatbot Microservice
   //                          ↕               ↕
   //                    Socket.IO    →     Redis Service
@@ -47,35 +47,35 @@ class EnvConfig {
   // API Configuration - Now pointing to LOCAL Backend (blabin-backend)
   // For Android Emulator: 10.0.2.2 is the special IP that maps to host's localhost
   // The orchestrator handles AI fallback, session management, and proxies to chatbot
-  static const String apiBaseUrlAndroid =
-      'http://10.0.2.2:3000'; // Local backend for Android Emulator
-  static const String apiBaseUrlIos =
-      'http://localhost:3000'; // Local backend for iOS Simulator
-  static const String apiBaseUrlWeb =
-      'http://localhost:3000'; // Local backend for Web
-  static const String apiBaseUrlDefault =
-      'http://10.0.2.2:3000'; // Default to Android config
-  static const String apiVersion = 'v1';
+  // static const String apiBaseUrlAndroid =
+  //     'http://10.0.2.2:3000'; // Local backend for Android Emulator
+  // static const String apiBaseUrlIos =
+  //     'http://localhost:3000'; // Local backend for iOS Simulator
+  // static const String apiBaseUrlWeb =
+  //     'http://localhost:3000'; // Local backend for Web
+  // static const String apiBaseUrlDefault =
+  //     'http://10.0.2.2:3000'; // Default to Android config
+  // static const String apiVersion = 'v1';
 
   // WebSocket Configuration - Socket.IO uses HTTP URLs for base
-  static const String wsUrlAndroid =
-      'http://10.0.2.2:3000'; // Local backend WebSocket for Android Emulator
-  static const String wsUrlIos =
-      'http://localhost:3000'; // Local backend WebSocket for iOS
-  static const String wsUrlWeb =
-      'http://localhost:3000'; // Local backend WebSocket for Web
-  static const String wsUrlDefault =
-      'http://10.0.2.2:3000'; // Default to Android config
+  // static const String wsUrlAndroid =
+  //     'http://10.0.2.2:3000'; // Local backend WebSocket for Android Emulator
+  // static const String wsUrlIos =
+  //     'http://localhost:3000'; // Local backend WebSocket for iOS
+  // static const String wsUrlWeb =
+  //     'http://localhost:3000'; // Local backend WebSocket for Web
+  // static const String wsUrlDefault =
+  //     'http://10.0.2.2:3000'; // Default to Android config
 
-  // ===== DEPLOYED BACKEND CONFIG (COMMENTED OUT - Uncomment to use cloud backend) =====
-  // static const String apiBaseUrlAndroid = 'https://blabbin-backend.onrender.com';
-  // static const String apiBaseUrlIos = 'https://blabbin-backend.onrender.com';
-  // static const String apiBaseUrlWeb = 'https://blabbin-backend.onrender.com';
-  // static const String apiBaseUrlDefault = 'https://blabbin-backend.onrender.com';
-  // static const String wsUrlAndroid = 'https://blabbin-backend.onrender.com';
-  // static const String wsUrlIos = 'https://blabbin-backend.onrender.com';
-  // static const String wsUrlWeb = 'https://blabbin-backend.onrender.com';
-  // static const String wsUrlDefault = 'https://blabbin-backend.onrender.com';
+  // ===== DEPLOYED BACKEND CONFIG (ACTIVE - Using cloud backend) =====
+  static const String apiBaseUrlAndroid = 'https://blabbin-backend.onrender.com';
+  static const String apiBaseUrlIos = 'https://blabbin-backend.onrender.com';
+  static const String apiBaseUrlWeb = 'https://blabbin-backend.onrender.com';
+  static const String apiBaseUrlDefault = 'https://blabbin-backend.onrender.com';
+  static const String wsUrlAndroid = 'https://blabbin-backend.onrender.com';
+  static const String wsUrlIos = 'https://blabbin-backend.onrender.com';
+  static const String wsUrlWeb = 'https://blabbin-backend.onrender.com';
+  static const String wsUrlDefault = 'https://blabbin-backend.onrender.com';
 
   // Physical Device IP (for Android physical devices) - Not needed for deployed backend
   // static const String physicalDeviceIp = '';
