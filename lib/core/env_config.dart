@@ -72,6 +72,7 @@ class EnvConfig {
   static const String apiBaseUrlIos = 'https://blabbin-backend.onrender.com';
   static const String apiBaseUrlWeb = 'https://blabbin-backend.onrender.com';
   static const String apiBaseUrlDefault = 'https://blabbin-backend.onrender.com';
+  static const String apiVersion = 'v1';
   static const String wsUrlAndroid = 'https://blabbin-backend.onrender.com';
   static const String wsUrlIos = 'https://blabbin-backend.onrender.com';
   static const String wsUrlWeb = 'https://blabbin-backend.onrender.com';
