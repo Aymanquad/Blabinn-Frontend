@@ -111,94 +111,233 @@ class ApiService {
     return headers;
   }
 
-  // Generic HTTP methods
+  // Generic HTTP methods with retry logic for Render free tier
   Future<http.Response> _get(String endpoint) async {
-    try {
-      // Check if user is authenticated before making request
-      final currentUser = _firebaseAuth.currentUser;
-      print('🔍 DEBUG: Current user: ${currentUser?.uid ?? 'null'}');
-      print(
-          '🔍 DEBUG: User is anonymous: ${currentUser?.isAnonymous ?? 'unknown'}');
-
-      if (currentUser == null) {
+    const maxRetries = 3;
+    const retryDelay = Duration(seconds: 2);
+    
+    for (int attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        // Check if user is authenticated before making request
+        final currentUser = _firebaseAuth.currentUser;
+        print('🔍 DEBUG: Current user: ${currentUser?.uid ?? 'null'}');
         print(
-            '❌ DEBUG: User not authenticated - cannot make authenticated request to $endpoint');
-        throw Exception('User not authenticated. Please sign in first.');
+            '🔍 DEBUG: User is anonymous: ${currentUser?.isAnonymous ?? 'unknown'}');
+
+        if (currentUser == null) {
+          print(
+              '❌ DEBUG: User not authenticated - cannot make authenticated request to $endpoint');
+          throw Exception('User not authenticated. Please sign in first.');
+        }
+
+        final response = await http
+            .get(
+              Uri.parse('$_baseUrl$endpoint'),
+              headers: await _headers,
+            )
+            .timeout(_timeout);
+
+        // Handle 503 (Render sleep) with retry
+        if (response.statusCode == 503 && attempt < maxRetries) {
+          print('⏳ Backend sleeping (503), retrying in ${retryDelay.inSeconds}s... (attempt $attempt/$maxRetries)');
+          await Future.delayed(retryDelay);
+          continue;
+        }
+
+        return response;
+      } catch (e) {
+        final errorMsg = e.toString();
+        
+        // Retry on timeout or connection errors
+        if ((errorMsg.contains('TimeoutException') || 
+             errorMsg.contains('SocketException') || 
+             errorMsg.contains('Failed host lookup')) && 
+            attempt < maxRetries) {
+          print('⏳ Connection failed, retrying in ${retryDelay.inSeconds}s... (attempt $attempt/$maxRetries)');
+          await Future.delayed(retryDelay);
+          continue;
+        }
+        
+        if (attempt == maxRetries) {
+          throw Exception('Network error: $e');
+        }
+        
+        await Future.delayed(retryDelay);
       }
-
-      final response = await http
-          .get(
-            Uri.parse('$_baseUrl$endpoint'),
-            headers: await _headers,
-          )
-          .timeout(_timeout);
-
-      return response;
-    } catch (e) {
-      throw Exception('Network error: $e');
     }
+    
+    throw Exception('Network error: Failed after $maxRetries attempts');
   }
 
   Future<http.Response> _post(
       String endpoint, Map<String, dynamic> data) async {
-    try {
-      final response = await http
-          .post(
-            Uri.parse('$_baseUrl$endpoint'),
-            headers: await _headers,
-            body: jsonEncode(data),
-          )
-          .timeout(_timeout);
+    const maxRetries = 3;
+    const retryDelay = Duration(seconds: 2);
+    
+    for (int attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        final response = await http
+            .post(
+              Uri.parse('$_baseUrl$endpoint'),
+              headers: await _headers,
+              body: jsonEncode(data),
+            )
+            .timeout(_timeout);
 
-      return response;
-    } catch (e) {
-      throw Exception('Network error: $e');
+        // Handle 503 (Render sleep) with retry
+        if (response.statusCode == 503 && attempt < maxRetries) {
+          print('⏳ Backend sleeping (503), retrying in ${retryDelay.inSeconds}s... (attempt $attempt/$maxRetries)');
+          await Future.delayed(retryDelay);
+          continue;
+        }
+
+        return response;
+      } catch (e) {
+        final errorMsg = e.toString();
+        
+        if ((errorMsg.contains('TimeoutException') || 
+             errorMsg.contains('SocketException') || 
+             errorMsg.contains('Failed host lookup')) && 
+            attempt < maxRetries) {
+          print('⏳ Connection failed, retrying in ${retryDelay.inSeconds}s... (attempt $attempt/$maxRetries)');
+          await Future.delayed(retryDelay);
+          continue;
+        }
+        
+        if (attempt == maxRetries) {
+          throw Exception('Network error: $e');
+        }
+        
+        await Future.delayed(retryDelay);
+      }
     }
+    
+    throw Exception('Network error: Failed after $maxRetries attempts');
   }
 
   Future<http.Response> _put(String endpoint, Map<String, dynamic> data) async {
-    try {
-      final response = await http
-          .put(
-            Uri.parse('$_baseUrl$endpoint'),
-            headers: await _headers,
-            body: jsonEncode(data),
-          )
-          .timeout(_timeout);
+    const maxRetries = 3;
+    const retryDelay = Duration(seconds: 2);
+    
+    for (int attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        final response = await http
+            .put(
+              Uri.parse('$_baseUrl$endpoint'),
+              headers: await _headers,
+              body: jsonEncode(data),
+            )
+            .timeout(_timeout);
 
-      return response;
-    } catch (e) {
-      throw Exception('Network error: $e');
+        // Handle 503 (Render sleep) with retry
+        if (response.statusCode == 503 && attempt < maxRetries) {
+          print('⏳ Backend sleeping (503), retrying in ${retryDelay.inSeconds}s... (attempt $attempt/$maxRetries)');
+          await Future.delayed(retryDelay);
+          continue;
+        }
+
+        return response;
+      } catch (e) {
+        final errorMsg = e.toString();
+        
+        if ((errorMsg.contains('TimeoutException') || 
+             errorMsg.contains('SocketException') || 
+             errorMsg.contains('Failed host lookup')) && 
+            attempt < maxRetries) {
+          print('⏳ Connection failed, retrying in ${retryDelay.inSeconds}s... (attempt $attempt/$maxRetries)');
+          await Future.delayed(retryDelay);
+          continue;
+        }
+        
+        if (attempt == maxRetries) {
+          throw Exception('Network error: $e');
+        }
+        
+        await Future.delayed(retryDelay);
+      }
     }
+    
+    throw Exception('Network error: Failed after $maxRetries attempts');
   }
 
   Future<http.Response> _delete(String endpoint) async {
-    try {
-      final response = await http
-          .delete(
-            Uri.parse('$_baseUrl$endpoint'),
-            headers: await _headers,
-          )
-          .timeout(_timeout);
+    const maxRetries = 3;
+    const retryDelay = Duration(seconds: 2);
+    
+    for (int attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        final response = await http
+            .delete(
+              Uri.parse('$_baseUrl$endpoint'),
+              headers: await _headers,
+            )
+            .timeout(_timeout);
 
-      return response;
-    } catch (e) {
-      throw Exception('Network error: $e');
+        // Handle 503 (Render sleep) with retry
+        if (response.statusCode == 503 && attempt < maxRetries) {
+          print('⏳ Backend sleeping (503), retrying in ${retryDelay.inSeconds}s... (attempt $attempt/$maxRetries)');
+          await Future.delayed(retryDelay);
+          continue;
+        }
+
+        return response;
+      } catch (e) {
+        final errorMsg = e.toString();
+        
+        if ((errorMsg.contains('TimeoutException') || 
+             errorMsg.contains('SocketException') || 
+             errorMsg.contains('Failed host lookup')) && 
+            attempt < maxRetries) {
+          print('⏳ Connection failed, retrying in ${retryDelay.inSeconds}s... (attempt $attempt/$maxRetries)');
+          await Future.delayed(retryDelay);
+          continue;
+        }
+        
+        if (attempt == maxRetries) {
+          throw Exception('Network error: $e');
+        }
+        
+        await Future.delayed(retryDelay);
+      }
     }
+    
+    throw Exception('Network error: Failed after $maxRetries attempts');
   }
 
-  // Handle response
+  // Handle response with HTML detection
   Map<String, dynamic> _handleResponse(http.Response response) {
+    // Check if response is HTML (Render sleep page)
+    if (response.body.trim().startsWith('<!DOCTYPE') || 
+        response.body.trim().startsWith('<html')) {
+      throw Exception('Backend service is temporarily unavailable (returned HTML). The server may be sleeping. Please try again in a moment.');
+    }
+    
     if (response.statusCode >= 200 && response.statusCode < 300) {
-      final data = jsonDecode(response.body);
-      // Handle both direct data and wrapped data responses
-      if (data is Map<String, dynamic> && data.containsKey('data')) {
-        return data['data'];
+      try {
+        final data = jsonDecode(response.body);
+        // Handle both direct data and wrapped data responses
+        if (data is Map<String, dynamic> && data.containsKey('data')) {
+          return data['data'];
+        }
+        return data;
+      } catch (e) {
+        if (e.toString().contains('FormatException') || 
+            e.toString().contains('Unexpected character')) {
+          throw Exception('Backend returned invalid response (HTML instead of JSON). The server may be sleeping. Please try again in a moment.');
+        }
+        rethrow;
       }
-      return data;
     } else {
-      final errorData = jsonDecode(response.body);
-      throw Exception(errorData['message'] ?? 'HTTP ${response.statusCode}');
+      try {
+        final errorData = jsonDecode(response.body);
+        throw Exception(errorData['message'] ?? 'HTTP ${response.statusCode}');
+      } catch (e) {
+        if (e.toString().contains('FormatException') || 
+            e.toString().contains('Unexpected character')) {
+          throw Exception('Backend returned invalid response (HTML instead of JSON). Status: ${response.statusCode}');
+        }
+        throw Exception('HTTP ${response.statusCode}');
+      }
     }
   }
 
