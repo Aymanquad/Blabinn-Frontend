@@ -39,21 +39,19 @@ class EnvConfig {
   // Physical Device IP (for Android physical devices)
   // static const String physicalDeviceIp = '192.168.1.5';  // Updated to correct IP
 
-  // ===== DEPLOYED BACKEND CONFIG =====
+  // ===== RENDER BACKEND CONFIG =====
   // API Configuration
-  static const String apiBaseUrlAndroid =
-      'https://blabbin-backend.onrender.com';
-  static const String apiBaseUrlIos = 'https://blabbin-backend.onrender.com';
-  static const String apiBaseUrlWeb = 'https://blabbin-backend.onrender.com';
-  static const String apiBaseUrlDefault =
-      'https://blabbin-backend.onrender.com';
+  static const String apiBaseUrlAndroid = 'https://blabbin-backend-rsss.onrender.com';
+  static const String apiBaseUrlIos = 'https://blabbin-backend-rsss.onrender.com';
+  static const String apiBaseUrlWeb = 'https://blabbin-backend-rsss.onrender.com';
+  static const String apiBaseUrlDefault = 'https://blabbin-backend-rsss.onrender.com';
   static const String apiVersion = 'v1';
 
-  // WebSocket Configuration - Socket.IO uses HTTP URLs, not WS URLs
-  static const String wsUrlAndroid = 'https://blabbin-backend.onrender.com';
-  static const String wsUrlIos = 'https://blabbin-backend.onrender.com';
-  static const String wsUrlWeb = 'https://blabbin-backend.onrender.com';
-  static const String wsUrlDefault = 'https://blabbin-backend.onrender.com';
+  // WebSocket Configuration - Socket.IO uses HTTP URLs for base
+  static const String wsUrlAndroid = 'https://blabbin-backend-rsss.onrender.com';
+  static const String wsUrlIos = 'https://blabbin-backend-rsss.onrender.com';
+  static const String wsUrlWeb = 'https://blabbin-backend-rsss.onrender.com';
+  static const String wsUrlDefault = 'https://blabbin-backend-rsss.onrender.com';
 
   // Physical Device IP (for Android physical devices) - Not needed for deployed backend
   // static const String physicalDeviceIp = '';

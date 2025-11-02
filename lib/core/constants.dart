@@ -1,37 +1,30 @@
 import 'package:flutter/material.dart';
 
-// App Colors based on schemes.md
+// App Colors - Dark Mode Only
 class AppColors {
-  // Light Theme Colors (First Palette)
-  static const Color text = Color(0xFF2C2C2C);
-  static const Color background = Color(0xFFFFF9F9);
-  static const Color primary = Color(0xFFFF7F8A);
-  static const Color secondary = Color(0xFF5DADE2);
-  static const Color accent = Color(0xFFFFD166);
+  // Primary Colors
+  static const Color primary = Color(0xFFA259FF);
+  static const Color secondary = Color(0xFF4DD4C9);
+  static const Color accent = Color(0xFFFF6F91);
 
-  // Additional UI Colors
-  static const Color cardBackground = Colors.white;
-  static const Color inputBackground = Color(0xFFF8F9FA);
+  // Background Colors
+  static const Color background = Color(0xFF1E1B2E);
+  static const Color cardBackground = Color(0xFF2A2A3E);
+  static const Color inputBackground = Color(0xFF3A3A4E);
+
+  // Text Colors
+  static const Color text = Color(0xFFFDFCFB);
+  static const Color textSecondary = Color(0xFFB8B8B8);
+  static const Color textMuted = Color(0xFF8A8A8A);
+
+  // Status Colors
   static const Color error = Color(0xFFE74C3C);
   static const Color success = Color(0xFF27AE60);
   static const Color warning = Color(0xFFF39C12);
 
-  // Dark Theme Colors
-  static const Color darkText = Color(0xFFFDFCFB);
-  static const Color darkBackground = Color(0xFF1E1B2E);
-  static const Color darkPrimary = Color(0xFFA259FF);
-  static const Color darkSecondary = Color(0xFF4DD4C9);
-  static const Color darkAccent = Color(0xFFFF6F91);
-
-  // Dark Theme Additional Colors
-  static const Color darkCardBackground = Color(0xFF2A2A3E);
-  static const Color darkInputBackground = Color(0xFF3A3A4E);
-
   // Chat Colors
   static const Color sentMessage = primary;
-  static const Color receivedMessage = Color(0xFFE8E8E8);
-  static const Color darkSentMessage = darkPrimary;
-  static const Color darkReceivedMessage = Color(0xFF4A4A5E);
+  static const Color receivedMessage = Color(0xFF4A4A5E);
   static const Color sentMessageText = Colors.white;
   static const Color receivedMessageText = text;
 
@@ -100,11 +93,136 @@ class AppConstants {
 
   // Predefined Interests (User must select minimum 2)
   static const List<String> availableInterests = [
+    // Entertainment & Media
     'Movies & TV',
     'Gaming',
     'Music & Arts',
-    'Fitness & Lifestyle',
     'Books & Learning',
+    'Photography',
+    'Podcasts',
+    'Comedy',
+    'Dancing',
+    'Theater',
+    'Art & Design',
+    
+    // Sports & Fitness
+    'Fitness & Lifestyle',
+    'Running',
+    'Yoga',
+    'Swimming',
+    'Basketball',
+    'Soccer',
+    'Tennis',
+    'Hiking',
+    'Cycling',
+    'Gym',
+    'Boxing',
+    'Martial Arts',
+    'Rock Climbing',
+    'Surfing',
+    'Skiing',
+    
+    // Food & Drink
+    'Cooking',
+    'Wine',
+    'Coffee',
+    'Craft Beer',
+    'Foodie',
+    'Baking',
+    'Cocktails',
+    'Travel Food',
+    
+    // Lifestyle & Hobbies
+    'Travel',
+    'Adventure',
+    'Nature',
+    'Camping',
+    'Beach',
+    'Mountain',
+    'City Life',
+    'Nightlife',
+    'Brunch',
+    'Shopping',
+    'Fashion',
+    'Beauty',
+    'Wellness',
+    'Meditation',
+    'Spirituality',
+    
+    // Technology & Learning
+    'Technology',
+    'Science',
+    'Startups',
+    'Entrepreneurship',
+    'Investing',
+    'Crypto',
+    'AI & Tech',
+    'Programming',
+    'Gaming',
+    'Board Games',
+    'Puzzles',
+    'Learning',
+    'Languages',
+    'History',
+    'Philosophy',
+    
+    // Social & Relationships
+    'Networking',
+    'Volunteering',
+    'Activism',
+    'Politics',
+    'Environment',
+    'Animals',
+    'Pets',
+    'Family',
+    'Friends',
+    'Dating',
+    'Relationships',
+    'Marriage',
+    'Kids',
+    
+    // Creative & Arts
+    'Writing',
+    'Poetry',
+    'Blogging',
+    'Painting',
+    'Drawing',
+    'Sculpting',
+    'Crafts',
+    'DIY',
+    'Interior Design',
+    'Architecture',
+    'Fashion Design',
+    'Music Production',
+    'Singing',
+    'Playing Instruments',
+    
+    // Health & Wellness
+    'Mental Health',
+    'Therapy',
+    'Self Care',
+    'Nutrition',
+    'Healthy Living',
+    'Vegan',
+    'Vegetarian',
+    'Gluten Free',
+    'Organic',
+    'Supplements',
+    'Alternative Medicine',
+    
+    // Career & Business
+    'Career Development',
+    'Business',
+    'Marketing',
+    'Sales',
+    'Finance',
+    'Real Estate',
+    'Law',
+    'Medicine',
+    'Education',
+    'Consulting',
+    'Freelancing',
+    'Remote Work',
   ];
 
   // Interest constraints
@@ -147,7 +265,7 @@ class AppStrings {
 
   // Navigation
   static const String home = 'Home';
-  static const String connect = 'Connect';
+  static const String connect = 'Discover';
   static const String chats = 'Chats';
   static const String media = 'Media';
   static const String friends = 'Friends';

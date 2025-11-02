@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:screen_protector/screen_protector.dart';
 
 class FullScreenImageViewer extends StatefulWidget {
   final String imageUrl;
   final String? heroTag;
+  final bool viewOnce;
 
   const FullScreenImageViewer({
     super.key,
     required this.imageUrl,
     this.heroTag,
+    this.viewOnce = false,
   });
 
   @override
@@ -18,20 +21,49 @@ class FullScreenImageViewer extends StatefulWidget {
 class _FullScreenImageViewerState extends State<FullScreenImageViewer> {
   final TransformationController _transformationController = TransformationController();
   bool _showAppBar = true;
+  bool _protectionEnabled = false;
+  bool _hasAutoClosed = false;
 
   @override
   void initState() {
     super.initState();
     // Hide system UI for full immersion
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersive);
+    _enableProtection();
   }
 
   @override
   void dispose() {
     // Restore system UI
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual, overlays: SystemUiOverlay.values);
+    _disableProtection();
     _transformationController.dispose();
     super.dispose();
+  }
+
+  Future<void> _enableProtection() async {
+    try {
+      await ScreenProtector.preventScreenshotOn();
+      await ScreenProtector.protectDataLeakageOn();
+      _protectionEnabled = true;
+      if (widget.viewOnce && !_hasAutoClosed) {
+        // Auto-close after short view for view-once
+        Future.delayed(const Duration(seconds: 8), () {
+          if (mounted && !_hasAutoClosed) {
+            _hasAutoClosed = true;
+            Navigator.of(context).maybePop();
+          }
+        });
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _disableProtection() async {
+    if (!_protectionEnabled) return;
+    try {
+      await ScreenProtector.preventScreenshotOff();
+      await ScreenProtector.protectDataLeakageOff();
+    } catch (_) {}
   }
 
   void _toggleAppBar() {

@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import '../core/constants.dart';
 import '../services/api_service.dart';
-import '../models/user.dart';
-import '../widgets/profile_card.dart';
+import '../widgets/skeleton_list.dart';
 
 class SearchScreen extends StatefulWidget {
   const SearchScreen({super.key});
@@ -19,6 +18,7 @@ class _SearchScreenState extends State<SearchScreen> {
   bool _isLoading = false;
   bool _hasSearched = false;
   String? _errorMessage;
+  String _lastSearchQuery = '';
 
   @override
   void dispose() {
@@ -26,16 +26,20 @@ class _SearchScreenState extends State<SearchScreen> {
     super.dispose();
   }
 
-  Future<void> _performSearch() async {
-    if (_searchController.text.trim().isEmpty) {
+  Future<void> _performSearch([String? query]) async {
+    final searchQuery = query ?? _searchController.text.trim();
+
+    if (searchQuery.isEmpty) {
       setState(() {
         _searchResults = [];
         _hasSearched = false;
         _errorMessage = null;
+        _lastSearchQuery = '';
       });
       return;
     }
 
+    _lastSearchQuery = searchQuery;
     setState(() {
       _isLoading = true;
       _errorMessage = null;
@@ -43,31 +47,39 @@ class _SearchScreenState extends State<SearchScreen> {
 
     try {
       // Get current user ID to filter out from results
-      final currentUserId = await _apiService.getCurrentUserId(); 
-      
+      final currentUserId = await _apiService.getCurrentUserId();
+
       final results = await _apiService.searchProfiles({
-        'searchTerm': _searchController.text.trim(),
+        'searchTerm': searchQuery,
         'limit': 20,
       });
-      
+
+      //print('🔍 DEBUG: Search results received: ${results.length} users');
+      //print('🔍 DEBUG: Current user ID: $currentUserId');
+
       // Filter out current user from results
       final filteredResults = results.where((user) {
         final userId = user['uid'] ?? user['id'];
         return userId != currentUserId;
       }).toList();
-      
+
+      //print('🔍 DEBUG: Filtered results: ${filteredResults.length} users (removed current user)');
+
       // Check connection status for each user
       final resultsWithStatus = <Map<String, dynamic>>[];
       for (final user in filteredResults) {
         final userId = user['uid'] ?? user['id'];
         try {
-          final connectionStatus = await _apiService.getConnectionStatus(userId);
+          final connectionStatus =
+              await _apiService.getConnectionStatus(userId);
           user['connectionStatus'] = connectionStatus['status'] ?? 'none';
           user['connectionType'] = connectionStatus['type'] ?? 'none';
+          //print('🔍 DEBUG: User ${user['username']} - Connection status: ${user['connectionStatus']}');
         } catch (e) {
           // If connection status check fails, assume no connection
           user['connectionStatus'] = 'none';
           user['connectionType'] = 'none';
+          //print('🔍 DEBUG: Failed to get connection status for ${user['username']}: $e');
         }
         resultsWithStatus.add(user);
       }
@@ -78,6 +90,7 @@ class _SearchScreenState extends State<SearchScreen> {
         _hasSearched = true;
       });
     } catch (e) {
+      //print('❌ ERROR: Search failed: $e');
       setState(() {
         _errorMessage = 'Failed to search: ${e.toString()}';
         _isLoading = false;
@@ -88,206 +101,137 @@ class _SearchScreenState extends State<SearchScreen> {
 
   Future<void> _sendFriendRequest(String targetUserId) async {
     try {
+      print('🔍 [SEARCH] Sending friend request to user: $targetUserId');
+
+      if (targetUserId.isEmpty) {
+        throw Exception('Invalid user ID: User ID cannot be empty');
+      }
+
+      // Check connection status first to avoid duplicate requests
+      final connectionStatus =
+          await _apiService.getConnectionStatus(targetUserId);
+      final status = connectionStatus['status'] ?? 'none';
+
+      if (status == 'friends' || status == 'accepted') {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('You are already friends with this user!'),
+              backgroundColor: Colors.green,
+              duration: Duration(seconds: 3),
+            ),
+          );
+        }
+        return;
+      }
+
+      if (status == 'pending') {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Friend request already sent and is pending.'),
+              backgroundColor: Colors.orange,
+              duration: Duration(seconds: 4),
+            ),
+          );
+        }
+        return;
+      }
+
       await _apiService.sendFriendRequest(targetUserId);
-      
+
+      // Refresh search results to update connection status
+      if (_lastSearchQuery.isNotEmpty) {
+        _performSearch(_lastSearchQuery);
+      }
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Friend request sent!'),
+            content: Text('Friend request sent successfully!'),
             backgroundColor: Colors.green,
           ),
         );
-        
-        // Refresh search results to update connection status
-        _performSearch();
       }
     } catch (e) {
+      print('❌ [SEARCH] Failed to send friend request: $e');
       if (mounted) {
+        String errorMessage = 'Failed to send friend request';
+
+        // Provide more specific error messages
+        if (e.toString().contains('User not found')) {
+          errorMessage = 'User not found or no longer available.';
+        } else if (e.toString().contains('Already friends')) {
+          errorMessage = 'You are already friends with this user!';
+        } else if (e.toString().contains('Request already sent') ||
+            e.toString().contains('Friend request already sent')) {
+          errorMessage = 'A friend request to this user is already pending.';
+        } else if (e
+            .toString()
+            .contains('Cannot send request to blocked user')) {
+          errorMessage = 'Cannot send friend request to this user.';
+        } else {
+          errorMessage =
+              'Failed to send friend request. Please try again later.';
+        }
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to send friend request: ${e.toString()}'),
+            content: Text(errorMessage),
             backgroundColor: Colors.red,
           ),
         );
       }
     }
-  }
-
-  Future<void> _acceptFriendRequest(String targetUserId) async {
-    try {
-      await _apiService.acceptFriendRequest(targetUserId);
-      
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Friend request accepted!'),
-            backgroundColor: Colors.green,
-          ),
-        );
-        
-        // Refresh search results to update connection status
-        _performSearch();
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to accept friend request: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
-  }
-
-  Future<void> _rejectFriendRequest(String targetUserId) async {
-    try {
-      await _apiService.rejectFriendRequest(targetUserId);
-      
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Friend request rejected'),
-            backgroundColor: Colors.orange,
-          ),
-        );
-        
-        // Refresh search results to update connection status
-        _performSearch();
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to reject friend request: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFF2D1B69), // Dark purple background
-      body: Container(
-        decoration: const BoxDecoration(
-          image: DecorationImage(
-            image: AssetImage('assets/images/bg1.png'),
-            fit: BoxFit.cover,
-          ),
-        ),
-        child: SafeArea(
-          child: Column(
-            children: [
-              // Header
-              _buildHeader(),
-              
-              // Search bar
-              _buildSearchBar(),
-              
-              // Main content
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: _buildContent(),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildHeader() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      child: Row(
-        children: [
-          // Back button
-          IconButton(
-            onPressed: () {
-              Navigator.pop(context);
-            },
-            icon: const Icon(
-              Icons.arrow_back,
-              color: Colors.white,
-              size: 24,
-            ),
-          ),
-          
-          // Title in center
-          const Expanded(
-            child: Text(
-              'Search People',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-          
-          // Search icon
-          const Icon(
-            Icons.search,
-            color: Colors.white,
-            size: 24,
-          ),
-        ],
-      ),
-    );
   }
 
   Widget _buildSearchBar() {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      margin: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.1),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
       child: TextField(
         controller: _searchController,
-        style: const TextStyle(color: Colors.white),
         decoration: InputDecoration(
           hintText: 'Search for people...',
-          hintStyle: TextStyle(color: Colors.white.withOpacity(0.7)),
-          prefixIcon: const Icon(Icons.search, color: Colors.white),
+          prefixIcon: const Icon(Icons.search, color: AppColors.primary),
           suffixIcon: _searchController.text.isNotEmpty
               ? IconButton(
-                  icon: const Icon(Icons.clear, color: Colors.white),
+                  icon: const Icon(Icons.clear, color: Colors.grey),
                   onPressed: () {
                     _searchController.clear();
                     _performSearch();
                   },
                 )
               : null,
-          filled: true,
-          fillColor: Colors.white.withOpacity(0.1),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide(color: Colors.white.withOpacity(0.3)),
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide(color: Colors.white.withOpacity(0.3)),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: const BorderSide(color: Color(0xFF8B5CF6), width: 2),
-          ),
+          border: InputBorder.none,
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         ),
         onSubmitted: (_) => _performSearch(),
-        onChanged: (_) => _performSearch(),
+        onChanged: (value) {
+          if (value.isEmpty) {
+            _performSearch();
+          }
+        },
       ),
     );
   }
 
-  Widget _buildContent() {
+  Widget _buildSearchResults() {
     if (_isLoading) {
-      return const Center(
-        child: CircularProgressIndicator(
-          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-        ),
+      return SkeletonList(
+        itemCount: 6,
+        itemBuilder: (context, index) => SkeletonLayouts.searchResult(),
       );
     }
 
@@ -298,29 +242,28 @@ class _SearchScreenState extends State<SearchScreen> {
           children: [
             Icon(
               Icons.error_outline,
-              color: Colors.white.withOpacity(0.7),
               size: 64,
+              color: Colors.red[300],
             ),
             const SizedBox(height: 16),
             Text(
+              'Search Error',
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+            ),
+            const SizedBox(height: 8),
+            Text(
               _errorMessage!,
               style: TextStyle(
-                color: Colors.white.withOpacity(0.9),
-                fontSize: 16,
+                color: Colors.grey[600],
               ),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 16),
             ElevatedButton(
               onPressed: _performSearch,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF8B5CF6),
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-              child: const Text('Retry'),
+              child: const Text('Try Again'),
             ),
           ],
         ),
@@ -334,24 +277,21 @@ class _SearchScreenState extends State<SearchScreen> {
           children: [
             Icon(
               Icons.search,
-              color: Colors.white.withOpacity(0.7),
               size: 64,
+              color: Colors.grey[400],
             ),
             const SizedBox(height: 16),
             Text(
-              'Search for people',
-              style: TextStyle(
-                color: Colors.white.withOpacity(0.9),
-                fontSize: 20,
-                fontWeight: FontWeight.w500,
-              ),
+              'Search for People',
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
             ),
             const SizedBox(height: 8),
             Text(
-              'Enter a name or username to find people',
+              'Enter a name, username, or interest to find people',
               style: TextStyle(
-                color: Colors.white.withOpacity(0.7),
-                fontSize: 14,
+                color: Colors.grey[600],
               ),
               textAlign: TextAlign.center,
             ),
@@ -366,25 +306,22 @@ class _SearchScreenState extends State<SearchScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
-              Icons.person_search,
-              color: Colors.white.withOpacity(0.7),
+              Icons.people_outline,
               size: 64,
+              color: Colors.grey[400],
             ),
             const SizedBox(height: 16),
             Text(
-              'No results found',
-              style: TextStyle(
-                color: Colors.white.withOpacity(0.9),
-                fontSize: 20,
-                fontWeight: FontWeight.w500,
-              ),
+              'No Results Found',
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
             ),
             const SizedBox(height: 8),
             Text(
-              'Try searching with a different term',
+              'Try searching with different keywords',
               style: TextStyle(
-                color: Colors.white.withOpacity(0.7),
-                fontSize: 14,
+                color: Colors.grey[600],
               ),
               textAlign: TextAlign.center,
             ),
@@ -394,132 +331,222 @@ class _SearchScreenState extends State<SearchScreen> {
     }
 
     return ListView.builder(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
       itemCount: _searchResults.length,
       itemBuilder: (context, index) {
         final user = _searchResults[index];
-        final connectionStatus = user['connectionStatus'] ?? 'none';
-        
-        return Container(
-          margin: const EdgeInsets.only(bottom: 12),
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: Colors.white.withOpacity(0.2),
-              width: 1,
-            ),
-          ),
-          child: ListTile(
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            leading: CircleAvatar(
-              radius: 25,
-              backgroundColor: const Color(0xFF8B5CF6),
-              child: Text(
-                (user['displayName'] ?? user['username'] ?? 'U')[0].toUpperCase(),
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 18,
-                ),
-              ),
-            ),
-            title: Text(
-              user['displayName'] ?? user['username'] ?? 'Unknown',
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w600,
-                fontSize: 16,
-              ),
-            ),
-            subtitle: Text(
-              '@${user['username'] ?? 'unknown'}',
-              style: TextStyle(
-                color: Colors.white.withOpacity(0.7),
-                fontSize: 14,
-              ),
-            ),
-            trailing: _buildActionButton(user, connectionStatus),
-          ),
-        );
+        return _buildUserCard(user);
       },
     );
   }
 
-  Widget _buildActionButton(Map<String, dynamic> user, String connectionStatus) {
-    final userId = user['uid'] ?? user['id'];
-    
-    switch (connectionStatus) {
-      case 'none':
-        return ElevatedButton(
-          onPressed: () => _sendFriendRequest(userId),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF8B5CF6),
-            foregroundColor: Colors.white,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
+  Widget _buildUserCard(Map<String, dynamic> user) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
           ),
-          child: const Text('Add'),
-        );
-      case 'pending_sent':
-        return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          decoration: BoxDecoration(
-            color: Colors.orange.withOpacity(0.2),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.orange),
-          ),
-          child: const Text(
-            'Sent',
-            style: TextStyle(color: Colors.orange, fontSize: 12),
-          ),
-        );
-      case 'pending_received':
-        return Row(
-          mainAxisSize: MainAxisSize.min,
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
           children: [
-            ElevatedButton(
-              onPressed: () => _acceptFriendRequest(userId),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.green,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              ),
-              child: const Text('Accept', style: TextStyle(fontSize: 12)),
+            // Profile Picture
+            CircleAvatar(
+              radius: 30,
+              backgroundColor: AppColors.primary.withValues(alpha: 0.1),
+              backgroundImage: user['profilePicture'] != null
+                  ? NetworkImage(user['profilePicture'])
+                  : null,
+              child: user['profilePicture'] == null
+                  ? Text(
+                      (user['displayName'] ?? user['username'] ?? '?')
+                          .substring(0, 1)
+                          .toUpperCase(),
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.primary,
+                      ),
+                    )
+                  : null,
             ),
-            const SizedBox(width: 4),
-            ElevatedButton(
-              onPressed: () => _rejectFriendRequest(userId),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            const SizedBox(width: 16),
+            // User Info
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    user['displayName'] ?? 'Unknown User',
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '@${user['username'] ?? 'unknown'}',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.white.withOpacity(0.7),
+                    ),
+                  ),
+                  if (user['bio'] != null && user['bio'].isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      user['bio'],
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.white.withOpacity(0.6),
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                  if (user['interests'] != null &&
+                      user['interests'].isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 4,
+                      runSpacing: 4,
+                      children: (user['interests'] as List<dynamic>)
+                          .take(3)
+                          .map((interest) => Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color:
+                                      AppColors.primary.withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Text(
+                                  interest.toString(),
+                                  style: const TextStyle(
+                                    fontSize: 10,
+                                    color: AppColors.primary,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ))
+                          .toList(),
+                    ),
+                  ],
+                ],
               ),
-              child: const Text('Reject', style: TextStyle(fontSize: 12)),
             ),
+            const SizedBox(width: 12),
+            // Action Button
+            _buildActionButton(user),
           ],
-        );
-      case 'friends':
-        return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          decoration: BoxDecoration(
-            color: Colors.green.withOpacity(0.2),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.green),
-          ),
-          child: const Text(
-            'Friends',
-            style: TextStyle(color: Colors.green, fontSize: 12),
-          ),
-        );
-      default:
-        return const SizedBox.shrink();
+        ),
+      ),
+    );
+  }
+
+  Widget _buildActionButton(Map<String, dynamic> user) {
+    final connectionStatus = user['connectionStatus'] ?? 'none';
+    final isAlreadyFriend =
+        connectionStatus == 'accepted' || connectionStatus == 'friends';
+    final isPending = connectionStatus == 'pending';
+
+    String buttonText;
+    Color buttonColor;
+    Color textColor;
+    bool isEnabled;
+
+    if (isAlreadyFriend) {
+      buttonText = 'Already Friends';
+      buttonColor = Colors.grey[300]!;
+      textColor = Colors.grey[600]!;
+      isEnabled = false;
+    } else if (isPending) {
+      buttonText = 'Request Sent';
+      buttonColor = Colors.orange[100]!;
+      textColor = Colors.orange[700]!;
+      isEnabled = false;
+    } else {
+      buttonText = 'Connect';
+      buttonColor = AppColors.primary;
+      textColor = Colors.white;
+      isEnabled = true;
     }
+
+    return ElevatedButton(
+      onPressed: isEnabled
+          ? () {
+              final userId = user['uid'] ?? user['id'];
+              if (userId != null) {
+                _sendFriendRequest(userId);
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Cannot connect: User ID not found'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
+            }
+          : null,
+      style: ElevatedButton.styleFrom(
+        backgroundColor: buttonColor,
+        foregroundColor: textColor,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        elevation: isEnabled ? 2 : 0,
+      ),
+      child: Text(buttonText),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text(
+          'Search People',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        foregroundColor: Colors.white,
+        iconTheme: const IconThemeData(color: Colors.white),
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                Colors.black.withOpacity(0.35),
+                Colors.transparent,
+              ],
+            ),
+          ),
+        ),
+        titleTextStyle: const TextStyle(
+            color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+      ),
+      body: Column(
+        children: [
+          _buildSearchBar(),
+          Expanded(
+            child: _buildSearchResults(),
+          ),
+        ],
+      ),
+    );
   }
 }

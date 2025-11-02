@@ -247,16 +247,29 @@ class SocketService {
 
   // Leave chat room
   Future<void> leaveChat(String chatId) async {
-    if (!_connection.isConnected) return;
+    try {
+      // Check both connection flag and actual socket state
+      final isActuallyConnected =
+          _connection.isConnected && _connection.socket?.connected == true;
 
-    final message = {
-      'event': 'leave_chat',
-      'data': {
-        'chatId': chatId,
-      },
-    };
+      if (!isActuallyConnected) {
+        print('⚠️ [SOCKET DEBUG] Cannot leave chat - socket not connected');
+        return;
+      }
 
-    _connection.sendToSocket(message);
+      final message = {
+        'event': 'leave_chat',
+        'data': {
+          'chatId': chatId,
+        },
+      };
+
+      _connection.sendToSocket(message);
+      print('✅ [SOCKET DEBUG] Leave chat message sent for: $chatId');
+    } catch (e) {
+      print('❌ [SOCKET DEBUG] Error leaving chat: $e');
+      throw Exception('Failed to leave chat: $e');
+    }
   }
 
   // Start random connection
@@ -294,14 +307,28 @@ class SocketService {
 
   // Stop random connection
   Future<void> stopRandomConnection() async {
-    if (!_connection.isConnected) return;
+    try {
+      // Check both connection flag and actual socket state
+      final isActuallyConnected =
+          _connection.isConnected && _connection.socket?.connected == true;
 
-    final message = {
-      'event': 'stop_random_connection',
-      'data': {},
-    };
+      if (!isActuallyConnected) {
+        print(
+            '⚠️ [SOCKET DEBUG] Cannot stop random connection - socket not connected');
+        return;
+      }
 
-    _connection.sendToSocket(message);
+      final message = {
+        'event': 'stop_random_connection',
+        'data': {},
+      };
+
+      _connection.sendToSocket(message);
+      print('✅ [SOCKET DEBUG] Stop random connection message sent');
+    } catch (e) {
+      print('❌ [SOCKET DEBUG] Error stopping random connection: $e');
+      throw Exception('Failed to stop random connection: $e');
+    }
   }
 
   // Send call request
@@ -363,17 +390,30 @@ class SocketService {
 
   // End random chat session
   Future<void> endRandomChatSession(String sessionId, String reason) async {
-    if (!_connection.isConnected) {
-      throw Exception('Socket not connected');
+    try {
+      // Check both connection flag and actual socket state
+      final isActuallyConnected =
+          _connection.isConnected && _connection.socket?.connected == true;
+
+      if (!isActuallyConnected) {
+        print(
+            '⚠️ [SOCKET DEBUG] Cannot end random chat session - socket not connected');
+        throw Exception('Socket not connected');
+      }
+
+      final message = {
+        'sessionId': sessionId,
+        'reason': reason,
+      };
+
+      // Use the Socket.IO emit method directly
+      _connection.socket!.emit('end_random_chat_session', message);
+      print(
+          '✅ [SOCKET DEBUG] End random chat session message sent for: $sessionId');
+    } catch (e) {
+      print('❌ [SOCKET DEBUG] Error ending random chat session: $e');
+      throw Exception('Failed to end random chat session: $e');
     }
-
-    final message = {
-      'sessionId': sessionId,
-      'reason': reason,
-    };
-
-    // Use the Socket.IO emit method directly
-    _connection.socket!.emit('end_random_chat_session', message);
   }
 
   // Dispose resources

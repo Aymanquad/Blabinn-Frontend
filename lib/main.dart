@@ -6,75 +6,149 @@ import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'app.dart';
 import 'services/background_image_service.dart';
 import 'services/ad_service.dart';
+import 'utils/logger.dart';
+import 'utils/global_error_handler.dart';
 import 'utils/ad_debug_helper.dart';
 
 // Background message handler
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp();
-  // print('🔔 [BACKGROUND NOTIFICATION] Handling background message: ${message.messageId}');
-  // print('   📦 Title: ${message.notification?.title}');
-  // print('   📦 Body: ${message.notification?.body}');
-  // print('   📦 Data: ${message.data}');
+  Logger.notification('Handling background message: ${message.messageId}');
+  Logger.debug('Title: ${message.notification?.title}');
+  Logger.debug('Body: ${message.notification?.body}');
+  Logger.debug('Data: ${message.data}');
 
   try {
     // Handle image messages for auto-save even when app is closed
     final backgroundImageService = BackgroundImageService();
     await backgroundImageService.handleImageFromPushNotification(message.data);
-    // print('✅ [BACKGROUND NOTIFICATION] Image processing completed');
+    Logger.notification('Image processing completed');
   } catch (e) {
-    // print('❌ [BACKGROUND NOTIFICATION] Error processing image: $e');
+    Logger.error('Error processing image', error: e);
   }
 }
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Initialize security features - prevent screenshots and screen recording
+  // Initialize global error handler first
+  GlobalErrorHandler.initialize();
+
+  // Initialize security features - allow screenshots by default
   await _initializeSecurity();
 
   // Try to initialize Firebase, but don't crash if it fails
   try {
-    print('🔍 DEBUG: Initializing Firebase...');
+    Logger.info('Initializing Firebase...');
     await Firebase.initializeApp();
-    print('✅ DEBUG: Firebase initialized successfully');
+    Logger.info('Firebase initialized successfully');
 
     // Set up background message handler
     FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
-    print('✅ DEBUG: Firebase messaging background handler set up');
+    Logger.info('Firebase messaging background handler set up');
   } catch (e) {
-    print('❌ DEBUG: Firebase initialization failed: $e');
-    print('❌ DEBUG: Error type: ${e.runtimeType}');
-    print('⚠️ DEBUG: Running without Firebase - some features may not work');
+    Logger.error('Firebase initialization failed', error: e);
+    Logger.warning('Running without Firebase - some features may not work');
   }
 
   // Initialize AdMob
   try {
-    print('🔍 DEBUG: Initializing AdMob...');
-    
+    Logger.ads('Initializing AdMob...');
+
     // Print debug information
     AdDebugHelper.printAdConfig();
     AdDebugHelper.validateAdConfig();
-    
+
     await MobileAds.instance.initialize();
-    print('✅ DEBUG: AdMob initialized successfully');
+    Logger.ads('AdMob initialized successfully');
   } catch (e) {
-    print('❌ DEBUG: AdMob initialization failed: $e');
-    print('⚠️ DEBUG: Running without AdMob - ads will not be displayed');
-    print('💡 DEBUG: Make sure you have internet connection and valid AdMob IDs');
+    Logger.error('AdMob initialization failed', error: e);
+    Logger.warning('Running without AdMob - ads will not be displayed');
+    Logger.info('Make sure you have internet connection and valid AdMob IDs');
   }
 
-  runApp(const ChatApp());
+  // Initialize Billing Service
+  try {
+    Logger.billing('Initializing Billing Service...');
+    // Billing service is now initialized per screen, not globally
+    Logger.billing('Billing Service will be initialized when needed');
+  } catch (e) {
+    Logger.error('Billing Service initialization failed', error: e);
+    Logger.warning('Running without billing - purchases will not work');
+  }
+
+  runApp(const MyApp());
+}
+
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      theme: _buildDarkTheme(),
+      themeMode: ThemeMode.dark,
+      home: const _Warmup(child: ChatApp()),
+    );
+  }
+}
+
+class _Warmup extends StatefulWidget {
+  final Widget child;
+  const _Warmup({required this.child, super.key});
+
+  @override
+  State<_Warmup> createState() => _WarmupState();
+}
+
+class _WarmupState extends State<_Warmup> {
+  bool _ready = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    Future.wait([
+      precacheImage(
+          const AssetImage('assets/images/chatify_purple_logo.png'), context),
+    ]).whenComplete(() => setState(() => _ready = true));
+  }
+
+  @override
+  Widget build(BuildContext context) =>
+      _ready ? widget.child : const SizedBox.shrink();
+}
+
+// Move the theme building method here from app.dart
+ThemeData _buildDarkTheme() {
+  return ThemeData(
+    useMaterial3: true,
+    colorScheme: ColorScheme.fromSeed(
+      seedColor: const Color(0xFF6B46C1),
+      brightness: Brightness.dark,
+    ).copyWith(
+      primary: const Color(0xFF6B46C1),
+      secondary: const Color(0xFFA259FF),
+      tertiary: const Color(0xFFFF6B6B),
+      surface: const Color(0xFF1E1B2E),
+      background: const Color(0xFF1F1941),
+      onSurface: Colors.white,
+      onBackground: Colors.white,
+    ),
+    scaffoldBackgroundColor: Colors.transparent,
+    fontFamily: 'LeagueSpartan',
+  );
 }
 
 Future<void> _initializeSecurity() async {
   try {
-    // Enable security features - prevent screenshots and screen recording
-    await ScreenProtector.preventScreenshotOn();
-    await ScreenProtector.protectDataLeakageOn();
-
-    // print('🔒 Security features initialized - Screenshots and screen recording blocked');
+    // Allow screenshots by default; selective screens will enable protection
+    await ScreenProtector.preventScreenshotOff();
+    await ScreenProtector.protectDataLeakageOff();
+    Logger.info(
+        'Screenshots enabled globally; protected per-screen where needed');
   } catch (e) {
-    // print('⚠️ Failed to initialize security features: $e');
+    Logger.warning('Failed to initialize security features', error: e);
   }
 }

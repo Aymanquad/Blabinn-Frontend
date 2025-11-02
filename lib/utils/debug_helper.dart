@@ -65,8 +65,8 @@ class DebugHelper {
 
   static void printCurrentSHA1() {
     // print('🔍 Current SHA-1 Fingerprint:');
-    // print('SHA1: C5:8C:49:8B:5B:35:6A:93:D0:18:1B:37:AD:E7:73:78:39:42:ED:EF');
-    // print('Formatted: c58c498b5b356a93d0181b37ade773783942edef');
+    // print('SHA1: 11:F1:6C:19:A0:66:14:52:A3:2D:C1:B0:BC:FE:F9:C6:CD:2A:CE:A5');
+    // print('Formatted: 11f16c19a0661452a32dc1b0bcfef9c6cd2acea5');
     // print('💡 Make sure this matches your Firebase console configuration');
   }
 }

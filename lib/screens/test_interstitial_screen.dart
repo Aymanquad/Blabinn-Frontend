@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/ad_service.dart';
 import '../core/constants.dart';
+import '../widgets/consistent_app_bar.dart';
 
 class TestInterstitialScreen extends StatefulWidget {
   const TestInterstitialScreen({super.key});
@@ -77,10 +78,8 @@ class _TestInterstitialScreenState extends State<TestInterstitialScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Interstitial Ad Test'),
-        backgroundColor: AppColors.primary,
-        foregroundColor: Colors.white,
+      appBar: GradientAppBar(
+        title: 'Interstitial Ad Test',
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),

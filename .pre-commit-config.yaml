@@ -1,0 +1,402 @@
+# Pre-commit hooks configuration for Chatify Flutter application
+# This file configures automated checks that run before each commit
+
+repos:
+  # Flutter/Dart specific hooks
+  - repo: https://github.com/dart-lang/dart_style
+    rev: 2.3.0
+    hooks:
+      - id: dart-format
+        name: Dart Format
+        description: Format Dart code using dart format
+        entry: dart format
+        language: system
+        args: [--set-exit-if-changed]
+        files: \.dart$
+
+  - repo: https://github.com/dart-lang/sdk
+    rev: 3.0.0
+    hooks:
+      - id: dart-analyze
+        name: Dart Analyze
+        description: Run dart analyze for static analysis
+        entry: dart analyze
+        language: system
+        files: \.dart$
+
+  # General code quality hooks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.4.0
+    hooks:
+      - id: trailing-whitespace
+        name: Trim Trailing Whitespace
+        description: Remove trailing whitespace
+        types: [text]
+        exclude: \.md$
+
+      - id: end-of-file-fixer
+        name: Fix End of Files
+        description: Ensure files end with a newline
+        types: [text]
+
+      - id: check-yaml
+        name: Check YAML
+        description: Check YAML syntax
+        files: \.(yaml|yml)$
+
+      - id: check-json
+        name: Check JSON
+        description: Check JSON syntax
+        files: \.json$
+
+      - id: check-merge-conflict
+        name: Check for merge conflicts
+        description: Check for merge conflict markers
+        types: [text]
+
+      - id: check-added-large-files
+        name: Check for large files
+        description: Prevent large files from being committed
+        args: ['--maxkb=1000']
+
+      - id: check-case-conflict
+        name: Check for case conflicts
+        description: Check for files that would conflict in case-insensitive filesystems
+
+      - id: check-merge-conflict
+        name: Check for merge conflicts
+        description: Check for merge conflict markers
+
+      - id: debug-statements
+        name: Check for debug statements
+        description: Check for debug statements in code
+        entry: python -c "import sys; [sys.exit(1) for line in sys.stdin if 'print(' in line or 'console.log' in line or 'debugger' in line]"
+        language: system
+        types: [text]
+
+  # Security hooks
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.4.0
+    hooks:
+      - id: detect-secrets
+        name: Detect Secrets
+        description: Detect secrets in code
+        args: ['--baseline', '.secrets.baseline']
+        exclude: |
+          (?x)^(
+            \.secrets\.baseline|
+            \.git/.*|
+            \.dart_tool/.*|
+            build/.*|
+            ios/.*|
+            android/.*|
+            web/.*|
+            windows/.*|
+            macos/.*|
+            linux/.*|
+            coverage/.*|
+            test/.*
+          )$
+
+  # Custom hooks for Chatify
+  - repo: local
+    hooks:
+      - id: flutter-test
+        name: Flutter Test
+        description: Run Flutter tests
+        entry: flutter test
+        language: system
+        files: \.dart$
+        pass_filenames: false
+        always_run: true
+
+      - id: flutter-analyze
+        name: Flutter Analyze
+        description: Run Flutter analyze
+        entry: flutter analyze
+        language: system
+        files: \.dart$
+        pass_filenames: false
+        always_run: true
+
+      - id: flutter-format
+        name: Flutter Format
+        description: Run Flutter format
+        entry: flutter format
+        language: system
+        args: [--set-exit-if-changed]
+        files: \.dart$
+        pass_filenames: false
+        always_run: true
+
+      - id: check-imports
+        name: Check Imports
+        description: Check for proper import organization
+        entry: python -c "
+import re
+import sys
+
+def check_imports(filename):
+    with open(filename, 'r') as f:
+        content = f.read()
+    
+    # Check for dart: imports first
+    dart_imports = re.findall(r'import\s+[\'"]dart:[^\'"]+[\'"];', content)
+    package_imports = re.findall(r'import\s+[\'"]package:[^\'"]+[\'"];', content)
+    relative_imports = re.findall(r'import\s+[\'"]\.\.?/[^\'"]+[\'"];', content)
+    
+    # Find all import lines
+    import_lines = re.findall(r'^import\s+.*;', content, re.MULTILINE)
+    
+    if not import_lines:
+        return True
+    
+    # Check order: dart: imports, then package: imports, then relative imports
+    dart_count = 0
+    package_count = 0
+    relative_count = 0
+    
+    for line in import_lines:
+        if line.startswith('import \'dart:'):
+            if package_count > 0 or relative_count > 0:
+                print(f'Error in {filename}: dart: imports should come before package: and relative imports')
+                return False
+            dart_count += 1
+        elif line.startswith('import \'package:'):
+            if relative_count > 0:
+                print(f'Error in {filename}: package: imports should come before relative imports')
+                return False
+            package_count += 1
+        elif line.startswith('import \'../') or line.startswith('import \'./'):
+            relative_count += 1
+    
+    return True
+
+if __name__ == '__main__':
+    for filename in sys.argv[1:]:
+        if not check_imports(filename):
+            sys.exit(1)
+"
+        language: system
+        files: \.dart$
+
+      - id: check-naming-conventions
+        name: Check Naming Conventions
+        description: Check for proper naming conventions
+        entry: python -c "
+import re
+import sys
+
+def check_naming_conventions(filename):
+    with open(filename, 'r') as f:
+        content = f.read()
+    
+    errors = []
+    
+    # Check for camelCase variables and functions
+    camel_case_pattern = r'(?:final|const|var|late)\s+([a-z][a-zA-Z0-9]*)\s*='
+    for match in re.finditer(camel_case_pattern, content):
+        var_name = match.group(1)
+        if not re.match(r'^[a-z][a-zA-Z0-9]*$', var_name):
+            errors.append(f'Variable {var_name} should be camelCase')
+    
+    # Check for PascalCase classes
+    class_pattern = r'class\s+([A-Z][a-zA-Z0-9]*)'
+    for match in re.finditer(class_pattern, content):
+        class_name = match.group(1)
+        if not re.match(r'^[A-Z][a-zA-Z0-9]*$', class_name):
+            errors.append(f'Class {class_name} should be PascalCase')
+    
+    # Check for SCREAMING_SNAKE_CASE constants
+    const_pattern = r'const\s+([A-Z_][A-Z0-9_]*)\s*='
+    for match in re.finditer(const_pattern, content):
+        const_name = match.group(1)
+        if not re.match(r'^[A-Z][A-Z0-9_]*$', const_name):
+            errors.append(f'Constant {const_name} should be SCREAMING_SNAKE_CASE')
+    
+    if errors:
+        print(f'Errors in {filename}:')
+        for error in errors:
+            print(f'  {error}')
+        return False
+    
+    return True
+
+if __name__ == '__main__':
+    for filename in sys.argv[1:]:
+        if not check_naming_conventions(filename):
+            sys.exit(1)
+"
+        language: system
+        files: \.dart$
+
+      - id: check-error-handling
+        name: Check Error Handling
+        description: Check for proper error handling
+        entry: python -c "
+import re
+import sys
+
+def check_error_handling(filename):
+    with open(filename, 'r') as f:
+        content = f.read()
+    
+    errors = []
+    
+    # Check for generic catch blocks
+    generic_catch = re.search(r'catch\s*\(\s*e\s*\)', content)
+    if generic_catch:
+        errors.append('Avoid generic catch blocks, specify exception types')
+    
+    # Check for empty catch blocks
+    empty_catch = re.search(r'catch\s*\([^)]*\)\s*\{\s*\}', content)
+    if empty_catch:
+        errors.append('Avoid empty catch blocks, handle or log errors')
+    
+    # Check for print statements in catch blocks
+    print_in_catch = re.search(r'catch\s*\([^)]*\)\s*\{[^}]*print\s*\([^}]*\}', content, re.DOTALL)
+    if print_in_catch:
+        errors.append('Use Logger instead of print in catch blocks')
+    
+    if errors:
+        print(f'Errors in {filename}:')
+        for error in errors:
+            print(f'  {error}')
+        return False
+    
+    return True
+
+if __name__ == '__main__':
+    for filename in sys.argv[1:]:
+        if not check_error_handling(filename):
+            sys.exit(1)
+"
+        language: system
+        files: \.dart$
+
+      - id: check-performance
+        name: Check Performance
+        description: Check for performance best practices
+        entry: python -c "
+import re
+import sys
+
+def check_performance(filename):
+    with open(filename, 'r') as f:
+        content = f.read()
+    
+    errors = []
+    
+    # Check for ListView without builder for large lists
+    listview_pattern = r'ListView\s*\(\s*children:\s*\['
+    if re.search(listview_pattern, content):
+        errors.append('Consider using ListView.builder for large lists')
+    
+    # Check for missing const constructors
+    widget_pattern = r'Text\s*\(\s*[\'\"][^\'\"]*[\'\"]\s*\)'
+    for match in re.finditer(widget_pattern, content):
+        if 'const' not in content[max(0, match.start()-20):match.start()]:
+            errors.append('Consider using const constructor for static widgets')
+    
+    # Check for missing RepaintBoundary for expensive widgets
+    expensive_widgets = ['CustomPaint', 'CustomScrollView', 'ListView', 'GridView']
+    for widget in expensive_widgets:
+        if re.search(f'{widget}\\s*\\(', content) and not re.search(f'RepaintBoundary.*{widget}', content):
+            errors.append(f'Consider wrapping {widget} with RepaintBoundary')
+    
+    if errors:
+        print(f'Performance suggestions for {filename}:')
+        for error in errors:
+            print(f'  {error}')
+    
+    return True
+
+if __name__ == '__main__':
+    for filename in sys.argv[1:]:
+        check_performance(filename)
+"
+        language: system
+        files: \.dart$
+
+      - id: check-documentation
+        name: Check Documentation
+        description: Check for proper documentation
+        entry: python -c "
+import re
+import sys
+
+def check_documentation(filename):
+    with open(filename, 'r') as f:
+        content = f.read()
+    
+    errors = []
+    
+    # Check for public classes without documentation
+    class_pattern = r'class\s+([A-Z][a-zA-Z0-9]*)'
+    for match in re.finditer(class_pattern, content):
+        class_name = match.group(1)
+        class_start = match.start()
+        
+        # Look for documentation before the class
+        before_class = content[max(0, class_start-500):class_start]
+        if not re.search(r'///', before_class):
+            errors.append(f'Class {class_name} should have documentation')
+    
+    # Check for public methods without documentation
+    method_pattern = r'^\s*(?:Future<[^>]*>|[A-Za-z][a-zA-Z0-9]*\s+)?([a-z][a-zA-Z0-9]*)\s*\([^)]*\)\s*(?:async\s*)?\{'
+    for match in re.finditer(method_pattern, content, re.MULTILINE):
+        method_name = match.group(1)
+        method_start = match.start()
+        
+        # Look for documentation before the method
+        before_method = content[max(0, method_start-200):method_start]
+        if not re.search(r'///', before_method):
+            errors.append(f'Public method {method_name} should have documentation')
+    
+    if errors:
+        print(f'Documentation suggestions for {filename}:')
+        for error in errors:
+            print(f'  {error}')
+    
+    return True
+
+if __name__ == '__main__':
+    for filename in sys.argv[1:]:
+        check_documentation(filename)
+"
+        language: system
+        files: \.dart$
+
+# Configuration for pre-commit
+default_stages: [commit]
+fail_fast: false
+minimum_pre_commit_version: 2.0.0
+
+# Exclude certain files from pre-commit hooks
+exclude: |
+  (?x)^(
+    \.dart_tool/.*|
+    build/.*|
+    ios/.*|
+    android/.*|
+    web/.*|
+    windows/.*|
+    macos/.*|
+    linux/.*|
+    coverage/.*|
+    test/.*|
+    \.git/.*
+  )$
+
+# Global configuration
+ci:
+  autofix_commit_msg: |
+    [pre-commit.ci] auto fixes from pre-commit.com hooks
+
+    for more information, see https://pre-commit.ci
+  autofix_prs: true
+  autoupdate_branch: ''
+  autoupdate_commit_msg: '[pre-commit.ci] pre-commit autoupdate'
+  autoupdate_schedule: weekly
+  skip: []
+  submodules: false

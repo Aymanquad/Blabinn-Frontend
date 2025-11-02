@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+
 import '../core/constants.dart';
 import '../services/api_service.dart';
-import '../providers/theme_provider.dart';
+
 import '../widgets/full_screen_image_viewer.dart';
+import '../widgets/consistent_app_bar.dart';
+import '../widgets/skeleton_list.dart';
 import '../models/chat.dart';
 import '../screens/chat_screen.dart';
 
@@ -111,6 +113,37 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
   Future<void> _sendFriendRequest() async {
     try {
+      // Check connection status first to avoid duplicate requests
+      final connectionStatus =
+          await _apiService.getConnectionStatus(widget.userId);
+      final status = connectionStatus['status'] ?? 'none';
+
+      if (status == 'friends' || status == 'accepted') {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('You are already friends with this user!'),
+              backgroundColor: Colors.green,
+              duration: Duration(seconds: 3),
+            ),
+          );
+        }
+        return;
+      }
+
+      if (status == 'pending') {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Friend request already sent and is pending.'),
+              backgroundColor: Colors.orange,
+              duration: Duration(seconds: 4),
+            ),
+          );
+        }
+        return;
+      }
+
       await _apiService.sendFriendRequest(widget.userId);
 
       if (mounted) {
@@ -124,9 +157,28 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       }
     } catch (e) {
       if (mounted) {
+        String errorMessage = 'Failed to send request';
+
+        // Provide more specific error messages
+        if (e.toString().contains('User not found')) {
+          errorMessage = 'User not found or no longer available.';
+        } else if (e.toString().contains('Already friends')) {
+          errorMessage = 'You are already friends with this user!';
+        } else if (e.toString().contains('Request already sent') ||
+            e.toString().contains('Friend request already sent')) {
+          errorMessage = 'A friend request to this user is already pending.';
+        } else if (e
+            .toString()
+            .contains('Cannot send request to blocked user')) {
+          errorMessage = 'Cannot send friend request to this user.';
+        } else {
+          errorMessage =
+              'Failed to send friend request. Please try again later.';
+        }
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to send request: ${e.toString()}'),
+            content: Text(errorMessage),
             backgroundColor: Colors.red,
           ),
         );
@@ -272,94 +324,98 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     }
   }
 
-  Widget _buildActionButton(bool isDarkMode) {
+  Widget _buildActionButton() {
     if (_isCurrentUser) {
-      return ElevatedButton.icon(
-        onPressed: () {
-          Navigator.pushNamed(context, '/profile-management');
-        },
-        icon: const Icon(Icons.edit),
-        label: const Text('Edit Profile'),
-        style: ElevatedButton.styleFrom(
-          backgroundColor:
-              isDarkMode ? AppColors.darkPrimary : AppColors.primary,
-          foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
+      return Semantics(
+        label: 'Edit your profile',
+        button: true,
+        child: ElevatedButton.icon(
+          onPressed: () {
+            Navigator.pushNamed(context, '/profile-management');
+          },
+          icon: const Icon(Icons.edit),
+          label: const Text('Edit Profile'),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppColors.primary,
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
+          ),
         ),
       );
     }
 
     switch (_connectionStatus) {
       case 'none':
-        return ElevatedButton.icon(
-          onPressed: _sendFriendRequest,
-          icon: const Icon(Icons.person_add),
-          label: const Text('Send Friend Request'),
-          style: ElevatedButton.styleFrom(
-            backgroundColor:
-                isDarkMode ? AppColors.darkPrimary : AppColors.primary,
-            foregroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
+        return Semantics(
+          label: 'Send friend request',
+          button: true,
+          child: ElevatedButton.icon(
+            onPressed: _sendFriendRequest,
+            icon: const Icon(Icons.person_add),
+            label: const Text('Send Friend Request'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(25)),
+            ),
           ),
         );
       case 'pending_sent':
-        return OutlinedButton.icon(
-          onPressed: null,
-          icon: const Icon(Icons.schedule),
-          label: const Text('Request Sent'),
-          style: OutlinedButton.styleFrom(
-            foregroundColor:
-                isDarkMode ? AppColors.darkPrimary : AppColors.primary,
-            side: BorderSide(
-                color: isDarkMode ? AppColors.darkPrimary : AppColors.primary),
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
+        return Semantics(
+          label: 'Friend request already sent',
+          button: true,
+          child: OutlinedButton.icon(
+            onPressed: null,
+            icon: const Icon(Icons.schedule),
+            label: const Text('Request Sent'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: AppColors.primary,
+              side: BorderSide(color: AppColors.primary),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(25)),
+            ),
           ),
         );
       case 'pending_received':
         return Row(
           children: [
             Expanded(
-              child: ElevatedButton.icon(
-                onPressed: () {
-                  // TODO: Accept friend request
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Accept request feature coming soon!'),
-                      backgroundColor: AppColors.primary,
-                    ),
-                  );
-                },
-                icon: const Icon(Icons.check),
-                label: const Text('Accept'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green,
-                  foregroundColor: Colors.white,
+              child: Semantics(
+                label: 'Accept friend request',
+                button: true,
+                child: ElevatedButton.icon(
+                  onPressed: () async {
+                    await _acceptFriendRequest(context);
+                  },
+                  icon: const Icon(Icons.check),
+                  label: const Text('Accept'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green,
+                    foregroundColor: Colors.white,
+                  ),
                 ),
               ),
             ),
             const SizedBox(width: 8),
             Expanded(
-              child: OutlinedButton.icon(
-                onPressed: () {
-                  // TODO: Reject friend request
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Reject request feature coming soon!'),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
-                },
-                icon: const Icon(Icons.close),
-                label: const Text('Reject'),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: Colors.red,
-                  side: const BorderSide(color: Colors.red),
+              child: Semantics(
+                label: 'Reject friend request',
+                button: true,
+                child: OutlinedButton.icon(
+                  onPressed: () async {
+                    await _rejectFriendRequest(context);
+                  },
+                  icon: const Icon(Icons.close),
+                  label: const Text('Reject'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.red,
+                    side: const BorderSide(color: Colors.red),
+                  ),
                 ),
               ),
             ),
@@ -374,9 +430,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                 icon: const Icon(Icons.chat),
                 label: const Text('Message'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: isDarkMode
-                      ? AppColors.darkSecondary
-                      : AppColors.secondary,
+                  backgroundColor: AppColors.secondary,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 12),
                   shape: RoundedRectangleBorder(
@@ -405,8 +459,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
           icon: const Icon(Icons.person_add),
           label: const Text('Send Friend Request'),
           style: ElevatedButton.styleFrom(
-            backgroundColor:
-                isDarkMode ? AppColors.darkPrimary : AppColors.primary,
+            backgroundColor: AppColors.primary,
             foregroundColor: Colors.white,
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
             shape:
@@ -416,7 +469,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     }
   }
 
-  Widget _buildProfileHeader(bool isDarkMode) {
+  Widget _buildProfileHeader() {
     final theme = Theme.of(context);
 
     return Container(
@@ -427,16 +480,13 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            (isDarkMode ? AppColors.darkPrimary : AppColors.primary)
-                .withOpacity(0.1),
-            (isDarkMode ? AppColors.darkSecondary : AppColors.secondary)
-                .withOpacity(0.1),
+            AppColors.primary.withOpacity(0.1),
+            AppColors.secondary.withOpacity(0.1),
           ],
         ),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: (isDarkMode ? AppColors.darkText : AppColors.text)
-              .withOpacity(0.1),
+          color: AppColors.text.withOpacity(0.1),
           width: 1,
         ),
       ),
@@ -448,17 +498,13 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   border: Border.all(
-                    color:
-                        (isDarkMode ? AppColors.darkPrimary : AppColors.primary)
-                            .withOpacity(0.3),
+                    color: AppColors.primary.withOpacity(0.3),
                     width: 3,
                   ),
                 ),
                 child: CircleAvatar(
                   radius: 60,
-                  backgroundColor:
-                      (isDarkMode ? AppColors.darkPrimary : AppColors.primary)
-                          .withOpacity(0.1),
+                  backgroundColor: AppColors.primary.withOpacity(0.1),
                   backgroundImage: _userData?['profilePicture'] != null
                       ? NetworkImage(_userData!['profilePicture'])
                       : null,
@@ -472,9 +518,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                           style: TextStyle(
                             fontSize: 32,
                             fontWeight: FontWeight.bold,
-                            color: isDarkMode
-                                ? AppColors.darkPrimary
-                                : AppColors.primary,
+                            color: AppColors.primary,
                           ),
                         )
                       : null,
@@ -521,13 +565,13 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 20),
-          _buildActionButton(isDarkMode),
+          _buildActionButton(),
         ],
       ),
     );
   }
 
-  Widget _buildBioSection(bool isDarkMode) {
+  Widget _buildBioSection() {
     final theme = Theme.of(context);
     final bio = _userData?['bio'];
 
@@ -539,12 +583,26 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Colors.white.withOpacity(0.08),
+            Colors.white.withOpacity(0.03),
+          ],
+        ),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: theme.colorScheme.onSurface.withOpacity(0.1),
+          color: Colors.white.withOpacity(0.1),
           width: 1,
         ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -553,7 +611,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
             children: [
               Icon(
                 Icons.info_outline,
-                color: isDarkMode ? AppColors.darkPrimary : AppColors.primary,
+                color: AppColors.primary,
                 size: 20,
               ),
               const SizedBox(width: 8),
@@ -581,7 +639,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     );
   }
 
-  Widget _buildInterestsSection(bool isDarkMode) {
+  Widget _buildInterestsSection() {
     final theme = Theme.of(context);
     final interests = _userData?['interests'];
 
@@ -596,12 +654,26 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Colors.white.withOpacity(0.08),
+            Colors.white.withOpacity(0.03),
+          ],
+        ),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: theme.colorScheme.onSurface.withOpacity(0.1),
+          color: Colors.white.withOpacity(0.1),
           width: 1,
         ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -610,7 +682,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
             children: [
               Icon(
                 Icons.favorite_outline,
-                color: isDarkMode ? AppColors.darkAccent : AppColors.accent,
+                color: AppColors.accent,
                 size: 20,
               ),
               const SizedBox(width: 8),
@@ -633,14 +705,10 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 decoration: BoxDecoration(
-                  color:
-                      (isDarkMode ? AppColors.darkPrimary : AppColors.primary)
-                          .withOpacity(0.1),
+                  color: AppColors.primary.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
-                    color:
-                        (isDarkMode ? AppColors.darkPrimary : AppColors.primary)
-                            .withOpacity(0.3),
+                    color: AppColors.primary.withOpacity(0.3),
                     width: 1,
                   ),
                 ),
@@ -649,8 +717,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
-                    color:
-                        isDarkMode ? AppColors.darkPrimary : AppColors.primary,
+                    color: AppColors.primary,
                   ),
                 ),
               );
@@ -661,7 +728,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     );
   }
 
-  Widget _buildGallerySection(bool isDarkMode) {
+  Widget _buildGallerySection() {
     final theme = Theme.of(context);
 
     // Load gallery images from profilePictures field (backend provides this)
@@ -680,12 +747,26 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Colors.white.withOpacity(0.08),
+            Colors.white.withOpacity(0.03),
+          ],
+        ),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: theme.colorScheme.onSurface.withOpacity(0.1),
+          color: Colors.white.withOpacity(0.1),
           width: 1,
         ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -694,8 +775,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
             children: [
               Icon(
                 Icons.photo_library_outlined,
-                color:
-                    isDarkMode ? AppColors.darkSecondary : AppColors.secondary,
+                color: AppColors.secondary,
                 size: 20,
               ),
               const SizedBox(width: 8),
@@ -768,9 +848,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                                         loadingProgress.expectedTotalBytes!
                                     : null,
                                 strokeWidth: 2,
-                                color: isDarkMode
-                                    ? AppColors.darkPrimary
-                                    : AppColors.primary,
+                                color: AppColors.primary,
                               ),
                             ),
                           );
@@ -797,19 +875,33 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     );
   }
 
-  Widget _buildProfileDetails(bool isDarkMode) {
+  Widget _buildProfileDetails() {
     final theme = Theme.of(context);
 
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Colors.white.withOpacity(0.08),
+            Colors.white.withOpacity(0.03),
+          ],
+        ),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: theme.colorScheme.onSurface.withOpacity(0.1),
+          color: Colors.white.withOpacity(0.1),
           width: 1,
         ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -818,7 +910,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
             children: [
               Icon(
                 Icons.person_outline,
-                color: isDarkMode ? AppColors.darkPrimary : AppColors.primary,
+                color: AppColors.primary,
                 size: 20,
               ),
               const SizedBox(width: 8),
@@ -837,21 +929,18 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
             icon: Icons.email_outlined,
             title: 'Email',
             value: _userData?['email'] ?? 'Not provided',
-            isDarkMode: isDarkMode,
           ),
           const SizedBox(height: 12),
           _buildDetailItem(
             icon: Icons.location_on_outlined,
             title: 'Location',
             value: _userData?['location'] ?? 'Not provided',
-            isDarkMode: isDarkMode,
           ),
           const SizedBox(height: 12),
           _buildDetailItem(
             icon: Icons.calendar_today_outlined,
             title: 'Joined',
             value: _getCreatedAtYear(),
-            isDarkMode: isDarkMode,
           ),
         ],
       ),
@@ -862,7 +951,6 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     required IconData icon,
     required String title,
     required String value,
-    required bool isDarkMode,
   }) {
     final theme = Theme.of(context);
 
@@ -928,106 +1016,81 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<ThemeProvider>(
-      builder: (context, themeProvider, child) {
-        final isDarkMode = themeProvider.isDarkMode;
-        final theme = Theme.of(context);
+    final theme = Theme.of(context);
 
-        return Scaffold(
-          backgroundColor: theme.scaffoldBackgroundColor,
-          appBar: AppBar(
-            backgroundColor: theme.scaffoldBackgroundColor,
-            title: const Text('Profile'),
-            elevation: 0,
-            actions: [
-              if (!_isCurrentUser)
-                IconButton(
-                  icon: const Icon(Icons.more_vert),
-                  onPressed: () {
-                    showModalBottomSheet(
-                      context: context,
-                      backgroundColor: theme.colorScheme.surface,
-                      shape: const RoundedRectangleBorder(
-                        borderRadius:
-                            BorderRadius.vertical(top: Radius.circular(20)),
-                      ),
-                      builder: (context) => _buildBottomSheet(isDarkMode),
-                    );
-                  },
-                ),
-            ],
-          ),
-          body: _isLoading
-              ? Center(
-                  child: CircularProgressIndicator(
-                    color:
-                        isDarkMode ? AppColors.darkPrimary : AppColors.primary,
+    return Scaffold(
+      backgroundColor: theme.scaffoldBackgroundColor,
+      appBar: const ConsistentAppBar(
+        title: 'Profile',
+      ),
+      body: Stack(
+        children: [
+          if (_isLoading)
+            Center(
+              child: SkeletonLayouts.profileCard(),
+            )
+          else if (_errorMessage != null)
+            Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.error_outline,
+                    size: 64,
+                    color: Colors.red.withOpacity(0.6),
                   ),
-                )
-              : _errorMessage != null
-                  ? Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.error_outline,
-                            size: 64,
-                            color: Colors.red.withOpacity(0.6),
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            'Error',
-                            style: theme.textTheme.headlineSmall?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            _errorMessage!,
-                            style: TextStyle(
-                              color:
-                                  theme.colorScheme.onSurface.withOpacity(0.7),
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                          const SizedBox(height: 16),
-                          ElevatedButton(
-                            onPressed: _loadUserProfile,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: isDarkMode
-                                  ? AppColors.darkPrimary
-                                  : AppColors.primary,
-                              foregroundColor: Colors.white,
-                            ),
-                            child: const Text('Try Again'),
-                          ),
-                        ],
-                      ),
-                    )
-                  : SingleChildScrollView(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _buildProfileHeader(isDarkMode),
-                          const SizedBox(height: 20),
-                          _buildBioSection(isDarkMode),
-                          const SizedBox(height: 20),
-                          _buildInterestsSection(isDarkMode),
-                          const SizedBox(height: 20),
-                          _buildGallerySection(isDarkMode),
-                          const SizedBox(height: 20),
-                          _buildProfileDetails(isDarkMode),
-                          const SizedBox(height: 20), // Bottom padding
-                        ],
-                      ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Error',
+                    style: theme.textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
                     ),
-        );
-      },
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    _errorMessage!,
+                    style: TextStyle(
+                      color: theme.colorScheme.onSurface.withOpacity(0.7),
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: _loadUserProfile,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
+                    ),
+                    child: const Text('Try Again'),
+                  ),
+                ],
+              ),
+            )
+          else
+            SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildProfileHeader(),
+                  const SizedBox(height: 20),
+                  _buildBioSection(),
+                  const SizedBox(height: 20),
+                  _buildInterestsSection(),
+                  const SizedBox(height: 20),
+                  _buildGallerySection(),
+                  const SizedBox(height: 20),
+                  _buildProfileDetails(),
+                  const SizedBox(height: 20),
+                ],
+              ),
+            ),
+        ],
+      ),
     );
   }
 
-  Widget _buildBottomSheet(bool isDarkMode) {
+  Widget _buildBottomSheet() {
     final theme = Theme.of(context);
 
     return Container(
@@ -1047,7 +1110,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
           ListTile(
             leading: Icon(
               Icons.chat,
-              color: isDarkMode ? AppColors.darkSecondary : AppColors.secondary,
+              color: AppColors.secondary,
             ),
             title: const Text('Send Message'),
             onTap: () {
@@ -1063,13 +1126,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
             title: const Text('Block User'),
             onTap: () {
               Navigator.pop(context);
-              // TODO: Block user
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Block feature coming soon!'),
-                  backgroundColor: Colors.red,
-                ),
-              );
+              _showBlockUserDialog(context);
             },
           ),
           ListTile(
@@ -1080,17 +1137,179 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
             title: const Text('Report User'),
             onTap: () {
               Navigator.pop(context);
-              // TODO: Report user
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Report feature coming soon!'),
-                  backgroundColor: Colors.orange,
-                ),
-              );
+              _showReportUserDialog(context);
             },
           ),
         ],
       ),
     );
+  }
+
+  Future<void> _acceptFriendRequest(BuildContext context) async {
+    try {
+      // For now, we'll use a placeholder connection ID
+      // In a real implementation, you'd get this from the friend request data
+      const connectionId = 'placeholder_connection_id';
+
+      final apiService = ApiService();
+      await apiService.acceptFriendRequest(connectionId);
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Friend request accepted!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        // Update UI state to reflect the change
+        setState(() {
+          // Update connection status or remove friend request buttons
+        });
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error accepting friend request: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _rejectFriendRequest(BuildContext context) async {
+    try {
+      // For now, we'll use a placeholder connection ID
+      // In a real implementation, you'd get this from the friend request data
+      const connectionId = 'placeholder_connection_id';
+
+      final apiService = ApiService();
+      await apiService.rejectFriendRequest(connectionId);
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Friend request rejected'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+        // Update UI state to reflect the change
+        setState(() {
+          // Update connection status or remove friend request buttons
+        });
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error rejecting friend request: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  void _showBlockUserDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Block User'),
+        content: const Text(
+            'Are you sure you want to block this user? You won\'t be able to see their profile or receive messages from them.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              await _blockUser(context);
+            },
+            child: const Text(
+              'Block',
+              style: TextStyle(color: Colors.red),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showReportUserDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Report User'),
+        content: const Text('Please select a reason for reporting this user:'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              await _reportUser(context, 'Inappropriate behavior');
+            },
+            child: const Text('Report'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _blockUser(BuildContext context) async {
+    try {
+      final apiService = ApiService();
+      await apiService.blockUser(widget.userId);
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('User blocked successfully'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        // Navigate back or update UI
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error blocking user: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _reportUser(BuildContext context, String reason) async {
+    try {
+      final apiService = ApiService();
+      await apiService.reportUser(widget.userId, reason);
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('User reported successfully'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error reporting user: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 }

@@ -22,10 +22,68 @@ class UserProvider with ChangeNotifier {
 
   // Initialize user provider
   Future<void> initialize() async {
+    print('🔍 DEBUG: UserProvider - Starting initialization...');
     await _authService.initialize();
+    print('🔍 DEBUG: UserProvider - Auth service initialized');
     await _loadCurrentUser();
+    print('🔍 DEBUG: UserProvider - Current user loaded: ${_currentUser?.id}');
+    await _syncCreditsFromServer();
+    print('🔍 DEBUG: UserProvider - Credit sync completed');
     await _loadFriends();
+    print('🔍 DEBUG: UserProvider - Friends loaded');
     await _loadBlockedUsers();
+    print('🔍 DEBUG: UserProvider - Blocked users loaded');
+    print('🔍 DEBUG: UserProvider - Initialization complete');
+  }
+
+  // Sync credits from backend so credits persist across restarts
+  Future<void> _syncCreditsFromServer() async {
+    print('🔍 DEBUG: UserProvider - Starting credit sync...');
+    if (_currentUser == null) {
+      print('🔍 DEBUG: UserProvider - No current user, skipping credit sync');
+      return;
+    }
+    print('🔍 DEBUG: UserProvider - Current user exists: ${_currentUser!.id}');
+    print('🔍 DEBUG: UserProvider - Current credits: ${_currentUser!.credits}');
+    
+    try {
+      print('🔍 DEBUG: UserProvider - Calling getMyProfile API...');
+      final data = await _apiService.getMyProfile();
+      print('🔍 DEBUG: UserProvider - API response received: ${data.toString()}');
+      
+      final profileData = data['profile'] ?? data;
+      print('🔍 DEBUG: UserProvider - Profile data: ${profileData.toString()}');
+      
+      final serverCredits = (profileData['credits'] as int?) ?? _currentUser!.credits;
+      print('🔍 DEBUG: UserProvider - Server credits: $serverCredits, Current credits: ${_currentUser!.credits}');
+      
+      if (_currentUser!.credits != serverCredits) {
+        print('🔍 DEBUG: UserProvider - Credits differ, updating from ${_currentUser!.credits} to $serverCredits');
+        _currentUser = _currentUser!.copyWith(credits: serverCredits);
+        notifyListeners();
+        print('🔍 DEBUG: UserProvider - Credits updated and listeners notified');
+      } else {
+        print('🔍 DEBUG: UserProvider - Credits are the same, no update needed');
+      }
+    } catch (e) {
+      print('🔍 DEBUG: UserProvider - Error during credit sync: $e');
+      print('🔍 DEBUG: UserProvider - Error type: ${e.runtimeType}');
+      // Ignore silently; do not block app init
+    }
+  }
+
+  // Public method to refresh credits from server
+  Future<void> refreshCredits() async {
+    await _syncCreditsFromServer();
+  }
+
+  // Public method to update credits directly (for immediate updates)
+  void updateCredits(int newCredits) {
+    if (_currentUser != null) {
+      print('🔍 DEBUG: UserProvider - Updating credits from ${_currentUser!.credits} to $newCredits');
+      _currentUser = _currentUser!.copyWith(credits: newCredits);
+      notifyListeners();
+    }
   }
 
   // Load current user
@@ -73,6 +131,7 @@ class UserProvider with ChangeNotifier {
     try {
       final result = await _authService.login(email, password);
       _currentUser = result.user;
+      await _syncCreditsFromServer();
       await _loadFriends();
       await _loadBlockedUsers();
       clearError();
@@ -92,6 +151,7 @@ class UserProvider with ChangeNotifier {
     try {
       final result = await _authService.register(username, email, password);
       _currentUser = result.user;
+      await _syncCreditsFromServer();
       clearError();
       notifyListeners();
       return true;
@@ -109,6 +169,7 @@ class UserProvider with ChangeNotifier {
     try {
       final result = await _authService.loginAsGuest();
       _currentUser = result.user;
+      await _syncCreditsFromServer();
       clearError();
       notifyListeners();
       return true;
@@ -197,6 +258,12 @@ class UserProvider with ChangeNotifier {
       setError('Failed to unblock user: $e');
       return false;
     }
+  }
+
+  // Update current user (for local updates like credits)
+  void updateCurrentUser(User updatedUser) {
+    _currentUser = updatedUser;
+    notifyListeners();
   }
 
   // Check if user is blocked

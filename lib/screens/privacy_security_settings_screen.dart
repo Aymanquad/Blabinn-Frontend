@@ -1,26 +1,23 @@
 import 'package:flutter/material.dart';
 import '../core/constants.dart';
-import '../providers/theme_provider.dart';
-import 'package:provider/provider.dart';
+import '../widgets/consistent_app_bar.dart';
+
 
 class PrivacySecuritySettingsScreen extends StatelessWidget {
   const PrivacySecuritySettingsScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final isDarkMode = Provider.of<ThemeProvider>(context).isDarkMode;
-    final cardColor = isDarkMode ? AppColors.darkCardBackground : AppColors.cardBackground;
-    final textColor = isDarkMode ? AppColors.darkText : AppColors.text;
-    final iconColor = isDarkMode ? AppColors.darkPrimary : AppColors.primary;
+    final cardColor = AppColors.cardBackground;
+    final textColor = AppColors.text;
+    final iconColor = AppColors.primary;
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Privacy & Security'),
+      appBar: const ConsistentAppBar(
+        title: 'Privacy & Security',
         centerTitle: true,
-        elevation: 0,
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        foregroundColor: Theme.of(context).textTheme.titleLarge?.color,
       ),
-      body: SingleChildScrollView(
+      body:
+          SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -31,8 +28,8 @@ class PrivacySecuritySettingsScreen extends StatelessWidget {
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: [
-                    isDarkMode ? AppColors.darkPrimary : AppColors.primary,
-                    isDarkMode ? AppColors.darkPrimary.withOpacity(0.8) : AppColors.primary.withOpacity(0.8),
+                    AppColors.primary,
+                    AppColors.primary.withOpacity(0.8),
                   ],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
@@ -76,11 +73,27 @@ class PrivacySecuritySettingsScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 12),
-            Card(
-              color: cardColor,
-              elevation: 0,
-              shape: RoundedRectangleBorder(
+            Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Colors.white.withOpacity(0.08),
+                    Colors.white.withOpacity(0.03),
+                  ],
+                ),
                 borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: Colors.white.withOpacity(0.1),
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
               ),
               child: Padding(
                 padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
@@ -89,31 +102,31 @@ class PrivacySecuritySettingsScreen extends StatelessWidget {
                     ListTile(
                       leading: Icon(Icons.block, color: iconColor),
                       title: Text('No screenshots or screen recordings are allowed in chat for your safety.',
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: textColor)),
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.white)),
                     ),
-                    Divider(),
+                    Divider(color: Colors.white.withOpacity(0.1)),
                     ListTile(
                       leading: Icon(Icons.lock, color: iconColor),
                       title: Text('Your data is encrypted and stored securely.',
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: textColor)),
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.white)),
                     ),
-                    Divider(),
+                    Divider(color: Colors.white.withOpacity(0.1)),
                     ListTile(
                       leading: Icon(Icons.verified_user, color: iconColor),
                       title: Text('We do not share your personal information with third parties.',
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: textColor)),
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.white)),
                     ),
-                    Divider(),
+                    Divider(color: Colors.white.withOpacity(0.1)),
                     ListTile(
                       leading: Icon(Icons.settings, color: iconColor),
                       title: Text('You are always in control of your privacy settings.',
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: textColor)),
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.white)),
                     ),
-                    Divider(),
+                    Divider(color: Colors.white.withOpacity(0.1)),
                     ListTile(
                       leading: Icon(Icons.info_outline, color: iconColor),
                       title: Text('For more details, see our Privacy Policy.',
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: textColor)),
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.white)),
                     ),
                   ],
                 ),

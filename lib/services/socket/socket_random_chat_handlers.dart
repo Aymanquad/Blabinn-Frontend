@@ -50,7 +50,7 @@ class SocketRandomChatHandlers {
     Function(String) joinChat,
   ) {
     print('🎯 [RANDOM CHAT EVENT DEBUG] Received random chat event: $data');
-    
+
     // Extract and display match analytics if available
     if (data is Map<String, dynamic>) {
       final matchType = data['matchType'];
@@ -281,6 +281,17 @@ class SocketRandomChatHandlers {
     StreamController<SocketEvent> eventController,
   ) {
     print('🚪 [RANDOM CHAT SESSION DEBUG] Session ended event received: $data');
+
+    // Extract session information if available
+    if (data is Map<String, dynamic>) {
+      final sessionId = data['sessionId'];
+      final reason = data['reason'];
+      final endedBy = data['endedBy'];
+
+      print(
+          '🚪 [RANDOM CHAT SESSION DEBUG] Session ended - ID: $sessionId, Reason: $reason, Ended by: $endedBy');
+    }
+
     eventController.add(SocketEvent.randomChatSessionEnded);
   }
 

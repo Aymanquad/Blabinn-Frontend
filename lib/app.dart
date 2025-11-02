@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter/rendering.dart';
+import 'dart:ui';
+import 'widgets/modern_glass_nav_bar.dart' as modern_nav;
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:provider/provider.dart';
 import 'package:screen_protector/screen_protector.dart';
 import 'core/constants.dart';
-import 'providers/theme_provider.dart';
+import 'core/theme_extensions.dart';
 import 'providers/user_provider.dart';
 import 'services/notification_service.dart';
 import 'widgets/in_app_notification.dart';
@@ -12,16 +16,18 @@ import 'screens/splash_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/profile_screen.dart';
 import 'screens/profile_management_screen.dart';
+import 'screens/onboarding_screen.dart';
 import 'screens/connect_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/search_screen.dart';
 import 'screens/friend_requests_screen.dart';
 import 'screens/friends_screen.dart';
 import 'screens/user_profile_screen.dart';
+import 'screens/profile_preview_screen.dart';
 import 'screens/chat_list_screen.dart';
 import 'screens/friends_list_screen.dart';
 import 'screens/account_settings_screen.dart';
-import 'screens/media_folder_screen.dart';
+import 'screens/likes_matches_screen.dart';
 import 'services/socket_service.dart';
 import 'models/chat.dart'; // Added import for Chat model
 import 'screens/chat_screen.dart'; // Added import for ChatScreen
@@ -29,6 +35,8 @@ import 'screens/random_chat_screen.dart'; // Added import for RandomChatScreen
 import 'screens/test_interstitial_screen.dart';
 import 'widgets/interstitial_ad_manager.dart';
 import 'services/global_matching_service.dart';
+import 'widgets/enhanced_background.dart';
+import 'utils/logger.dart';
 
 // Global navigator key for navigation from anywhere
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
@@ -40,13 +48,13 @@ void navigateToChatFromNotification(Map<String, dynamic> notificationData) {
     final senderName = notificationData['senderName'] ?? 'Unknown';
     final chatId = notificationData['chatId'] ?? '';
 
-    // print('🔔 [NAVIGATION DEBUG] Navigating to chat from notification');
-    // print('   👤 Sender ID: $senderId');
-    // print('   👤 Sender Name: $senderName');
-    // print('   💬 Chat ID: $chatId');
+    Logger.notification('Navigating to chat from notification');
+    Logger.debug('Sender ID: $senderId');
+    Logger.debug('Sender Name: $senderName');
+    Logger.debug('Chat ID: $chatId');
 
     if (senderId.isEmpty) {
-      // print('❌ [NAVIGATION DEBUG] Sender ID is empty, cannot navigate to chat');
+      Logger.warning('Sender ID is empty, cannot navigate to chat');
       return;
     }
 
@@ -70,9 +78,9 @@ void navigateToChatFromNotification(Map<String, dynamic> notificationData) {
       ),
     );
 
-    // print('✅ [NAVIGATION DEBUG] Successfully navigated to chat screen');
+    Logger.notification('Successfully navigated to chat screen');
   } catch (e) {
-    // print('❌ [NAVIGATION DEBUG] Error navigating to chat: $e');
+    Logger.error('Error navigating to chat', error: e);
   }
 }
 
@@ -83,26 +91,34 @@ class ChatApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => ThemeProvider()),
         ChangeNotifierProvider(create: (_) => UserProvider()),
       ],
-      child: Consumer<ThemeProvider>(
-        builder: (context, themeProvider, child) {
+      child: Consumer<UserProvider>(
+        builder: (context, userProvider, child) {
           return InterstitialAdManager(
             child: MaterialApp(
               title: AppConstants.appName,
               debugShowCheckedModeBanner: false,
               navigatorKey: navigatorKey, // Add global navigator key
-              theme: _buildLightTheme(),
-              darkTheme: _buildDarkTheme(),
-              themeMode:
-                  themeProvider.isDarkMode ? ThemeMode.dark : ThemeMode.light,
+              theme: _buildDarkTheme(),
+              themeMode: ThemeMode.dark,
               home: const SplashScreen(),
+              builder: (context, child) {
+                // Configure text scaling for better readability
+                return MediaQuery(
+                  data: MediaQuery.of(context).copyWith(
+                    textScaleFactor:
+                        MediaQuery.of(context).textScaleFactor.clamp(1.0, 1.3),
+                  ),
+                  child: EnhancedBackground(child: child ?? const SizedBox()),
+                );
+              },
               routes: {
                 '/home': (context) => const MainNavigationScreen(),
                 '/profile': (context) => const ProfileScreen(),
                 '/profile-management': (context) =>
                     const ProfileManagementScreen(),
+                '/onboarding': (context) => const OnboardingScreen(),
                 '/account-settings': (context) => const AccountSettingsScreen(),
                 '/connect': (context) => const ConnectScreen(),
                 '/login': (context) => const LoginScreen(),
@@ -111,10 +127,25 @@ class ChatApp extends StatelessWidget {
                 '/friends': (context) => const FriendsScreen(),
                 '/chat-list': (context) => const ChatListScreen(),
                 '/friends-list': (context) => const FriendsListScreen(),
+                '/profile-preview': (context) {
+                  final args = ModalRoute.of(context)?.settings.arguments;
+                  if (args is Map<String, dynamic>) {
+                    return ProfilePreviewScreen(
+                      userId: args['userId'] as String?,
+                      initialUserData:
+                          args['initialUserData'] as Map<String, dynamic>?,
+                    );
+                  }
+                  if (args is String) {
+                    return ProfilePreviewScreen(userId: args);
+                  }
+                  return const ProfilePreviewScreen();
+                },
                 '/test-interstitial': (context) =>
                     const TestInterstitialScreen(),
                 '/random-chat': (context) {
-                  final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+                  final args = ModalRoute.of(context)?.settings.arguments
+                      as Map<String, dynamic>?;
                   if (args != null) {
                     final sessionId = args['sessionId'] as String?;
                     final chatRoomId = args['chatRoomId'] as String?;
@@ -153,14 +184,14 @@ class ChatApp extends StatelessWidget {
   }
 }
 
+// Theme building method - Dark mode only
 
-// Theme building methods
-ThemeData _buildLightTheme() {
+ThemeData _buildDarkTheme() {
   return ThemeData(
     useMaterial3: true,
     colorScheme: ColorScheme.fromSeed(
       seedColor: AppColors.primary,
-      brightness: Brightness.light,
+      brightness: Brightness.dark,
     ).copyWith(
       primary: AppColors.primary,
       secondary: AppColors.secondary,
@@ -170,26 +201,200 @@ ThemeData _buildLightTheme() {
       onSurface: AppColors.text,
       onBackground: AppColors.text,
     ),
-    scaffoldBackgroundColor: AppColors.background,
+    scaffoldBackgroundColor: Colors.transparent,
+
+    // Enhanced TextTheme with consistent hierarchy
+    fontFamily: 'LeagueSpartan',
+    textTheme: const TextTheme(
+      // Display styles for hero text and main headings
+      displayLarge: TextStyle(
+        fontSize: 36, // Increased size
+        fontWeight: FontWeight.w900, // Maximum weight for main headlines
+        color: Colors.white, // Pure white for maximum contrast
+        letterSpacing: -0.5,
+        fontFamily: 'LeagueSpartan',
+        height: 1.2,
+      ),
+      displayMedium: TextStyle(
+        fontSize: 32, // Increased size
+        fontWeight: FontWeight.w800, // Extra bold for secondary headlines
+        color: Colors.white,
+        letterSpacing: -0.25,
+        fontFamily: 'LeagueSpartan',
+        height: 1.3,
+      ),
+      displaySmall: TextStyle(
+        fontSize: 28, // Increased size
+        fontWeight: FontWeight.w800, // Extra bold for tertiary headlines
+        color: Colors.white,
+        letterSpacing: 0,
+        fontFamily: 'LeagueSpartan',
+        height: 1.3,
+      ),
+
+      // Title styles for section headers
+      titleLarge: TextStyle(
+        fontSize: 22,
+        fontWeight: FontWeight.w600,
+        color: AppColors.text,
+        letterSpacing: 0,
+        fontFamily: 'LeagueSpartan',
+      ),
+      titleMedium: TextStyle(
+        fontSize: 18,
+        fontWeight: FontWeight.w600,
+        color: AppColors.text,
+        letterSpacing: 0.15,
+        fontFamily: 'LeagueSpartan',
+      ),
+      titleSmall: TextStyle(
+        fontSize: 16,
+        fontWeight: FontWeight.w600,
+        color: AppColors.text,
+        fontFamily: 'LeagueSpartan',
+        letterSpacing: 0.1,
+      ),
+
+      // Body styles for content
+      bodyLarge: TextStyle(
+        fontSize: 18, // Increased size
+        fontWeight: FontWeight.w700, // Bold for primary content
+        color: Colors.white, // Pure white for better contrast
+        letterSpacing: 0.5,
+        fontFamily: 'LeagueSpartan',
+        height: 1.5,
+      ),
+      bodyMedium: TextStyle(
+        fontSize: 16, // Increased size
+        fontWeight: FontWeight.w600, // Semi-bold for regular text
+        color: const Color(0xF2FFFFFF), // White with 95% opacity
+        letterSpacing: 0.25,
+        fontFamily: 'LeagueSpartan',
+        height: 1.5,
+      ),
+      bodySmall: TextStyle(
+        fontSize: 15, // Further increased for better readability
+        fontWeight: FontWeight.w600, // Semi-bold for small text
+        color: const Color(0xE6FFFFFF), // White with 90% opacity
+        letterSpacing: 0.4,
+        fontFamily: 'LeagueSpartan',
+        height: 1.4,
+      ),
+
+      // Label styles for buttons and inputs
+      labelLarge: TextStyle(
+        fontSize: 16, // Increased size
+        fontWeight: FontWeight.w700, // Bold for buttons
+        color: Colors.white,
+        letterSpacing: 0.1,
+        fontFamily: 'LeagueSpartan',
+      ),
+      labelMedium: TextStyle(
+        fontSize: 15, // Further increased for better readability
+        fontWeight: FontWeight.w600, // Semi-bold for medium labels
+        color: const Color(0xF2FFFFFF), // White with 95% opacity
+        letterSpacing: 0.5,
+        fontFamily: 'LeagueSpartan',
+      ),
+      labelSmall: TextStyle(
+        fontSize: 13, // Further increased for better readability
+        fontWeight: FontWeight.w600, // Semi-bold for small labels
+        color: const Color(0xE6FFFFFF), // White with 90% opacity
+        letterSpacing: 0.5,
+        fontFamily: 'LeagueSpartan',
+      ),
+    ),
+
+    // Enhanced AppBar theme
     appBarTheme: const AppBarTheme(
       backgroundColor: AppColors.background,
       foregroundColor: AppColors.text,
       elevation: 0,
+      titleTextStyle: TextStyle(
+        fontSize: 20,
+        fontWeight: FontWeight.w600,
+        color: AppColors.text,
+        letterSpacing: 0.15,
+      ),
+      centerTitle: true,
     ),
+
+    // Enhanced Button themes
     elevatedButtonTheme: ElevatedButtonThemeData(
       style: ElevatedButton.styleFrom(
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
         ),
+        elevation: 2,
+        shadowColor: AppColors.primary.withOpacity(0.3),
+        textStyle: const TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 0.1,
+        ),
       ),
     ),
-    cardTheme: const CardThemeData(
+
+    filledButtonTheme: FilledButtonThemeData(
+      style: FilledButton.styleFrom(
+        backgroundColor: AppColors.secondary,
+        foregroundColor: Colors.white,
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+        ),
+        elevation: 1,
+        textStyle: const TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 0.1,
+        ),
+      ),
+    ),
+
+    outlinedButtonTheme: OutlinedButtonThemeData(
+      style: OutlinedButton.styleFrom(
+        foregroundColor: AppColors.primary,
+        side: const BorderSide(color: AppColors.primary, width: 1.5),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+        ),
+        textStyle: const TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 0.1,
+        ),
+      ),
+    ),
+
+    textButtonTheme: TextButtonThemeData(
+      style: TextButton.styleFrom(
+        foregroundColor: AppColors.primary,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        textStyle: const TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 0.1,
+        ),
+      ),
+    ),
+
+    // Enhanced Card theme
+    cardTheme: CardThemeData(
       color: AppColors.cardBackground,
       elevation: 2,
+      shadowColor: Colors.black.withOpacity(0.1),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
+      margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
     ),
+
+    // Enhanced Input theme
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
       fillColor: AppColors.inputBackground,
@@ -201,57 +406,50 @@ ThemeData _buildLightTheme() {
         borderRadius: BorderRadius.circular(12),
         borderSide: const BorderSide(color: AppColors.primary, width: 2),
       ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: Colors.red, width: 1.5),
+      ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      labelStyle: const TextStyle(
+        color: AppColors.textSecondary,
+        fontSize: 14,
+        fontWeight: FontWeight.w500,
+      ),
+      hintStyle: const TextStyle(
+        color: AppColors.textMuted,
+        fontSize: 14,
+        fontWeight: FontWeight.normal,
+      ),
     ),
-  );
-}
 
-ThemeData _buildDarkTheme() {
-  return ThemeData(
-    useMaterial3: true,
-    colorScheme: ColorScheme.fromSeed(
-      seedColor: AppColors.darkPrimary,
-      brightness: Brightness.dark,
-    ).copyWith(
-      primary: AppColors.darkPrimary,
-      secondary: AppColors.darkSecondary,
-      tertiary: AppColors.darkAccent,
-      surface: AppColors.darkCardBackground,
-      background: AppColors.darkBackground,
-      onSurface: AppColors.darkText,
-      onBackground: AppColors.darkText,
-    ),
-    scaffoldBackgroundColor: AppColors.darkBackground,
-    appBarTheme: const AppBarTheme(
-      backgroundColor: AppColors.darkBackground,
-      foregroundColor: AppColors.darkText,
-      elevation: 0,
-    ),
-    elevatedButtonTheme: ElevatedButtonThemeData(
-      style: ElevatedButton.styleFrom(
-        backgroundColor: AppColors.darkPrimary,
-        foregroundColor: Colors.white,
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
+    // Enhanced Chip theme
+    chipTheme: ChipThemeData(
+      backgroundColor: AppColors.inputBackground,
+      selectedColor: AppColors.primary.withOpacity(0.2),
+      labelStyle: const TextStyle(
+        color: AppColors.text,
+        fontSize: 14,
+        fontWeight: FontWeight.w500,
       ),
-    ),
-    cardTheme: const CardThemeData(
-      color: AppColors.darkCardBackground,
-      elevation: 2,
-    ),
-    inputDecorationTheme: InputDecorationTheme(
-      filled: true,
-      fillColor: AppColors.darkInputBackground,
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide.none,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
       ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: AppColors.darkPrimary, width: 2),
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
     ),
+
+    // Enhanced Bottom Navigation theme
+    bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+      backgroundColor: AppColors.cardBackground,
+      selectedItemColor: AppColors.primary,
+      unselectedItemColor: AppColors.textSecondary,
+      type: BottomNavigationBarType.fixed,
+      elevation: 8,
+    ),
+
+    extensions: <ThemeExtension<dynamic>>[
+      AppThemeTokens.instance,
+    ],
   );
 }
 
@@ -267,14 +465,14 @@ AppBarTheme getAppBarThemeForScreen(String screenName) {
     case 'connect':
       // Use violet background for these screens
       return const AppBarTheme(
-        backgroundColor: AppColors.darkPrimary,
-        foregroundColor: AppColors.darkText,
+        backgroundColor: AppColors.primary,
+        foregroundColor: AppColors.text,
         elevation: 0,
         iconTheme: IconThemeData(
-          color: AppColors.darkText,
+          color: AppColors.text,
         ),
         titleTextStyle: TextStyle(
-          color: AppColors.darkText,
+          color: AppColors.text,
           fontSize: 20,
           fontWeight: FontWeight.bold,
         ),
@@ -282,8 +480,8 @@ AppBarTheme getAppBarThemeForScreen(String screenName) {
     default:
       // Use default theme for main landing page and other screens
       return const AppBarTheme(
-        backgroundColor: AppColors.darkBackground,
-        foregroundColor: AppColors.darkText,
+        backgroundColor: AppColors.background,
+        foregroundColor: AppColors.text,
         elevation: 0,
       );
   }
@@ -299,12 +497,10 @@ class MainNavigationScreen extends StatefulWidget {
 class _MainNavigationScreenState extends State<MainNavigationScreen>
     with WidgetsBindingObserver, TickerProviderStateMixin {
   final NotificationService _notificationService = NotificationService();
-  int _currentIndex = 0;
-  final PageController _pageController = PageController();
+  int _currentIndex = 1;
+  final PageController _pageController = PageController(initialPage: 1);
   final SocketService _socketService = SocketService();
-  late AnimationController _drawerAnimationController;
-  late Animation<double> _drawerAnimation;
-  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+  bool _navLocked = false;
 
   late final List<Widget> _screens;
 
@@ -316,25 +512,13 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
     _initializeSocketConnection();
     _enableScreenProtection();
     _setupInAppNotificationListener();
-    _initializeAnimations();
     _initializeGlobalMatchingService();
     _screens = [
+      ConnectScreen(onNavigateToTab: _onTabTapped),
       HomeScreen(onNavigateToTab: _onTabTapped),
+      const LikesMatchesScreen(),
       const ChatListScreen(),
-      const ConnectScreen(),
-      const MediaFolderScreen(),
     ];
-  }
-
-  void _initializeAnimations() {
-    _drawerAnimationController = AnimationController(
-      duration: const Duration(milliseconds: 300),
-      vsync: this,
-    );
-    _drawerAnimation = CurvedAnimation(
-      parent: _drawerAnimationController,
-      curve: Curves.easeInOut,
-    );
   }
 
   void _initializeGlobalMatchingService() {
@@ -349,56 +533,56 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
       if (user != null) {
         final token = await user.getIdToken();
         if (token != null && token.isNotEmpty) {
-          // print(
-          //     '🚀 [APP DEBUG] Initializing socket connection with Firebase token');
+          Logger.socket('Initializing socket connection with Firebase token');
           await _socketService.connect(token);
 
           // Send join event after connection
           await Future.delayed(const Duration(seconds: 1));
-          // print('✅ [APP DEBUG] Socket connection completed');
+          Logger.socket('Socket connection completed');
         } else {
-          // print('❌ [APP DEBUG] Failed to get Firebase token');
+          Logger.warning('Failed to get Firebase token');
         }
       } else {
-        // print('❌ [APP DEBUG] No Firebase user found, cannot connect socket');
+        Logger.warning('No Firebase user found, cannot connect socket');
       }
     } catch (e) {
-      // print('❌ [APP DEBUG] Socket connection failed: $e');
+      Logger.error('Socket connection failed', error: e);
     }
   }
 
   Future<void> _initializeNotifications() async {
     try {
       await _notificationService.initialize();
-      // print('✅ [APP DEBUG] Notifications initialized');
+      Logger.notification('Notifications initialized');
     } catch (e) {
-      // print('❌ [APP DEBUG] Failed to initialize notifications: $e');
+      Logger.error('Failed to initialize notifications', error: e);
     }
   }
 
   void _setupInAppNotificationListener() {
-    // print('🔔 [APP DEBUG] Setting up in-app notification listener');
+    Logger.notification('Setting up in-app notification listener');
 
     _notificationService.inAppNotificationStream.listen(
       (notificationData) {
-        // print('🔔 [APP DEBUG] *** NOTIFICATION RECEIVED IN STREAM ***');
-        // print('   📦 Notification data: $notificationData');
-        // print('   📱 Widget mounted: $mounted');
+        Logger.notification('Notification received in stream');
+        Logger.debug('Notification data: $notificationData');
+        Logger.debug('Widget mounted: $mounted');
 
         // Check if user is currently in a chat with the sender
         final senderId = notificationData['senderId'] ?? '';
         final currentChatUserId = _socketService.currentChatWithUserId;
 
-        // print('   👤 Sender ID: $senderId');
-        // print('   👤 Current chat user: $currentChatUserId');
+        Logger.debug('Sender ID: $senderId');
+        Logger.debug('Current chat user: $currentChatUserId');
 
         if (currentChatUserId == senderId) {
-          // print('🔔 [APP DEBUG] Skipping notification - user is in chat with sender');
+          Logger.notification(
+              'Skipping notification - user is in chat with sender');
           return;
         }
 
         if (mounted) {
-          // print('🔔 [APP DEBUG] Showing in-app notification widget');
+          Logger.notification('Showing in-app notification widget');
 
           showInAppNotification(
             context: context,
@@ -407,32 +591,31 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
             senderId: senderId,
             chatId: notificationData['chatId'],
             onTap: () {
-              // print('🔔 [APP DEBUG] In-app notification tapped');
+              Logger.notification('In-app notification tapped');
               navigateToChatFromNotification(notificationData);
             },
           );
 
-          // print('✅ [APP DEBUG] showInAppNotification called');
+          Logger.notification('showInAppNotification called');
         } else {
-          // print('❌ [APP DEBUG] Widget not mounted, cannot show notification');
+          Logger.warning('Widget not mounted, cannot show notification');
         }
       },
       onError: (error) {
-        // print('❌ [APP DEBUG] Error in notification stream: $error');
+        Logger.error('Error in notification stream', error: error);
       },
       onDone: () {
-        // print('🔔 [APP DEBUG] Notification stream closed');
+        Logger.notification('Notification stream closed');
       },
     );
 
-    // print('✅ [APP DEBUG] In-app notification listener setup complete');
+    Logger.notification('In-app notification listener setup complete');
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _pageController.dispose();
-    _drawerAnimationController.dispose();
     _socketService.disconnect();
     _disableScreenProtection();
     super.dispose();
@@ -445,13 +628,14 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
       case AppLifecycleState.resumed:
         _enableScreenProtection();
         _notificationService.setAppForegroundState(true);
-        // print('🔔 [APP DEBUG] App resumed - foreground notifications enabled');
+        Logger.notification('App resumed - foreground notifications enabled');
         break;
       case AppLifecycleState.paused:
       case AppLifecycleState.inactive:
         // Keep security features active even when app is paused/inactive
         _notificationService.setAppForegroundState(false);
-        // print('🔔 [APP DEBUG] App paused/inactive - background notifications enabled');
+        Logger.notification(
+            'App paused/inactive - background notifications enabled');
         break;
       case AppLifecycleState.detached:
         _disableScreenProtection();
@@ -466,9 +650,9 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
     try {
       await ScreenProtector.preventScreenshotOn();
       await ScreenProtector.protectDataLeakageOn();
-      // print('🔒 Screen protection enabled');
+      Logger.info('Screen protection enabled');
     } catch (e) {
-      // print('⚠️ Failed to enable screen protection: $e');
+      Logger.warning('Failed to enable screen protection', error: e);
     }
   }
 
@@ -476,9 +660,9 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
     try {
       await ScreenProtector.preventScreenshotOff();
       await ScreenProtector.protectDataLeakageOff();
-      // print('🔓 Screen protection disabled');
+      Logger.info('Screen protection disabled');
     } catch (e) {
-      // print('⚠️ Failed to disable screen protection: $e');
+      Logger.warning('Failed to disable screen protection', error: e);
     }
   }
 
@@ -493,61 +677,15 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
     );
   }
 
+  // Removed unused credit-related functions
+
   void _navigateToProfile() {
     Navigator.pushNamed(context, '/profile');
   }
 
-  void _navigateToChatFromNotification(Map<String, dynamic> notificationData) {
-    try {
-      final senderId = notificationData['senderId'] ?? '';
-      final senderName = notificationData['senderName'] ?? 'Unknown';
-      final chatId = notificationData['chatId'] ?? '';
-
-      // print('🔔 [APP DEBUG] Navigating to chat from notification');
-      // print('   👤 Sender ID: $senderId');
-      // print('   👤 Sender Name: $senderName');
-      // print('   💬 Chat ID: $chatId');
-
-      if (senderId.isEmpty) {
-        // print('❌ [APP DEBUG] Sender ID is empty, cannot navigate to chat');
-        return;
-      }
-
-      // Create a Chat object for friend chat
-      final chat = Chat(
-        id: chatId.isNotEmpty
-            ? chatId
-            : senderId, // Use senderId as chatId if chatId is empty
-        name: senderName,
-        participantIds: [senderId], // Add current user ID later
-        type: ChatType.friend,
-        status: ChatStatus.active,
-        createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
-      );
-
-      // Navigate to chat screen
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => ChatScreen(chat: chat),
-        ),
-      );
-
-      // print('✅ [APP DEBUG] Successfully navigated to chat screen');
-    } catch (e) {
-      // print('❌ [APP DEBUG] Error navigating to chat: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Failed to open chat: ${e.toString()}'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
-  }
+  // Removed unused credit shop navigation method
 
   Widget _buildDrawer(BuildContext context) {
-    final theme = Theme.of(context);
     return Drawer(
       child: Container(
         decoration: BoxDecoration(
@@ -555,113 +693,19 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              theme.colorScheme.surface,
-              theme.colorScheme.surface.withOpacity(0.95),
+              const Color(0xFF1E1B2E),
+              const Color(0xFF2A2A3E),
+              const Color(0xFF1E1B2E).withOpacity(0.8),
             ],
+            stops: const [0.0, 0.5, 1.0],
           ),
         ),
         child: Column(
           children: [
             Expanded(
               child: ListView(
-                padding: const EdgeInsets.only(top: 40),
+                padding: const EdgeInsets.only(top: 60),
                 children: [
-                  // Main Navigation
-                  _buildDrawerSection(
-                    context,
-                    'Main Navigation',
-                    [
-                      _buildDrawerItem(
-                        context,
-                        icon: AppIcons.home,
-                        title: AppStrings.home,
-                        onTap: () {
-                          Navigator.pop(context);
-                          _onTabTapped(0);
-                        },
-                      ),
-                      _buildDrawerItem(
-                        context,
-                        icon: AppIcons.chat,
-                        title: AppStrings.chats,
-                        onTap: () {
-                          Navigator.pop(context);
-                          _onTabTapped(1);
-                        },
-                      ),
-                      _buildDrawerItem(
-                        context,
-                        icon: AppIcons.connect,
-                        title: AppStrings.connect,
-                        onTap: () {
-                          Navigator.pop(context);
-                          _onTabTapped(2);
-                        },
-                      ),
-                      _buildDrawerItem(
-                        context,
-                        icon: AppIcons.media,
-                        title: AppStrings.media,
-                        onTap: () {
-                          Navigator.pop(context);
-                          _onTabTapped(3);
-                        },
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  // Quick Actions
-                  _buildDrawerSection(
-                    context,
-                    'Quick Actions',
-                    [
-                      _buildDrawerItem(
-                        context,
-                        icon: Icons.search,
-                        title: 'Find People',
-                        subtitle: 'Search and connect with new people',
-                        iconColor: theme.colorScheme.tertiary,
-                        onTap: () {
-                          Navigator.pop(context);
-                          Navigator.pushNamed(context, '/search');
-                        },
-                      ),
-                      _buildDrawerItem(
-                        context,
-                        icon: Icons.people,
-                        title: 'Friend Requests',
-                        subtitle: 'Manage your friend requests',
-                        iconColor: theme.colorScheme.secondary,
-                        onTap: () {
-                          Navigator.pop(context);
-                          Navigator.pushNamed(context, '/friend-requests');
-                        },
-                      ),
-                      _buildDrawerItem(
-                        context,
-                        icon: Icons.favorite,
-                        title: 'Friends Section',
-                        subtitle: 'View and manage your friends',
-                        iconColor: theme.colorScheme.tertiary,
-                        onTap: () {
-                          Navigator.pop(context);
-                          Navigator.pushNamed(context, '/friends-list');
-                        },
-                      ),
-                      _buildDrawerItem(
-                        context,
-                        icon: Icons.history,
-                        title: 'Your Activity',
-                        subtitle: 'View your recent activity',
-                        iconColor: theme.colorScheme.primary,
-                        onTap: () {
-                          Navigator.pop(context);
-                          _showActivityDialog(context);
-                        },
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
                   // Settings
                   _buildDrawerSection(
                     context,
@@ -691,7 +735,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
                         title: AppStrings.logout,
                         onTap: () {
                           Navigator.pop(context);
-                          // TODO: Implement logout logic
+                          _showLogoutDialog(context);
                         },
                       ),
                     ],
@@ -713,19 +757,18 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
 
   Widget _buildDrawerSection(
       BuildContext context, String title, List<Widget> children) {
-    final theme = Theme.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
           child: Text(
             title,
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: theme.colorScheme.onSurface.withOpacity(0.6),
-              letterSpacing: 0.5,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+              color: Colors.white70,
+              letterSpacing: 1.0,
             ),
           ),
         ),
@@ -742,35 +785,53 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
     Color? iconColor,
     required VoidCallback onTap,
   }) {
-    final theme = Theme.of(context);
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: () {
-          onTap();
-          _drawerAnimationController.reverse();
-        },
-        borderRadius: BorderRadius.circular(12),
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
         child: Container(
-          margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+          margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
-            color: Colors.transparent,
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Colors.white.withOpacity(0.1),
+                Colors.white.withOpacity(0.05),
+              ],
+            ),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: Colors.white.withOpacity(0.2),
+              width: 1,
+            ),
           ),
           child: Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(8),
+                padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color:
-                      (iconColor ?? theme.colorScheme.primary).withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      (iconColor ?? const Color(0xFFA259FF)).withOpacity(0.3),
+                      (iconColor ?? const Color(0xFFA259FF)).withOpacity(0.1),
+                    ],
+                  ),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color:
+                        (iconColor ?? const Color(0xFFA259FF)).withOpacity(0.3),
+                    width: 1,
+                  ),
                 ),
                 child: Icon(
                   icon,
-                  color: iconColor ?? theme.colorScheme.primary,
-                  size: 20,
+                  color: iconColor ?? const Color(0xFFA259FF),
+                  size: 22,
                 ),
               ),
               const SizedBox(width: 16),
@@ -780,19 +841,19 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
                   children: [
                     Text(
                       title,
-                      style: TextStyle(
-                        color: theme.colorScheme.onSurface,
+                      style: const TextStyle(
+                        color: Colors.white,
                         fontWeight: FontWeight.w600,
                         fontSize: 16,
                       ),
                     ),
                     if (subtitle != null) ...[
-                      const SizedBox(height: 2),
+                      const SizedBox(height: 4),
                       Text(
                         subtitle,
-                        style: TextStyle(
-                          color: theme.colorScheme.onSurface.withOpacity(0.7),
-                          fontSize: 12,
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 13,
                         ),
                       ),
                     ],
@@ -802,7 +863,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
               Icon(
                 Icons.arrow_forward_ios,
                 size: 16,
-                color: theme.colorScheme.onSurface.withOpacity(0.5),
+                color: Colors.white.withOpacity(0.6),
               ),
             ],
           ),
@@ -861,106 +922,149 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
+  void _showLogoutDialog(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
-    return Scaffold(
-      key: _scaffoldKey,
-      appBar: AppBar(
-        leading: IconButton(
-          icon: AnimatedBuilder(
-            animation: _drawerAnimation,
-            builder: (context, child) {
-              return Transform.rotate(
-                angle: _drawerAnimation.value * 0.5,
-                child: Icon(
-                  Icons.menu,
-                  color: theme.colorScheme.onSurface,
-                ),
-              );
-            },
-          ),
-          onPressed: () {
-            _drawerAnimationController.forward();
-            _scaffoldKey.currentState?.openDrawer();
-          },
-          tooltip: 'Menu',
-        ),
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
         title: Text(
-          AppConstants.appName,
+          'Logout',
           style: TextStyle(
             fontWeight: FontWeight.bold,
             color: theme.colorScheme.onSurface,
           ),
         ),
+        content: const Text('Are you sure you want to logout?'),
         actions: [
-          IconButton(
-            icon: Icon(
-              AppIcons.profile,
-              color: theme.colorScheme.primary,
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              'Cancel',
+              style: TextStyle(color: theme.colorScheme.primary),
             ),
-            onPressed: _navigateToProfile,
-            tooltip: 'Profile',
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              await _performLogout(context);
+            },
+            child: Text(
+              'Logout',
+              style: TextStyle(color: theme.colorScheme.error),
+            ),
           ),
         ],
-        centerTitle: true,
       ),
-      drawer: _buildDrawer(context),
-      onDrawerChanged: (isOpened) {
-        if (!isOpened) {
-          _drawerAnimationController.reverse();
-        }
-      },
-      body: PageView(
-        controller: _pageController,
-        onPageChanged: (index) {
-          setState(() {
-            _currentIndex = index;
-          });
-        },
-        children: _screens,
+    );
+  }
+
+  Future<void> _performLogout(BuildContext context) async {
+    try {
+      Logger.auth('User logging out');
+
+      // Disconnect socket
+      _socketService.disconnect();
+
+      // Sign out from Firebase
+      await FirebaseAuth.instance.signOut();
+
+      // Navigate to login screen
+      Navigator.pushNamedAndRemoveUntil(
+        context,
+        '/login',
+        (route) => false,
+      );
+
+      Logger.auth('Logout completed successfully');
+    } catch (e) {
+      Logger.error('Error during logout', error: e);
+      // Show error message to user
+      if (context.mounted) {
+        final theme = Theme.of(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error during logout: ${e.toString()}'),
+            backgroundColor: theme.colorScheme.error,
+          ),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      extendBody: true,
+      extendBodyBehindAppBar: true,
+      resizeToAvoidBottomInset: false,
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(kToolbarHeight),
+        child: ClipRRect(
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+            child: Container(
+              color: Colors.transparent,
+              child: AppBar(
+                backgroundColor: Colors.transparent,
+                elevation: 0,
+                title: Text(
+                  'Chatify',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white.withOpacity(0.9),
+                    fontSize: 24,
+                    letterSpacing: 1.2,
+                  ),
+                ),
+                actions: [
+                  IconButton(
+                    icon: Icon(
+                      Icons.person,
+                      color: Colors.white.withOpacity(0.85),
+                    ),
+                    onPressed: _navigateToProfile,
+                    tooltip: 'Profile',
+                  ),
+                ],
+                centerTitle: true,
+              ),
+            ),
+          ),
+        ),
       ),
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.1),
-              blurRadius: 10,
-              offset: const Offset(0, -2),
-            ),
-          ],
+      body: Padding(
+        padding: const EdgeInsets.only(bottom: 8),
+        child: PageView(
+          controller: _pageController,
+          onPageChanged: (index) {
+            setState(() {
+              _currentIndex = index;
+            });
+          },
+          children: _screens,
         ),
-        child: BottomNavigationBar(
-          currentIndex: _currentIndex,
-          onTap: _onTabTapped,
-          type: BottomNavigationBarType.fixed,
-          backgroundColor: theme.colorScheme.surface,
-          selectedItemColor: theme.colorScheme.primary,
-          unselectedItemColor: theme.colorScheme.onSurface.withOpacity(0.6),
-          selectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600),
-          unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.normal),
-          elevation: 0,
-          items: [
-            BottomNavigationBarItem(
-              icon: Icon(AppIcons.home),
-              label: AppStrings.home,
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(AppIcons.chat),
-              label: AppStrings.chats,
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(AppIcons.connect),
-              label: AppStrings.connect,
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(AppIcons.media),
-              label: AppStrings.media,
-            ),
-          ],
-        ),
+      ),
+      bottomNavigationBar: modern_nav.ModernGlassNavBar(
+        currentIndex: _currentIndex,
+        onTap: _onTabTapped,
+        items: [
+          modern_nav.NavigationBarItem(
+            icon: Icons.explore_rounded,
+            label: 'Discover',
+          ),
+          modern_nav.NavigationBarItem(
+            icon: Icons.home_rounded,
+            label: 'Home',
+          ),
+          modern_nav.NavigationBarItem(
+            icon: Icons.favorite_rounded,
+            label: 'Likes',
+          ),
+          modern_nav.NavigationBarItem(
+            icon: Icons.chat_bubble_rounded,
+            label: 'Chats',
+          ),
+        ],
       ),
     );
   }

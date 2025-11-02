@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../core/constants.dart';
-import '../providers/theme_provider.dart';
+
 
 class InAppNotification extends StatefulWidget {
   final String senderName;
@@ -91,10 +91,7 @@ class _InAppNotificationState extends State<InAppNotification>
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<ThemeProvider>(
-      builder: (context, themeProvider, child) {
-        final isDarkMode = themeProvider.isDarkMode;
-        final theme = Theme.of(context);
+    final theme = Theme.of(context);
 
         return AnimatedBuilder(
           animation: _animationController,
@@ -120,13 +117,10 @@ class _InAppNotificationState extends State<InAppNotification>
                       child: Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: isDarkMode 
-                              ? AppColors.darkCardBackground.withOpacity(0.95)
-                              : AppColors.cardBackground.withOpacity(0.95),
+                                  color: AppColors.cardBackground.withOpacity(0.95),
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: (isDarkMode ? AppColors.darkPrimary : AppColors.primary)
-                                .withOpacity(0.3),
+                            color: AppColors.primary.withOpacity(0.3),
                             width: 1,
                           ),
                           boxShadow: [
@@ -142,9 +136,7 @@ class _InAppNotificationState extends State<InAppNotification>
                             // Profile avatar
                             CircleAvatar(
                               radius: 20,
-                              backgroundColor: (isDarkMode 
-                                  ? AppColors.darkPrimary 
-                                  : AppColors.primary).withOpacity(0.1),
+                              backgroundColor: AppColors.primary.withOpacity(0.1),
                               child: Text(
                                 widget.senderName.isNotEmpty 
                                     ? widget.senderName[0].toUpperCase()
@@ -152,9 +144,7 @@ class _InAppNotificationState extends State<InAppNotification>
                                 style: TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.bold,
-                                  color: isDarkMode 
-                                      ? AppColors.darkPrimary 
-                                      : AppColors.primary,
+                                                                  color: AppColors.primary,
                                 ),
                               ),
                             ),
@@ -197,9 +187,7 @@ class _InAppNotificationState extends State<InAppNotification>
                                 Icon(
                                   Icons.chat_bubble,
                                   size: 16,
-                                  color: isDarkMode 
-                                      ? AppColors.darkSecondary 
-                                      : AppColors.secondary,
+                                  color: AppColors.secondary,
                                 ),
                                 const SizedBox(height: 8),
                                 GestureDetector(
@@ -229,8 +217,6 @@ class _InAppNotificationState extends State<InAppNotification>
             );
           },
         );
-      },
-    );
   }
 }
 

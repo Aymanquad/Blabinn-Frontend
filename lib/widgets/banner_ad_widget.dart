@@ -28,6 +28,11 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
   @override
   void initState() {
     super.initState();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
     _loadAd();
   }
 
@@ -40,7 +45,7 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
   Future<void> _loadAd() async {
     // Check if ads are disabled
     if (!AdConfig.adsEnabled) {
-      debugPrint('🚫 Ads are disabled - banner widget hidden');
+      // debugPrint('🚫 Ads are disabled - banner widget hidden');
       return;
     }
 
@@ -52,8 +57,33 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
     });
 
     try {
+      // Use adaptive banner size that fits any device width
+      // Get screen width safely after widget is built
+      final screenWidth = MediaQuery.sizeOf(context).width.truncate();
+      final AnchoredAdaptiveBannerAdSize? adaptiveSize =
+          await AdSize.getCurrentOrientationAnchoredAdaptiveBannerAdSize(
+        screenWidth,
+      );
+
       final adService = AdService();
-      final bannerAd = await adService.loadBannerAd();
+      BannerAd? bannerAd;
+
+      if (adaptiveSize != null) {
+        bannerAd = BannerAd(
+          adUnitId: adService.bannerAdUnitId,
+          size: adaptiveSize,
+          request: const AdRequest(),
+          listener: BannerAdListener(
+            onAdLoaded: (ad) {},
+            onAdFailedToLoad: (ad, error) {
+              ad.dispose();
+            },
+          ),
+        );
+        await bannerAd.load();
+      } else {
+        bannerAd = await adService.loadBannerAd();
+      }
 
       if (mounted && bannerAd != null) {
         setState(() {
@@ -61,13 +91,11 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
           _isLoaded = true;
           _isLoading = false;
         });
-        debugPrint('✅ Banner ad loaded successfully in widget');
       } else {
         setState(() {
           _isLoading = false;
           _errorMessage = 'Failed to load ad';
         });
-        debugPrint('❌ Banner ad failed to load in widget');
       }
     } catch (e) {
       if (mounted) {
@@ -128,8 +156,9 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
 
     // Show ad if loaded
     if (_isLoaded && _bannerAd != null) {
+      final double calculatedHeight = _bannerAd!.size.height.toDouble();
       return Container(
-        height: widget.height ?? 50,
+        height: widget.height ?? calculatedHeight,
         margin: widget.margin ?? const EdgeInsets.symmetric(horizontal: 16),
         child: AdWidget(ad: _bannerAd!),
       );

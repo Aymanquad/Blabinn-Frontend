@@ -1,13 +1,12 @@
-import 'dart:convert';
 import 'dart:io';
-import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:http/http.dart' as http;
-import '../core/constants.dart';
 import '../core/config.dart';
 import '../services/firebase_auth_service.dart';
 import '../services/auth_service.dart';
+import '../widgets/glass_container.dart';
+import '../widgets/app_logo.dart';
+import '../app.dart' show navigatorKey;
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -23,220 +22,249 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF2D1B69), // Dark purple background
-      body: Container(
-        decoration: const BoxDecoration(
-          image: DecorationImage(
-            image: AssetImage('assets/images/bg1.png'),
-            fit: BoxFit.cover,
+      body: SafeArea(
+        child: Column(
+          children: [
+            // Upper section with logo and welcome text
+            Expanded(
+              flex: 1,
+              child: _buildUpperSection(),
+            ),
+
+            // Lower section with login panel
+            _buildLoginPanel(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildUpperSection() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          // Purple Chatify logo
+          AppLogo(
+            size: 120,
+          ),
+          const SizedBox(height: 24),
+
+          // Welcome text
+          Text(
+            'Welcome',
+            style: TextStyle(
+              fontSize: 32,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLoginPanel() {
+    return GlassCard(
+      margin: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(32),
+      borderRadius: BorderRadius.circular(20),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Subtitle
+          Text(
+            'Connect with people around the world',
+            style: TextStyle(
+              fontSize: 18, // Increased for better readability
+              color: Colors.white,
+              fontWeight:
+                  FontWeight.w600, // Increased weight for better readability
+              height: 1.4, // Added line height for better text flow
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 32),
+
+          // Google Sign In Button
+          _buildGoogleButton(),
+          const SizedBox(height: 16),
+
+          // Apple Sign In Button (only show on iOS)
+          if (Platform.isIOS) ...[
+            _buildAppleButton(),
+            const SizedBox(height: 16),
+          ],
+
+          // Or divider
+          _buildDivider(),
+          const SizedBox(height: 16),
+
+          // Guest button
+          _buildGuestButton(),
+          const SizedBox(height: 24),
+
+          // Terms and privacy
+          _buildTermsText(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGoogleButton() {
+    final isFirebaseAvailable = _authService.isFirebaseAvailable;
+
+    return SizedBox(
+      width: double.infinity,
+      height: 56,
+      child: ElevatedButton.icon(
+        onPressed:
+            isFirebaseAvailable && !_isLoading ? _signInWithGoogle : null,
+        icon: _isLoading
+            ? const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : const Icon(
+                Icons.g_mobiledata,
+                size: 24,
+                color: Colors.black87,
+              ),
+        label: Text(
+          isFirebaseAvailable
+              ? 'Connect with Google'
+              : 'Google (Requires Firebase)',
+          style: const TextStyle(
+            color: Colors.black87,
+            fontSize: 17, // Increased for better readability
+            fontWeight:
+                FontWeight.w600, // Increased weight for better readability
           ),
         ),
-        child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(24.0),
-            child: Column(
-              children: [
-                const SizedBox(height: 60),
-                
-                // Upper section with Welcome and Logo
-                Expanded(
-                  flex: 2,
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Text(
-                        'Welcome',
-                        style: TextStyle(
-                          fontSize: 36,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                      Container(
-                        width: 80,
-                        height: 80,
-                        child: Image.asset(
-                          'assets/images/purplt-chatify-logo.png',
-                          fit: BoxFit.contain,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.white.withOpacity(0.9),
+          foregroundColor: Colors.black87,
+          side: BorderSide(color: Colors.white.withOpacity(0.3)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          elevation: 0,
+        ),
+      ),
+    );
+  }
 
-                // Lower section with action buttons
-                Expanded(
-                  flex: 3,
-                  child: Container(
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.95),
-                      borderRadius: BorderRadius.circular(24),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
-                          blurRadius: 20,
-                          offset: const Offset(0, 10),
-                        ),
-                      ],
-                    ),
-                    padding: const EdgeInsets.all(24),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          'Connect with people around the world',
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: Colors.grey[700],
-                            fontWeight: FontWeight.w500,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 32),
+  Widget _buildAppleButton() {
+    final isFirebaseAvailable = _authService.isFirebaseAvailable;
 
-                        // Google Sign In Button
-                        SizedBox(
-                          width: double.infinity,
-                          height: 56,
-                          child: ElevatedButton.icon(
-                            onPressed: _isLoading ? null : _signInWithGoogle,
-                            icon: _isLoading
-                                ? const SizedBox(
-                                    width: 20,
-                                    height: 20,
-                                    child: CircularProgressIndicator(strokeWidth: 2),
-                                  )
-                                : Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      // Google logo colors
-                                      Container(
-                                        width: 18,
-                                        height: 18,
-                                        decoration: const BoxDecoration(
-                                          gradient: LinearGradient(
-                                            colors: [
-                                              Color(0xFF4285F4), // Blue
-                                              Color(0xFF34A853), // Green
-                                              Color(0xFFFBBC05), // Yellow
-                                              Color(0xFFEA4335), // Red
-                                            ],
-                                            stops: [0.0, 0.25, 0.5, 0.75],
-                                          ),
-                                          shape: BoxShape.circle,
-                                        ),
-                                        child: const Center(
-                                          child: Text(
-                                            'G',
-                                            style: TextStyle(
-                                              color: Colors.white,
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 12,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                      const SizedBox(width: 8),
-                                    ],
-                                  ),
-                            label: Text(
-                              _isLoading ? 'Connecting...' : 'Connect with Google',
-                              style: const TextStyle(
-                                color: Colors.black87,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.white,
-                              foregroundColor: Colors.black87,
-                              side: BorderSide(color: Colors.grey[300]!),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(16),
-                              ),
-                              elevation: 2,
-                            ),
-                          ),
-                        ),
+    return SizedBox(
+      width: double.infinity,
+      height: 56,
+      child: ElevatedButton.icon(
+        onPressed: isFirebaseAvailable && !_isLoading ? _signInWithApple : null,
+        icon: _isLoading
+            ? const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : const Icon(
+                Icons.apple,
+                size: 24,
+                color: Colors.white,
+              ),
+        label: Text(
+          isFirebaseAvailable
+              ? 'Connect with Apple'
+              : 'Apple (Requires Firebase)',
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 17, // Increased for better readability
+            fontWeight:
+                FontWeight.w600, // Increased weight for better readability
+          ),
+        ),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.black.withOpacity(0.8),
+          foregroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          elevation: 0,
+        ),
+      ),
+    );
+  }
 
-                        const SizedBox(height: 16),
-
-                        // Or divider
-                        Row(
-                          children: [
-                            Expanded(child: Divider(color: Colors.grey[300])),
-                            Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 16),
-                              child: Text(
-                                'or',
-                                style: TextStyle(
-                                  color: Colors.grey[600],
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                            Expanded(child: Divider(color: Colors.grey[300])),
-                          ],
-                        ),
-
-                        const SizedBox(height: 16),
-
-                        // Guest Button
-                        SizedBox(
-                          width: double.infinity,
-                          height: 56,
-                          child: ElevatedButton.icon(
-                            onPressed: _isLoading ? null : _signInAsGuest,
-                            icon: _isLoading
-                                ? const SizedBox(
-                                    width: 20,
-                                    height: 20,
-                                    child: CircularProgressIndicator(strokeWidth: 2),
-                                  )
-                                : Icon(
-                                    Icons.person_outline,
-                                    color: Colors.grey[600],
-                                  ),
-                            label: Text(
-                              _isLoading ? 'Connecting...' : 'Continue as Guest',
-                              style: TextStyle(
-                                color: Colors.grey[700],
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.white,
-                              foregroundColor: Colors.grey[700],
-                              side: BorderSide(color: Colors.grey[300]!),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(16),
-                              ),
-                              elevation: 2,
-                            ),
-                          ),
-                        ),
-
-                        const SizedBox(height: 24),
-
-                        // Terms and privacy
-                        Text(
-                          'By continuing, you agree to our Terms of Service and Privacy Policy',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey[600],
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
+  Widget _buildDivider() {
+    return Row(
+      children: [
+        Expanded(child: Divider(color: Colors.white.withOpacity(0.3))),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Text(
+            'or',
+            style: TextStyle(
+              color: Colors.white.withOpacity(0.8),
+              fontWeight: FontWeight.w600,
             ),
           ),
         ),
+        Expanded(child: Divider(color: Colors.white.withOpacity(0.3))),
+      ],
+    );
+  }
+
+  Widget _buildGuestButton() {
+    return SizedBox(
+      width: double.infinity,
+      height: 56,
+      child: ElevatedButton.icon(
+        onPressed: _isLoading ? null : _signInAsGuest,
+        icon: _isLoading
+            ? const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : const Icon(
+                Icons.person_outline,
+                color: Colors.white,
+              ),
+        label: const Text(
+          'Continue as Guest',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 17, // Increased for better readability
+            fontWeight:
+                FontWeight.w600, // Increased weight for better readability
+          ),
+        ),
+        style: ElevatedButton.styleFrom(
+          backgroundColor:
+              const Color(0xFF6B46C1).withOpacity(0.9), // Purple color
+          foregroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          elevation: 0,
+        ),
       ),
+    );
+  }
+
+  Widget _buildTermsText() {
+    return Text(
+      'By continuing, you agree to our Terms of Service and Privacy Policy',
+      style: TextStyle(
+        fontSize: 14, // Increased from 12 for much better readability
+        color: Colors.white
+            .withOpacity(0.8), // Increased opacity for better contrast
+        fontWeight: FontWeight.w500, // Added weight for better readability
+        height: 1.5, // Increased line height for better text flow
+      ),
+      textAlign: TextAlign.center,
     );
   }
 
@@ -254,6 +282,20 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  // Sign in with Apple
+  Future<void> _signInWithApple() async {
+    setState(() => _isLoading = true);
+
+    try {
+      final result = await _authService.signInWithApple();
+      await _handleAuthResult(result);
+    } catch (e) {
+      _showError('Apple sign-in failed: ${e.toString()}');
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
   // Sign in as Guest
   Future<void> _signInAsGuest() async {
     setState(() => _isLoading = true);
@@ -264,7 +306,7 @@ class _LoginScreenState extends State<LoginScreen> {
         // Show profile creation popup for guest users
         await _showGuestProfilePopup();
       } else {
-        _showError(result['message'] ?? 'Guest sign-in failed');
+        _showError((result['message'] as String?) ?? 'Guest sign-in failed');
       }
     } catch (e) {
       _showError('Guest sign-in failed: ${e.toString()}');
@@ -315,15 +357,16 @@ class _LoginScreenState extends State<LoginScreen> {
             TextButton(
               onPressed: () {
                 Navigator.of(context).pop();
-                Navigator.pushReplacementNamed(context, '/home');
+                // Use global navigator key to ensure proper routing context
+                navigatorKey.currentState?.pushReplacementNamed('/home');
               },
               child: const Text('Skip for now'),
             ),
             ElevatedButton(
               onPressed: () {
                 Navigator.of(context).pop();
-                Navigator.pushReplacementNamed(context, '/profile-management',
-                    arguments: {'isGuestUser': true});
+                // Use global navigator key to ensure proper routing context
+                navigatorKey.currentState?.pushReplacementNamed('/onboarding');
               },
               child: const Text('Create Profile'),
             ),
@@ -337,18 +380,18 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _handleAuthResult(Map<String, dynamic> result) async {
     if (result['success'] == true) {
       final user = result['user'];
-      final isNewUser = result['isNewUser'] ?? false;
+      final isNewUser = (result['isNewUser'] as bool?) ?? false;
 
       // Navigate based on user status
-      if (isNewUser) {
-        // New user - go to profile creation or onboarding
-        Navigator.pushReplacementNamed(context, '/profile-management');
+      if (isNewUser == true) {
+        // New user - go to onboarding
+        navigatorKey.currentState?.pushReplacementNamed('/onboarding');
       } else {
         // Existing user - go to main app
-        Navigator.pushReplacementNamed(context, '/home');
+        navigatorKey.currentState?.pushReplacementNamed('/home');
       }
     } else {
-      _showError(result['message'] ?? 'Authentication failed');
+      _showError((result['message'] as String?) ?? 'Authentication failed');
     }
   }
 
@@ -364,14 +407,19 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   void _testConnection() async {
+    // print('🔍 DEBUG: Starting connection test...');
+    // print('🔍 DEBUG: Platform config: ${AppConfig.debugInfo}');
+
     final authService = AuthService();
 
     // Test basic connectivity
     final canConnect = await authService.testBackendConnection();
+    // print('🔍 DEBUG: Can connect to backend: $canConnect');
 
     if (canConnect) {
       // Test POST requests
       final canPost = await authService.testPostRequest();
+      // print('🔍 DEBUG: Can make POST requests: $canPost');
 
       // Show success message
       ScaffoldMessenger.of(context).showSnackBar(
@@ -397,7 +445,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   void _showDebugInfo() {
     final config = AppConfig.debugInfo;
-    showDialog(
+    showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
         title: Text('🔍 Debug Information'),
@@ -410,7 +458,7 @@ class _LoginScreenState extends State<LoginScreen> {
               SizedBox(height: 8),
               Text('Current API URL:'),
               SelectableText(
-                config['apiUrl'],
+                config['apiUrl'] as String? ?? 'N/A',
                 style: TextStyle(fontFamily: 'monospace', color: Colors.blue),
               ),
               SizedBox(height: 12),
@@ -419,6 +467,12 @@ class _LoginScreenState extends State<LoginScreen> {
               Text('• Make sure backend is running on port 3000'),
               Text('• For physical device, use your computer\'s IP'),
               Text('• For emulator, 10.0.2.2 should work'),
+              SizedBox(height: 8),
+              // Text('Alternative URL for physical device:'),
+              // SelectableText(
+              //   config['physicalDeviceApiUrl'],
+              //   style: TextStyle(fontFamily: 'monospace', color: Colors.orange),
+              // ),
               SizedBox(height: 8),
               Text('To find your IP:'),
               Text('Windows: ipconfig'),
@@ -429,7 +483,8 @@ class _LoginScreenState extends State<LoginScreen> {
         actions: [
           TextButton(
             onPressed: () {
-              Clipboard.setData(ClipboardData(text: config['apiUrl']));
+              Clipboard.setData(
+                  ClipboardData(text: config['apiUrl'] as String? ?? ''));
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(content: Text('API URL copied to clipboard')),
               );
@@ -444,4 +499,43 @@ class _LoginScreenState extends State<LoginScreen> {
       ),
     );
   }
+
+  // void _testPhysicalDeviceConnection() async {
+  //   // print('🔍 DEBUG: Testing with physical device IP...');
+  //
+  //   // Temporarily override the API URL for testing
+  //   final testUrl = AppConfig.physicalDeviceApiUrl;
+  //   // print('🔍 DEBUG: Testing URL: $testUrl');
+  //
+  //   try {
+  //     final response = await http.get(
+  //       Uri.parse('$testUrl/api/auth/test-connection'),
+  //       headers: {
+  //         'Content-Type': 'application/json',
+  //         'Accept': 'application/json',
+  //       },
+  //     ).timeout(Duration(seconds: 10));
+  //
+  //     if (response.statusCode == 200) {
+  //       ScaffoldMessenger.of(context).showSnackBar(
+  //         SnackBar(
+  //           content: Text(
+  //               '✅ Physical device IP works!\nUpdate your config with this IP'),
+  //           backgroundColor: Colors.green,
+  //           duration: Duration(seconds: 4),
+  //         ),
+  //       );
+  //     } else {
+  //       throw Exception('HTTP ${response.statusCode}');
+  //     }
+  //   } catch (e) {
+  //     ScaffoldMessenger.of(context).showSnackBar(
+  //       SnackBar(
+  //         content: Text('❌ Physical device IP failed: $e'),
+  //         backgroundColor: Colors.red,
+  //         duration: Duration(seconds: 4),
+  //       ),
+  //     );
+  //   }
+  // }
 }

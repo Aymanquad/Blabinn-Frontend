@@ -10,12 +10,17 @@ plugins {
     id("com.google.gms.google-services")
 }
 
-// Load keystore properties
+// Load keystore properties (if present)
 val keystoreProperties = Properties()
 val keystorePropertiesFile = rootProject.file("key.properties")
 if (keystorePropertiesFile.exists()) {
     keystoreProperties.load(FileInputStream(keystorePropertiesFile))
 }
+val hasReleaseKeystore = keystorePropertiesFile.exists()
+        && keystoreProperties["storeFile"] != null
+        && keystoreProperties["keyAlias"] != null
+        && keystoreProperties["storePassword"] != null
+        && keystoreProperties["keyPassword"] != null
 
 android {
     namespace = "com.company.blabinn"
@@ -42,22 +47,48 @@ android {
         versionCode = flutter.versionCode
         versionName = flutter.versionName
         multiDexEnabled = true
+        
+        // Disable deferred components to avoid Google Play Core dependency issues
+        manifestPlaceholders["flutterEmbedding"] = "2"
     }
 
     signingConfigs {
-        create("release") {
-            keyAlias = keystoreProperties["keyAlias"] as String?
-            keyPassword = keystoreProperties["keyPassword"] as String?
-            storeFile = keystoreProperties["storeFile"]?.let { file(it) }
-            storePassword = keystoreProperties["storePassword"] as String?
+        if (hasReleaseKeystore) {
+            create("release") {
+                keyAlias = keystoreProperties["keyAlias"] as String
+                keyPassword = keystoreProperties["keyPassword"] as String
+                storeFile = file(keystoreProperties["storeFile"] as String)
+                storePassword = keystoreProperties["storePassword"] as String
+            }
         }
     }
 
     buildTypes {
         release {
-            signingConfig = signingConfigs.getByName("release")
-            isMinifyEnabled = false
-            isShrinkResources = false
+            if (hasReleaseKeystore) {
+                signingConfig = signingConfigs.getByName("release")
+            } else {
+                // No release keystore configured; will build an unsigned release APK/AAB.
+                println("[android/app] Warning: key.properties missing or incomplete; building unsigned release.")
+            }
+            // Enable R8 code shrinking and resource shrinking for smaller APKs
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                file("proguard-rules.pro")
+            )
+        }
+        debug {
+            // Enable billing for debug builds (for testing only)
+            signingConfig = signingConfigs.getByName("debug")
+        }
+    }
+
+    // Exclude unnecessary metadata from the APK to save a bit of space
+    packaging {
+        resources {
+            excludes += "/META-INF/{AL2.0,LGPL2.1,DEPENDENCIES,LICENSE,LICENSE.txt,license.txt,NOTICE,NOTICE.txt}"
         }
     }
 }
@@ -72,4 +103,11 @@ dependencies {
     
     // Required for multiDexEnabled
     implementation("androidx.multidex:multidex:2.0.1")
+    
+    // Required for AD_ID permission and AdMob functionality
+    implementation("com.google.android.gms:play-services-ads:22.6.0")
+    
+    // Firebase BOM for consistent versions
+    implementation(platform("com.google.firebase:firebase-bom:33.7.0"))
+    implementation("com.google.firebase:firebase-analytics")
 }

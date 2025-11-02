@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../core/constants.dart';
 import '../services/api_service.dart';
-import '../providers/theme_provider.dart'; // Added import for ThemeProvider
-import 'package:provider/provider.dart'; // Added import for Provider
+import '../widgets/consistent_app_bar.dart';
+
 
 class PrivacySettingsScreen extends StatefulWidget {
   const PrivacySettingsScreen({super.key});
@@ -202,17 +202,38 @@ class _PrivacySettingsScreenState extends State<PrivacySettingsScreen> {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Colors.white.withOpacity(0.08),
+            Colors.white.withOpacity(0.03),
+          ],
+        ),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: Theme.of(context).dividerColor.withOpacity(0.3),
+          color: Colors.white.withOpacity(0.1),
         ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: ListTile(
         leading: Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: (iconColor ?? AppColors.primary).withOpacity(0.1),
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                (iconColor ?? AppColors.primary).withOpacity(0.2),
+                (iconColor ?? AppColors.primary).withOpacity(0.1),
+              ],
+            ),
             borderRadius: BorderRadius.circular(8),
           ),
           child: Icon(
@@ -226,13 +247,14 @@ class _PrivacySettingsScreenState extends State<PrivacySettingsScreen> {
           style: const TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w600,
+            color: Colors.white,
           ),
         ),
         subtitle: Text(
           subtitle,
           style: TextStyle(
             fontSize: 14,
-            color: Theme.of(context).textTheme.bodySmall?.color,
+            color: Colors.white.withOpacity(0.7),
           ),
         ),
         trailing: trailing,
@@ -245,11 +267,25 @@ class _PrivacySettingsScreenState extends State<PrivacySettingsScreen> {
   Widget _buildBlockedUsersList() {
     return Container(
       decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Colors.white.withOpacity(0.08),
+            Colors.white.withOpacity(0.03),
+          ],
+        ),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: Theme.of(context).dividerColor.withOpacity(0.3),
+          color: Colors.white.withOpacity(0.1),
         ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
         children: [
@@ -259,7 +295,7 @@ class _PrivacySettingsScreenState extends State<PrivacySettingsScreen> {
             decoration: BoxDecoration(
               border: Border(
                 bottom: BorderSide(
-                  color: Theme.of(context).dividerColor.withOpacity(0.3),
+                  color: Colors.white.withOpacity(0.1),
                 ),
               ),
             ),
@@ -268,7 +304,14 @@ class _PrivacySettingsScreenState extends State<PrivacySettingsScreen> {
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: AppColors.error.withOpacity(0.1),
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        AppColors.error.withOpacity(0.2),
+                        AppColors.error.withOpacity(0.1),
+                      ],
+                    ),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Icon(
@@ -287,13 +330,14 @@ class _PrivacySettingsScreenState extends State<PrivacySettingsScreen> {
                         style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
+                          color: Colors.white,
                         ),
                       ),
                       Text(
                         '${_blockedUsers.length} users blocked',
                         style: TextStyle(
                           fontSize: 14,
-                          color: Theme.of(context).textTheme.bodySmall?.color,
+                          color: Colors.white.withOpacity(0.7),
                         ),
                       ),
                     ],
@@ -400,20 +444,18 @@ class _PrivacySettingsScreenState extends State<PrivacySettingsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Privacy Settings'),
+      appBar: const ConsistentAppBar(
+        title: 'Privacy Settings',
         centerTitle: true,
-        elevation: 0,
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        foregroundColor: Theme.of(context).textTheme.titleLarge?.color,
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
+      body:
+          _isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : SingleChildScrollView(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
                   // Header Section
                   Container(
                     width: double.infinity,
@@ -421,12 +463,8 @@ class _PrivacySettingsScreenState extends State<PrivacySettingsScreen> {
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         colors: [
-                          Provider.of<ThemeProvider>(context).isDarkMode
-                              ? AppColors.darkPrimary
-                              : AppColors.primary,
-                          Provider.of<ThemeProvider>(context).isDarkMode
-                              ? AppColors.darkPrimary.withOpacity(0.8)
-                              : AppColors.primary.withOpacity(0.8),
+                          AppColors.primary,
+                          AppColors.primary.withOpacity(0.8),
                         ],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
@@ -505,7 +543,7 @@ class _PrivacySettingsScreenState extends State<PrivacySettingsScreen> {
                   _buildBlockedUsersList(),
                 ],
               ),
-            ),
+                ),
     );
   }
 } 

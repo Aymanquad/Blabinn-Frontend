@@ -27,6 +27,17 @@ class _FriendRequestsScreenState extends State<FriendRequestsScreen>
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Refresh friend requests when screen becomes visible again
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _loadFriendRequests();
+      }
+    });
+  }
+
+  @override
   void dispose() {
     _tabController.dispose();
     super.dispose();
@@ -57,6 +68,7 @@ class _FriendRequestsScreenState extends State<FriendRequestsScreen>
 
   Future<void> _acceptRequest(String connectionId) async {
     try {
+      print('🔍 [FRIEND_REQUESTS] Accepting friend request: $connectionId');
       await _apiService.acceptFriendRequest(connectionId);
 
       if (mounted) {
@@ -66,9 +78,12 @@ class _FriendRequestsScreenState extends State<FriendRequestsScreen>
             backgroundColor: Colors.green,
           ),
         );
-        _loadFriendRequests(); // Reload to update the list
+
+        // Reload to update the list immediately
+        await _loadFriendRequests();
       }
     } catch (e) {
+      print('❌ [FRIEND_REQUESTS] Failed to accept request: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -82,6 +97,7 @@ class _FriendRequestsScreenState extends State<FriendRequestsScreen>
 
   Future<void> _rejectRequest(String connectionId) async {
     try {
+      print('🔍 [FRIEND_REQUESTS] Rejecting friend request: $connectionId');
       await _apiService.rejectFriendRequest(connectionId);
 
       if (mounted) {
@@ -91,22 +107,34 @@ class _FriendRequestsScreenState extends State<FriendRequestsScreen>
             backgroundColor: Colors.orange,
           ),
         );
-        _loadFriendRequests(); // Reload to update the list
+
+        // Reload to update the list immediately
+        await _loadFriendRequests();
       }
     } catch (e) {
+      print('❌ [FRIEND_REQUESTS] Failed to reject request: $e');
       if (mounted) {
+        String errorMessage = 'Failed to reject request';
+        if (e.toString().contains('Request not found')) {
+          errorMessage = 'Request no longer exists or was already processed.';
+        }
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to reject request: ${e.toString()}'),
+            content: Text(errorMessage),
             backgroundColor: Colors.red,
           ),
         );
+
+        // Still reload the list in case the request was processed
+        await _loadFriendRequests();
       }
     }
   }
 
   Future<void> _cancelRequest(String connectionId) async {
     try {
+      print('🔍 [FRIEND_REQUESTS] Cancelling friend request: $connectionId');
       await _apiService.cancelFriendRequest(connectionId);
 
       if (mounted) {
@@ -116,16 +144,27 @@ class _FriendRequestsScreenState extends State<FriendRequestsScreen>
             backgroundColor: Colors.orange,
           ),
         );
-        _loadFriendRequests(); // Reload to update the list
+
+        // Reload to update the list immediately
+        await _loadFriendRequests();
       }
     } catch (e) {
+      print('❌ [FRIEND_REQUESTS] Failed to cancel request: $e');
       if (mounted) {
+        String errorMessage = 'Failed to cancel request';
+        if (e.toString().contains('Request not found')) {
+          errorMessage = 'Request no longer exists or was already processed.';
+        }
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to cancel request: ${e.toString()}'),
+            content: Text(errorMessage),
             backgroundColor: Colors.red,
           ),
         );
+
+        // Still reload the list in case the request was processed
+        await _loadFriendRequests();
       }
     }
   }
@@ -133,6 +172,8 @@ class _FriendRequestsScreenState extends State<FriendRequestsScreen>
   Widget _buildRequestCard(Map<String, dynamic> request, bool isIncoming) {
     // Get the user data based on whether it's incoming or outgoing
     final userData = isIncoming ? request['fromUser'] : request['toUser'];
+    final connectionId =
+        request['id'] as String? ?? request['_id'] as String? ?? '';
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -181,14 +222,14 @@ class _FriendRequestsScreenState extends State<FriendRequestsScreen>
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        userData?['displayName'] ?? 'Unknown User',
+                        userData?['displayName']?.toString() ?? 'Unknown User',
                         style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                       Text(
-                        '@${userData?['username'] ?? 'unknown'}',
+                        '@${userData?['username']?.toString() ?? 'unknown'}',
                         style: TextStyle(
                           fontSize: 14,
                           color: Colors.grey[600],
@@ -200,19 +241,29 @@ class _FriendRequestsScreenState extends State<FriendRequestsScreen>
               ],
             ),
             if (request['message'] != null &&
-                request['message'].isNotEmpty) ...[
+                request['message'].toString().isNotEmpty) ...[
               const SizedBox(height: 12),
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.grey[50],
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      Colors.white.withOpacity(0.08),
+                      Colors.white.withOpacity(0.03),
+                    ],
+                  ),
                   borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: Colors.white.withOpacity(0.1),
+                  ),
                 ),
                 child: Text(
-                  request['message'],
+                  request['message']?.toString() ?? '',
                   style: TextStyle(
                     fontSize: 14,
-                    color: Colors.grey[700],
+                    color: Colors.white.withOpacity(0.8),
                   ),
                 ),
               ),
@@ -223,7 +274,7 @@ class _FriendRequestsScreenState extends State<FriendRequestsScreen>
                   ? [
                       Expanded(
                         child: ElevatedButton(
-                          onPressed: () => _acceptRequest(request['id']),
+                          onPressed: () => _acceptRequest(connectionId),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppColors.primary,
                             foregroundColor: Colors.white,
@@ -238,7 +289,7 @@ class _FriendRequestsScreenState extends State<FriendRequestsScreen>
                       const SizedBox(width: 12),
                       Expanded(
                         child: OutlinedButton(
-                          onPressed: () => _rejectRequest(request['id']),
+                          onPressed: () => _rejectRequest(connectionId),
                           style: OutlinedButton.styleFrom(
                             foregroundColor: Colors.red,
                             side: const BorderSide(color: Colors.red),
@@ -254,7 +305,7 @@ class _FriendRequestsScreenState extends State<FriendRequestsScreen>
                   : [
                       Expanded(
                         child: OutlinedButton(
-                          onPressed: () => _cancelRequest(request['id']),
+                          onPressed: () => _cancelRequest(connectionId),
                           style: OutlinedButton.styleFrom(
                             foregroundColor: Colors.orange,
                             side: const BorderSide(color: Colors.orange),
@@ -373,22 +424,29 @@ class _FriendRequestsScreenState extends State<FriendRequestsScreen>
             fontWeight: FontWeight.bold,
           ),
         ),
-        backgroundColor: AppColors.darkPrimary, // Use violet background
-        foregroundColor: AppColors.darkText, // Use soft cream for text/icons
+        backgroundColor: Colors.transparent,
         elevation: 0,
-        iconTheme: const IconThemeData(
-          color: AppColors.darkText, // Ensure back button is visible
+        foregroundColor: Colors.white,
+        iconTheme: const IconThemeData(color: Colors.white),
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                Colors.black.withOpacity(0.35),
+                Colors.transparent,
+              ],
+            ),
+          ),
         ),
         titleTextStyle: const TextStyle(
-          color: AppColors.darkText,
-          fontSize: 20,
-          fontWeight: FontWeight.bold,
-        ),
+            color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
         bottom: TabBar(
           controller: _tabController,
-          labelColor: Colors.white, // Use white for selected tabs on violet background
-          unselectedLabelColor: Colors.white70, // Use slightly transparent white for unselected
-          indicatorColor: Colors.white, // Use white indicator
+          labelColor: Colors.white,
+          unselectedLabelColor: Colors.white70,
+          indicatorColor: Colors.white,
           tabs: [
             Tab(
               child: Row(

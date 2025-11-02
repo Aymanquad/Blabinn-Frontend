@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
+import 'dart:ui';
 import '../core/constants.dart';
 import '../services/api_service.dart';
 import '../models/chat.dart';
-import '../models/user.dart';
 import '../widgets/banner_ad_widget.dart';
+import '../widgets/empty_state.dart';
+import '../widgets/skeleton_list.dart';
+import '../widgets/glass_container.dart';
+import '../utils/performance_optimizer.dart';
 import 'chat_screen.dart';
 
 class ChatListScreen extends StatefulWidget {
@@ -13,11 +17,13 @@ class ChatListScreen extends StatefulWidget {
   State<ChatListScreen> createState() => _ChatListScreenState();
 }
 
-class _ChatListScreenState extends State<ChatListScreen> {
+class _ChatListScreenState extends State<ChatListScreen> with PerformanceOptimizedMixin {
   final ApiService _apiService = ApiService();
+  final TextEditingController _searchController = TextEditingController();
 
   List<Map<String, dynamic>> _friends = [];
-  List<Map<String, dynamic>> _chatRooms = [];
+  List<Map<String, dynamic>> _filteredFriends = [];
+  // List<Map<String, dynamic>> _chatRooms = [];
   Map<String, int> _unreadCounts = {};
   bool _isLoading = false;
   String? _errorMessage;
@@ -26,6 +32,33 @@ class _ChatListScreenState extends State<ChatListScreen> {
   void initState() {
     super.initState();
     _loadChatsData();
+    _searchController.addListener(_filterFriends);
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _filterFriends() {
+    // Debounce the search to avoid excessive filtering
+    debounce('search', () {
+      final query = _searchController.text.toLowerCase().trim();
+      setState(() {
+        if (query.isEmpty) {
+          _filteredFriends = List.from(_friends);
+        } else {
+          _filteredFriends = _friends.where((friend) {
+            final displayName =
+                (friend['displayName'] ?? friend['username'] ?? 'Unknown')
+                    .toLowerCase();
+            final username = (friend['username'] ?? '').toLowerCase();
+            return displayName.contains(query) || username.contains(query);
+          }).toList();
+        }
+      });
+    }, delay: const Duration(milliseconds: 300));
   }
 
   Future<void> _loadChatsData() async {
@@ -45,7 +78,8 @@ class _ChatListScreenState extends State<ChatListScreen> {
       if (mounted) {
         setState(() {
           _friends = results[0] as List<Map<String, dynamic>>;
-          _chatRooms = results[1] as List<Map<String, dynamic>>;
+          _filteredFriends = List.from(_friends);
+          // _chatRooms = results[1] as List<Map<String, dynamic>>;
           final unreadResponse = results[2] as Map<String, dynamic>;
           _unreadCounts =
               Map<String, int>.from(unreadResponse['unreadBySender'] ?? {});
@@ -85,7 +119,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
         unreadCount: _unreadCounts[friend['uid'] ?? friend['id']] ?? 0,
-      );
+    );
 
       // Navigate to chat screen
       final result = await Navigator.push(
@@ -93,7 +127,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
         MaterialPageRoute(
           builder: (context) => ChatScreen(chat: chat),
         ),
-      );
+    );
 
       // Refresh chat list when returning from chat
       if (result == true) {
@@ -105,257 +139,359 @@ class _ChatListScreenState extends State<ChatListScreen> {
           content: Text('Failed to open chat: ${e.toString()}'),
           backgroundColor: Colors.red,
         ),
-      );
+    );
+    }
+  }
+
+  Widget _buildChatItem(Map<String, dynamic> friend) {
+    final theme = Theme.of(context);
+    final displayName =
+        friend['displayName'] ?? friend['username'] ?? 'Unknown';
+    final profilePicture = friend['profilePicture'] as String?;
+    final unreadCount = _unreadCounts[friend['uid'] ?? friend['id']] ?? 0;
+    final lastMessage = friend['lastMessage'] as String?;
+    final lastMessageTime = friend['lastMessageTime'] as String?;
+
+    return RepaintBoundary(
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Colors.white.withOpacity(0.1),
+              Colors.white.withOpacity(0.05),
+            ],
+          ),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: Colors.white.withOpacity(0.2),
+            width: 1,
+          ),
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(16),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+            child: Container(
+              child: ListTile(
+                leading: Stack(
+                  children: [
+                    CircleAvatar(
+                      radius: 25,
+                      backgroundColor: theme.colorScheme.primary.withOpacity(0.1),
+                      backgroundImage: profilePicture != null
+                          ? NetworkImage(profilePicture)
+                          : null,
+                      child: profilePicture == null
+                          ? Text(
+                              displayName[0].toUpperCase(),
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: theme.colorScheme.primary,
+                              ),
+                            )
+                          : null,
+                    ),
+                    if (unreadCount > 0)
+                      Positioned(
+                        top: 0,
+                        right: 0,
+                        child: Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: BoxDecoration(
+                            color: AppColors.error,
+                            shape: BoxShape.circle,
+                          ),
+                          constraints: const BoxConstraints(
+                            minWidth: 20,
+                            minHeight: 20,
+                          ),
+                          child: Text(
+                            unreadCount > 99 ? '99+' : unreadCount.toString(),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+                title: Text(
+                  displayName,
+                  style: TextStyle(
+                    fontWeight:
+                        unreadCount > 0 ? FontWeight.bold : FontWeight.normal,
+                  ),
+                ),
+                subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (lastMessage != null)
+                      Text(
+                        lastMessage,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: theme.colorScheme.onSurface.withOpacity(0.7),
+                          fontWeight: unreadCount > 0
+                              ? FontWeight.w500
+                              : FontWeight.normal,
+                        ),
+                      ),
+                    if (lastMessageTime != null)
+                      Text(
+                        lastMessageTime,
+                        style: TextStyle(
+                          color: theme.colorScheme.onSurface.withOpacity(0.5),
+                          fontSize: 12,
+                        ),
+                      ),
+                  ],
+                ),
+                trailing: unreadCount > 0
+                    ? Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.primary,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          'NEW',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      )
+                    : Icon(Icons.chevron_right,
+                        color: theme.colorScheme.onSurface.withOpacity(0.5)),
+                onTap: () => _openChatWithFriend(friend),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLoadingState() {
+    return SkeletonList(
+      itemCount: 8,
+      itemBuilder: (context, index) => GlassContainer(
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            // Avatar skeleton
+            Container(
+              width: 50,
+              height: 50,
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+            ),
+            const SizedBox(width: 16),
+            // Content skeleton
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: double.infinity,
+                    height: 16,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    width: 200,
+                    height: 14,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    if (_searchController.text.isNotEmpty) {
+      return EmptyState(
+        icon: Icons.search_off,
+        title: 'No friends found',
+        subtitle: 'Try a different search term',
+        primaryActionLabel: 'Clear Search',
+        onPrimaryAction: () => _searchController.clear(),
+        iconBackground: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF3A2A75), Color(0xFF2B2140)],
+        ),
+        primaryButtonColor: AppColors.primary,
+    );
+    } else {
+      return EmptyState(
+        icon: Icons.chat_bubble_outline,
+        title: 'No friends to chat with yet',
+        subtitle: 'Add friends to start chatting!',
+        primaryActionLabel: 'Find Friends',
+        onPrimaryAction: () {
+          // Navigate to add friends screen or connect screen
+          // This would depend on your navigation structure
+        },
+        iconBackground: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF7E5FF2), Color(0xFF5A3FB1)],
+        ),
+        primaryButtonColor: AppColors.primary,
+    );
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF2D1B69), // Dark purple background
-      body: Container(
-        decoration: const BoxDecoration(
-          image: DecorationImage(
-            image: AssetImage('assets/images/bg1.png'),
-            fit: BoxFit.cover,
-          ),
-        ),
-        child: SafeArea(
-          child: Column(
-            children: [
-              // Header
-              _buildHeader(),
-              
-              // Main content
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Column(
-                    children: [
-                      const SizedBox(height: 20),
-                      
-                      // Title
-                      const Text(
-                        'Your Chats',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 28,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                      
-                      // Content
-                      Expanded(
-                        child: _buildContent(),
-                      ),
-                      
-                      // Banner Ad at the bottom
-                      const BannerAdWidget(
-                        height: 50,
-                        margin: EdgeInsets.only(bottom: 8),
-                      ),
-                    ],
+      appBar: null,
+      body: Padding(
+        padding: const EdgeInsets.fromLTRB(0, 120, 0,
+            72), // Restore top spacing; we'll tighten space below the search bar
+        child: Column(
+          children: [
+            // Search Bar
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: Colors.white.withOpacity(0.2),
+                    width: 1,
                   ),
                 ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildHeader() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      child: Row(
-        children: [
-          // Back button
-          IconButton(
-            onPressed: () {
-              Navigator.pop(context);
-            },
-            icon: const Icon(
-              Icons.arrow_back,
-              color: Colors.white,
-              size: 24,
-            ),
-          ),
-          
-          // Title in center
-          const Expanded(
-            child: Text(
-              'Chats',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-          
-          // Settings icon
-          IconButton(
-            onPressed: () {
-              // TODO: Navigate to chat settings
-            },
-            icon: const Icon(
-              Icons.settings,
-              color: Colors.white,
-              size: 24,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildContent() {
-    if (_isLoading) {
-      return const Center(
-        child: CircularProgressIndicator(
-          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-        ),
-      );
-    }
-
-    if (_errorMessage != null) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.error_outline,
-              color: Colors.white.withOpacity(0.7),
-              size: 64,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              _errorMessage!,
-              style: TextStyle(
-                color: Colors.white.withOpacity(0.9),
-                fontSize: 16,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: _loadChatsData,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF8B5CF6),
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-              child: const Text('Retry'),
-            ),
-          ],
-        ),
-      );
-    }
-
-    if (_friends.isEmpty && _chatRooms.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.chat_bubble_outline,
-              color: Colors.white.withOpacity(0.7),
-              size: 64,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'No chats yet',
-              style: TextStyle(
-                color: Colors.white.withOpacity(0.9),
-                fontSize: 20,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Start connecting with people to see your chats here',
-              style: TextStyle(
-                color: Colors.white.withOpacity(0.7),
-                fontSize: 14,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      );
-    }
-
-    return ListView.builder(
-      itemCount: _friends.length,
-      itemBuilder: (context, index) {
-        final friend = _friends[index];
-        final unreadCount = _unreadCounts[friend['uid'] ?? friend['id']] ?? 0;
-        
-        return Container(
-          margin: const EdgeInsets.only(bottom: 12),
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: Colors.white.withOpacity(0.2),
-              width: 1,
-            ),
-          ),
-          child: ListTile(
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            leading: CircleAvatar(
-              radius: 25,
-              backgroundColor: const Color(0xFF8B5CF6),
-              child: Text(
-                (friend['displayName'] ?? friend['username'] ?? 'U')[0].toUpperCase(),
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 18,
-                ),
-              ),
-            ),
-            title: Text(
-              friend['displayName'] ?? friend['username'] ?? 'Unknown',
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w600,
-                fontSize: 16,
-              ),
-            ),
-            subtitle: Text(
-              'Tap to start chatting',
-              style: TextStyle(
-                color: Colors.white.withOpacity(0.7),
-                fontSize: 14,
-              ),
-            ),
-            trailing: unreadCount > 0
-                ? Container(
-                    padding: const EdgeInsets.all(6),
-                    decoration: const BoxDecoration(
-                      color: Color(0xFF8B5CF6),
-                      shape: BoxShape.circle,
+                child: TextField(
+                  controller: _searchController,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: InputDecoration(
+                    hintText: 'Search friends...',
+                    hintStyle: TextStyle(
+                      color: Colors.white.withOpacity(0.7),
                     ),
-                    child: Text(
-                      unreadCount.toString(),
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 12,
+                    prefixIcon: Icon(
+                      Icons.search,
+                      color: Colors.white.withOpacity(0.7),
+                    ),
+                    suffixIcon: _searchController.text.isNotEmpty
+                        ? IconButton(
+                            icon: Icon(
+                              Icons.clear,
+                              color: Colors.white.withOpacity(0.7),
+                            ),
+                            onPressed: () {
+                              _searchController.clear();
+                            },
+                          )
+                        : null,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(
+                        color: Colors.white.withOpacity(0.3),
+                        width: 1,
                       ),
                     ),
-                  )
-                : null,
-            onTap: () => _openChatWithFriend(friend),
-          ),
-        );
-      },
+                    filled: false,
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                  ),
+                  onChanged: (value) {
+                    // The filtering is handled by the listener
+                  },
+                ),
+              ),
+            ),
+            Expanded(
+              child: _isLoading
+                  ? _buildLoadingState()
+                  : _errorMessage != null
+                      ? Builder(
+                          builder: (context) {
+                            final theme = Theme.of(context);
+                            return Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.error_outline,
+                                    size: 64,
+                                    color: theme.colorScheme.onSurface
+                                        .withOpacity(0.4),
+                                  ),
+                                  const SizedBox(height: 16),
+                                  Text(
+                                    _errorMessage!,
+                                    style: TextStyle(
+                                      color: theme.colorScheme.onSurface
+                                          .withOpacity(0.7),
+                                      fontSize: 16,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                  const SizedBox(height: 16),
+                                  ElevatedButton(
+                                    onPressed: _loadChatsData,
+                                    child: const Text('Retry'),
+                                  ),
+                                ],
+                              ),
+    );
+                          },
+                        )
+                      : _filteredFriends.isEmpty
+                          ? _buildEmptyState()
+                          : RefreshIndicator(
+                              onRefresh: _loadChatsData,
+                              child: PerformanceOptimizer.optimizedListView(
+                                itemCount: _filteredFriends.length,
+                                itemBuilder: (context, index) {
+                                  return _buildChatItem(
+                                      _filteredFriends[index]);
+                                },
+                                padding: const EdgeInsets.only(top: 16),
+                              ),
+                            ),
+            ),
+            // Banner Ad at the bottom
+            const BannerAdWidget(
+              height: 50,
+              margin: EdgeInsets.only(bottom: 8),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

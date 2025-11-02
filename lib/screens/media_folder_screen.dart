@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:ui';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -6,9 +7,9 @@ import 'dart:io';
 import 'dart:convert';
 import '../core/constants.dart';
 import '../services/api_service.dart';
-import '../services/premium_service.dart';
 import '../utils/permission_helper.dart';
 import '../widgets/banner_ad_widget.dart';
+import '../widgets/empty_state.dart';
 
 /// MediaFolderScreen - Manages user's media collection with two tabs:
 /// 1. Saved - All images saved to media folder (from camera)
@@ -86,8 +87,7 @@ class MediaFolderScreen extends StatefulWidget {
       if (await metadataFile.exists()) {
         final content = await metadataFile.readAsString();
         if (content.isNotEmpty) {
-          final decodedMetadata = json.decode(content);
-          metadata = Map<String, dynamic>.from(decodedMetadata as Map);
+          metadata = Map<String, dynamic>.from(json.decode(content));
         }
       }
 
@@ -99,18 +99,19 @@ class MediaFolderScreen extends StatefulWidget {
 
       if (friendId != null) {
         imageMetadata['friendId'] = friendId;
+      }
+      if (friendName != null) {
         imageMetadata['friendName'] = friendName;
       }
-
       if (messageId != null) {
         imageMetadata['messageId'] = messageId;
       }
-
       if (imageUrl != null) {
         imageMetadata['imageUrl'] = imageUrl;
       }
 
       metadata[fileName] = imageMetadata;
+
       await metadataFile.writeAsString(json.encode(metadata));
     } catch (e) {
       //print('Error saving image metadata: $e');
@@ -120,22 +121,22 @@ class MediaFolderScreen extends StatefulWidget {
 
 class _MediaFolderScreenState extends State<MediaFolderScreen>
     with TickerProviderStateMixin {
-  late TabController _tabController;
-  final ImagePicker _picker = ImagePicker();
   final ApiService _apiService = ApiService();
-  final PremiumService _premiumService = PremiumService();
+  final ImagePicker _imagePicker = ImagePicker();
+  late TabController _tabController;
 
-  List<Map<String, dynamic>> _savedImages = [];
-  List<Map<String, dynamic>> _receivedImages = [];
   bool _isLoading = false;
-  String? _errorMessage;
-  bool _hasPermission = false;
+  List<File> _savedImages = [];
+  List<Map<String, dynamic>> _receivedImages = [];
+
+  int _selectedTabIndex = 0;
+  final List<String> _tabTitles = ['Saved', 'Received'];
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
-    _checkPermissions();
+    _loadImages();
   }
 
   @override
@@ -144,582 +145,658 @@ class _MediaFolderScreenState extends State<MediaFolderScreen>
     super.dispose();
   }
 
-  Future<void> _checkPermissions() async {
-    final status = await Permission.photos.status;
-    setState(() {
-      _hasPermission = status.isGranted;
-    });
-
-    if (_hasPermission) {
-      _loadImages();
-    }
-  }
-
   Future<void> _loadImages() async {
     setState(() {
       _isLoading = true;
-      _errorMessage = null;
     });
 
+    try {
+      await _loadSavedImages();
+      await _loadReceivedImages();
+    } catch (e) {
+      _showError('Failed to load images: $e');
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _loadSavedImages() async {
     try {
       final directory = await getApplicationDocumentsDirectory();
       final mediaDir = Directory('${directory.path}/media');
 
-      print('🔍 [MEDIA DEBUG] Media directory path: ${mediaDir.path}');
-      print('🔍 [MEDIA DEBUG] Media directory exists: ${await mediaDir.exists()}');
+      if (await mediaDir.exists()) {
+        final files = await mediaDir.list().toList();
+        List<File> imageFiles = files
+            .where((file) =>
+                file.path.toLowerCase().endsWith('.jpg') ||
+                file.path.toLowerCase().endsWith('.png') ||
+                file.path.toLowerCase().endsWith('.jpeg'))
+            .cast<File>()
+            .toList();
 
-      if (!await mediaDir.exists()) {
-        print('🔍 [MEDIA DEBUG] Media directory does not exist, creating empty lists');
+        // Sort by file modification time (newest first)
+        imageFiles.sort(
+            (a, b) => b.lastModifiedSync().compareTo(a.lastModifiedSync()));
+
         setState(() {
-          _savedImages = [];
-          _receivedImages = [];
-          _isLoading = false;
+          _savedImages = imageFiles;
         });
-        return;
       }
+    } catch (e) {
+      //print('Error loading saved images: $e');
+    }
+  }
 
-      final files = await mediaDir.list().toList();
-      print('🔍 [MEDIA DEBUG] Found ${files.length} files in media directory');
-      
+  Future<void> _loadReceivedImages() async {
+    try {
+      final directory = await getApplicationDocumentsDirectory();
       final metadataFile = File('${directory.path}/media_metadata.json');
-      Map<String, dynamic> metadata = {};
 
       if (await metadataFile.exists()) {
         final content = await metadataFile.readAsString();
         if (content.isNotEmpty) {
-          final decodedMetadata = json.decode(content);
-          metadata = Map<String, dynamic>.from(decodedMetadata as Map);
-          print('🔍 [MEDIA DEBUG] Loaded metadata for ${metadata.length} images');
-        }
-      } else {
-        print('🔍 [MEDIA DEBUG] No metadata file found');
-      }
+          final Map<String, dynamic> metadata = json.decode(content);
 
-      final List<Map<String, dynamic>> savedImages = [];
-      final List<Map<String, dynamic>> receivedImages = [];
+          List<Map<String, dynamic>> receivedImagesList = [];
 
-      for (final file in files) {
-        if (file is File && file.path.endsWith('.jpg')) {
-          final fileName = file.path.split('/').last;
-          final fileMetadata = (metadata[fileName] as Map?)?.cast<String, dynamic>() ?? <String, dynamic>{};
-          final source = fileMetadata['source'] ?? 'saved';
-
-          print('🔍 [MEDIA DEBUG] Processing file: $fileName (source: $source)');
-
-          final imageData = <String, dynamic>{
-            'file': file,
-            'fileName': fileName,
-            'metadata': fileMetadata,
-            'timestamp': DateTime.tryParse(fileMetadata['timestamp'] ?? '') ?? DateTime.now(),
-          };
-
-          if (source == 'received') {
-            receivedImages.add(imageData);
-          } else {
-            savedImages.add(imageData);
+          for (final entry in metadata.entries) {
+            if (entry.value['source'] == 'received') {
+              final imageFile = File('${directory.path}/media/${entry.key}');
+              if (await imageFile.exists()) {
+                receivedImagesList.add({
+                  'file': imageFile,
+                  'fileName': entry.key,
+                  'timestamp': DateTime.parse(entry.value['timestamp']),
+                  'source': entry.value['source'],
+                  'friendId': entry.value['friendId'],
+                  'friendName': entry.value['friendName'] ?? 'Unknown Friend',
+                });
+              }
+            }
           }
+
+          // Sort by timestamp (newest first)
+          receivedImagesList
+              .sort((a, b) => b['timestamp'].compareTo(a['timestamp']));
+
+          setState(() {
+            _receivedImages = receivedImagesList;
+          });
+        }
+      }
+    } catch (e) {
+      //print('Error loading received images: $e');
+    }
+  }
+
+  Future<void> _takePhoto() async {
+    try {
+      // Request camera permission
+      final hasPermission =
+          await PermissionHelper.requestCameraPermission(context);
+      if (!hasPermission) {
+        return;
+      }
+
+      final XFile? image = await _imagePicker.pickImage(
+        source: ImageSource.camera,
+        imageQuality: 80,
+      );
+
+      if (image != null) {
+        await _saveImageToMediaFolder(File(image.path), 'camera');
+        await _loadImages();
+        _showSuccess('Photo saved to media folder!');
+      }
+    } catch (e) {
+      _showError('Failed to take photo: $e');
+    }
+  }
+
+  Future<void> _saveImageToMediaFolder(File imageFile, String source) async {
+    try {
+      final directory = await getApplicationDocumentsDirectory();
+      final mediaDir = Directory('${directory.path}/media');
+
+      if (!await mediaDir.exists()) {
+        await mediaDir.create(recursive: true);
+      }
+
+      final timestamp = DateTime.now();
+      final fileName = '${timestamp.millisecondsSinceEpoch}_$source.jpg';
+      final savedFile = File('${mediaDir.path}/$fileName');
+
+      await imageFile.copy(savedFile.path);
+
+      // Save metadata for this image
+      await _saveImageMetadata(fileName, source, timestamp);
+    } catch (e) {
+      throw Exception('Failed to save image: $e');
+    }
+  }
+
+  Future<void> _saveImageMetadata(
+      String fileName, String source, DateTime timestamp,
+      {String? friendId, String? friendName}) async {
+    try {
+      final directory = await getApplicationDocumentsDirectory();
+      final metadataFile = File('${directory.path}/media_metadata.json');
+
+      Map<String, dynamic> metadata = {};
+      if (await metadataFile.exists()) {
+        final content = await metadataFile.readAsString();
+        if (content.isNotEmpty) {
+          metadata = Map<String, dynamic>.from(json.decode(content));
         }
       }
 
-      // Sort by timestamp (newest first)
-      savedImages.sort((a, b) => b['timestamp'].compareTo(a['timestamp']));
-      receivedImages.sort((a, b) => b['timestamp'].compareTo(a['timestamp']));
+      Map<String, dynamic> imageMetadata = {
+        'source': source,
+        'timestamp': timestamp.toIso8601String(),
+        'dateAdded': timestamp.toIso8601String(),
+      };
 
-      print('🔍 [MEDIA DEBUG] Final counts - Saved: ${savedImages.length}, Received: ${receivedImages.length}');
+      if (friendId != null) {
+        imageMetadata['friendId'] = friendId;
+      }
+      if (friendName != null) {
+        imageMetadata['friendName'] = friendName;
+      }
 
-      setState(() {
-        _savedImages = savedImages;
-        _receivedImages = receivedImages;
-        _isLoading = false;
-      });
+      metadata[fileName] = imageMetadata;
+
+      await metadataFile.writeAsString(json.encode(metadata));
     } catch (e) {
-      print('❌ [MEDIA DEBUG] Error loading images: $e');
-      setState(() {
-        _errorMessage = 'Failed to load images: ${e.toString()}';
-        _isLoading = false;
-      });
+      //print('Error saving image metadata: $e');
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFF2D1B69), // Dark purple background
-      body: Container(
-        decoration: const BoxDecoration(
-          image: DecorationImage(
-            image: AssetImage('assets/images/bg1.png'),
-            fit: BoxFit.cover,
-          ),
-        ),
-        child: SafeArea(
-          child: Column(
-            children: [
-              // Header
-              _buildHeader(),
-              
-              // Tab bar
-              _buildTabBar(),
-              
-              // Content
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: _buildContent(),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
+  Future<void> _deleteImage(File imageFile) async {
+    try {
+      // Delete the image file
+      await imageFile.delete();
+
+      // Clean up metadata
+      final fileName = imageFile.path.split('/').last;
+      await _removeImageMetadata(fileName);
+
+      await _loadImages();
+      _showSuccess('Image deleted successfully');
+    } catch (e) {
+      _showError('Failed to delete image: $e');
+    }
   }
 
-  Widget _buildHeader() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: Colors.white.withOpacity(0.2),
-          width: 1,
-        ),
-      ),
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Row(
-        children: [
-          // Back button
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: IconButton(
-              onPressed: () {
-                Navigator.pop(context);
+  Future<void> _removeImageMetadata(String fileName) async {
+    try {
+      final directory = await getApplicationDocumentsDirectory();
+      final metadataFile = File('${directory.path}/media_metadata.json');
+
+      if (await metadataFile.exists()) {
+        final content = await metadataFile.readAsString();
+        if (content.isNotEmpty) {
+          Map<String, dynamic> metadata = json.decode(content);
+          metadata.remove(fileName);
+          await metadataFile.writeAsString(json.encode(metadata));
+        }
+      }
+    } catch (e) {
+      //print('Error removing image metadata: $e');
+    }
+  }
+
+  Future<void> _shareImageWithFriend(File imageFile) async {
+    try {
+      // Show friend selection dialog
+      final selectedFriend = await _showFriendSelectionDialog();
+      if (selectedFriend != null) {
+        await _sendImageToFriend(imageFile, selectedFriend);
+      }
+    } catch (e) {
+      _showError('Error sharing image: ${e.toString()}');
+    }
+  }
+
+  Future<Map<String, dynamic>?> _showFriendSelectionDialog() async {
+    try {
+      final apiService = ApiService();
+      final friends = await apiService.getFriends();
+      
+      if (friends.isEmpty) {
+        _showError('No friends to share with');
+        return null;
+      }
+
+      return await showDialog<Map<String, dynamic>>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Select Friend'),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: ListView.builder(
+              shrinkWrap: true,
+              itemCount: friends.length,
+              itemBuilder: (context, index) {
+                final friend = friends[index];
+                return ListTile(
+                  leading: CircleAvatar(
+                    backgroundImage: friend['profileImage'] != null
+                        ? NetworkImage(friend['profileImage'])
+                        : null,
+                    child: friend['profileImage'] == null
+                        ? const Icon(Icons.person)
+                        : null,
+                  ),
+                  title: Text(friend['username'] ?? 'Unknown'),
+                  onTap: () => Navigator.pop(context, friend),
+                );
               },
-              icon: const Icon(
-                Icons.arrow_back,
-                color: Colors.white,
-                size: 24,
-              ),
             ),
           ),
-          
-          // Title in center
-          const Expanded(
-            child: Text(
-              'Media Gallery',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 0.5,
-              ),
-            ),
-          ),
-          
-          // Add photo icon
-          Container(
-            decoration: BoxDecoration(
-              color: const Color(0xFF8B5CF6),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: IconButton(
-              onPressed: _takePhoto,
-              icon: const Icon(
-                Icons.camera_alt,
-                color: Colors.white,
-                size: 24,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTabBar() {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: Colors.white.withOpacity(0.2),
-          width: 1,
-        ),
-      ),
-      child: TabBar(
-        controller: _tabController,
-        indicator: BoxDecoration(
-          color: const Color(0xFF8B5CF6),
-          borderRadius: BorderRadius.circular(16),
-        ),
-        labelColor: Colors.white,
-        unselectedLabelColor: Colors.white.withOpacity(0.7),
-        labelStyle: const TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.bold,
-        ),
-        unselectedLabelStyle: const TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.w500,
-        ),
-        tabs: const [
-          Tab(
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.photo_camera, size: 18),
-                SizedBox(width: 8),
-                Text('Saved'),
-              ],
-            ),
-          ),
-          Tab(
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.photo_library, size: 18),
-                SizedBox(width: 8),
-                Text('Received'),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildContent() {
-    if (!_hasPermission) {
-      return _buildPermissionRequest();
-    }
-
-    if (_isLoading) {
-      return const Center(
-        child: CircularProgressIndicator(
-          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-        ),
-      );
-    }
-
-    if (_errorMessage != null) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.error_outline,
-              color: Colors.white.withOpacity(0.7),
-              size: 64,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              _errorMessage!,
-              style: TextStyle(
-                color: Colors.white.withOpacity(0.9),
-                fontSize: 16,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: _loadImages,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF8B5CF6),
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-              child: const Text('Retry'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
             ),
           ],
         ),
       );
+    } catch (e) {
+      _showError('Error loading friends: ${e.toString()}');
+      return null;
     }
-
-    return TabBarView(
-      controller: _tabController,
-      children: [
-        _buildImageGrid(_savedImages, 'saved'),
-        _buildImageGrid(_receivedImages, 'received'),
-      ],
-    );
   }
 
-  Widget _buildPermissionRequest() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.photo_library,
-            color: Colors.white.withOpacity(0.7),
-            size: 64,
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'Photo Permission Required',
-            style: TextStyle(
-              color: Colors.white.withOpacity(0.9),
-              fontSize: 20,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Allow access to your photos to view and manage your media',
-            style: TextStyle(
-              color: Colors.white.withOpacity(0.7),
-              fontSize: 14,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 24),
-          ElevatedButton(
-            onPressed: _requestPermission,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF8B5CF6),
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-            child: const Text('Grant Permission'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildImageGrid(List<Map<String, dynamic>> images, String type) {
-    if (images.isEmpty) {
-      return Center(
-        child: Container(
-          padding: const EdgeInsets.all(32),
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.05),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: Colors.white.withOpacity(0.1),
-              width: 1,
-            ),
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  type == 'saved' ? Icons.photo_camera : Icons.photo_library,
-                  color: Colors.white.withOpacity(0.8),
-                  size: 48,
-                ),
-              ),
-              const SizedBox(height: 24),
-              Text(
-                type == 'saved' ? 'No saved photos' : 'No received photos',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                type == 'saved' 
-                  ? 'Take photos to see them here'
-                  : 'Photos from friends will appear here',
-                style: TextStyle(
-                  color: Colors.white.withOpacity(0.8),
-                  fontSize: 16,
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ],
-          ),
-        ),
+  Future<void> _sendImageToFriend(File imageFile, Map<String, dynamic> friend) async {
+    try {
+      final apiService = ApiService();
+      
+      // Upload image first
+      final imageUrl = await apiService.uploadChatImage(imageFile);
+      
+      // Send message with image
+      await apiService.sendDirectMessage(
+        friend['id'],
+        'Check out this image!',
       );
+      
+      _showSuccess('Image shared with ${friend['username']} successfully!');
+    } catch (e) {
+      _showError('Error sending image: ${e.toString()}');
     }
-
-    return GridView.builder(
-      padding: const EdgeInsets.only(bottom: 16),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 3,
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 12,
-      ),
-      itemCount: images.length,
-      itemBuilder: (context, index) {
-        final image = images[index];
-        return _buildImageTile(image, type);
-      },
-    );
   }
 
-  Widget _buildImageTile(Map<String, dynamic> image, String type) {
-    final file = image['file'] as File;
-    final metadata = (image['metadata'] as Map).cast<String, dynamic>();
-    
-    return GestureDetector(
-      onTap: () => _showImageDetail(image, type),
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: Colors.white.withOpacity(0.3),
-            width: 2,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.2),
-              blurRadius: 8,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(16),
-          child: Stack(
-            children: [
-              Image.file(
-                file,
-                fit: BoxFit.cover,
-                width: double.infinity,
-                height: double.infinity,
-              ),
-              // Gradient overlay for better text readability
-              Positioned(
-                bottom: 0,
-                left: 0,
-                right: 0,
-                child: Container(
-                  height: 40,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        Colors.transparent,
-                        Colors.black.withOpacity(0.7),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-              if (type == 'received' && metadata['friendName'] != null)
-                Positioned(
-                  bottom: 8,
-                  left: 8,
-                  right: 8,
-                  child: Text(
-                    metadata['friendName'],
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              // Play button overlay for videos (if needed in future)
-              Positioned(
-                top: 8,
-                right: 8,
-                child: Container(
-                  padding: const EdgeInsets.all(4),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.6),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Icon(
-                    type == 'saved' ? Icons.photo_camera : Icons.photo_library,
-                    color: Colors.white,
-                    size: 16,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  void _showImageDetail(Map<String, dynamic> image, String type) {
-    final file = image['file'] as File;
-    final metadata = (image['metadata'] as Map).cast<String, dynamic>();
-    
+  void _showImageDetails(File imageFile) {
     showDialog(
       context: context,
       builder: (context) => Dialog(
         backgroundColor: Colors.transparent,
         child: Container(
           decoration: BoxDecoration(
-            color: Colors.black.withOpacity(0.9),
+            color: Theme.of(context).cardColor,
             borderRadius: BorderRadius.circular(16),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              // Image
               ClipRRect(
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                borderRadius:
+                    const BorderRadius.vertical(top: Radius.circular(16)),
                 child: Image.file(
-                  file,
-                  fit: BoxFit.contain,
+                  imageFile,
                   height: 300,
+                  width: double.infinity,
+                  fit: BoxFit.cover,
                 ),
               ),
+              // Actions
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    _buildActionButton(
+                      icon: Icons.share,
+                      label: 'Share',
+                      onPressed: () {
+                        Navigator.pop(context);
+                        _shareImageWithFriend(imageFile);
+                      },
+                    ),
+                    _buildActionButton(
+                      icon: Icons.delete,
+                      label: 'Delete',
+                      color: Colors.red,
+                      onPressed: () {
+                        Navigator.pop(context);
+                        _confirmDelete(imageFile);
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildActionButton({
+    required IconData icon,
+    required String label,
+    required VoidCallback onPressed,
+    Color? color,
+  }) {
+    return Semantics(
+      label: label,
+      button: true,
+      child: Column(
+        children: [
+          IconButton(
+            onPressed: onPressed,
+            icon: Icon(icon, color: color ?? AppColors.primary),
+            style: IconButton.styleFrom(
+              backgroundColor: (color ?? AppColors.primary).withOpacity(0.1),
+              padding: const EdgeInsets.all(12),
+            ),
+            tooltip: label,
+          ),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              color: color ?? AppColors.primary,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _confirmDelete(File imageFile) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Image'),
+        content: const Text(
+            'Are you sure you want to delete this image? This action cannot be undone.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _deleteImage(imageFile);
+            },
+            child: const Text('Delete', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showSuccess(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: AppColors.success,
+      ),
+    );
+  }
+
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: AppColors.error,
+      ),
+    );
+  }
+
+  Widget _buildImageGrid(List<File> images) {
+    if (images.isEmpty) {
+      return EmptyState(
+        icon: Icons.photo_library_outlined,
+        title: 'No images yet',
+        subtitle: 'Add images from camera',
+        primaryActionLabel: 'Take Photo',
+        onPrimaryAction: _takePhoto,
+      );
+    }
+
+    return GridView.builder(
+      padding: const EdgeInsets.all(16),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 3,
+        crossAxisSpacing: 8,
+        mainAxisSpacing: 8,
+      ),
+      itemCount: images.length,
+      cacheExtent: 200, // Improves performance by caching nearby items
+      itemBuilder: (context, index) {
+        final image = images[index];
+        return GestureDetector(
+          onTap: () => _showImageDetails(image),
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: Theme.of(context).dividerColor.withOpacity(0.3),
+              ),
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: Image.file(
+                image,
+                fit: BoxFit.cover,
+                // Add error handling for corrupted images
+                errorBuilder: (context, error, stackTrace) {
+                  return Container(
+                    color: Colors.grey[300],
+                    child: const Icon(
+                      Icons.broken_image,
+                      color: Colors.grey,
+                      size: 32,
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildReceivedImageGrid(List<Map<String, dynamic>> receivedImages) {
+    if (receivedImages.isEmpty) {
+      return EmptyState(
+        icon: Icons.inbox_outlined,
+        title: 'No received images',
+        subtitle:
+            'Images sent by your friends will be saved here automatically',
+      );
+    }
+
+    return GridView.builder(
+      padding: const EdgeInsets.all(16),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 3,
+        crossAxisSpacing: 8,
+        mainAxisSpacing: 8,
+      ),
+      itemCount: receivedImages.length,
+      cacheExtent: 200, // Improves performance
+      itemBuilder: (context, index) {
+        final imageData = receivedImages[index];
+        final imageFile = imageData['file'] as File;
+        final friendName = imageData['friendName'] as String;
+        final timestamp = imageData['timestamp'] as DateTime;
+
+        return GestureDetector(
+          onTap: () =>
+              _showReceivedImageDetails(imageFile, friendName, timestamp),
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: Theme.of(context).dividerColor.withOpacity(0.3),
+              ),
+            ),
+            child: Stack(
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Image.file(
+                    imageFile,
+                    fit: BoxFit.cover,
+                    width: double.infinity,
+                    height: double.infinity,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Container(
+                        color: Colors.grey[300],
+                        child: const Icon(
+                          Icons.broken_image,
+                          color: Colors.grey,
+                          size: 32,
+                        ),
+                      );
+                    },
+                  ),
+                ),
+                // Friend indicator
+                Positioned(
+                  top: 4,
+                  right: 4,
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: Colors.black54,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(
+                      Icons.person,
+                      color: Colors.white,
+                      size: 12,
+                    ),
+                  ),
+                ),
+                // Friend name overlay
+                Positioned(
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  child: Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      borderRadius: const BorderRadius.only(
+                        bottomLeft: Radius.circular(8),
+                        bottomRight: Radius.circular(8),
+                      ),
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Colors.transparent,
+                          Colors.black87,
+                        ],
+                      ),
+                    ),
+                    child: Text(
+                      friendName,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _showReceivedImageDetails(
+      File imageFile, String friendName, DateTime timestamp) {
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: Container(
+          decoration: BoxDecoration(
+            color: Theme.of(context).cardColor,
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Image
+              ClipRRect(
+                borderRadius:
+                    const BorderRadius.vertical(top: Radius.circular(16)),
+                child: Image.file(
+                  imageFile,
+                  height: 300,
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                ),
+              ),
+              // Details and Actions
               Padding(
                 padding: const EdgeInsets.all(16),
                 child: Column(
                   children: [
-                    if (type == 'received' && metadata['friendName'] != null)
-                      Text(
-                        'From: ${metadata['friendName']}',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w500,
-                        ),
+                    Text(
+                      'From $friendName',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.primary,
                       ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Received ${_formatTimestamp(timestamp)}',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Theme.of(context).textTheme.bodySmall?.color,
+                      ),
+                    ),
                     const SizedBox(height: 16),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: [
-                        ElevatedButton.icon(
+                        _buildActionButton(
+                          icon: Icons.share,
+                          label: 'Share',
                           onPressed: () {
                             Navigator.pop(context);
-                            _shareImage(file);
+                            _shareImageWithFriend(imageFile);
                           },
-                          icon: const Icon(Icons.share),
-                          label: const Text('Share'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF8B5CF6),
-                            foregroundColor: Colors.white,
-                          ),
                         ),
-                        ElevatedButton.icon(
+                        _buildActionButton(
+                          icon: Icons.delete,
+                          label: 'Delete',
+                          color: Colors.red,
                           onPressed: () {
                             Navigator.pop(context);
-                            _deleteImage(image);
+                            _confirmDelete(imageFile);
                           },
-                          icon: const Icon(Icons.delete),
-                          label: const Text('Delete'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.red,
-                            foregroundColor: Colors.white,
-                          ),
                         ),
                       ],
                     ),
@@ -733,140 +810,74 @@ class _MediaFolderScreenState extends State<MediaFolderScreen>
     );
   }
 
-  Future<void> _requestPermission() async {
-    final status = await Permission.photos.request();
-    setState(() {
-      _hasPermission = status.isGranted;
-    });
+  String _formatTimestamp(DateTime timestamp) {
+    final now = DateTime.now();
+    final difference = now.difference(timestamp);
 
-    if (_hasPermission) {
-      _loadImages();
+    if (difference.inDays > 0) {
+      return '${difference.inDays} day${difference.inDays == 1 ? '' : 's'} ago';
+    } else if (difference.inHours > 0) {
+      return '${difference.inHours} hour${difference.inHours == 1 ? '' : 's'} ago';
+    } else if (difference.inMinutes > 0) {
+      return '${difference.inMinutes} minute${difference.inMinutes == 1 ? '' : 's'} ago';
+    } else {
+      return 'Just now';
     }
   }
 
-  Future<void> _takePhoto() async {
-    try {
-      final XFile? photo = await _picker.pickImage(source: ImageSource.camera);
-      if (photo != null) {
-        await _savePhoto(File(photo.path));
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Failed to take photo: ${e.toString()}'),
-          backgroundColor: Colors.red,
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: null,
+      body: Padding(
+        padding: const EdgeInsets.fromLTRB(
+            0, 100, 0, 100), // Increased padding for transparent bars
+        child: Column(
+          children: [
+            // TabBar
+            ClipRRect(
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+                child: Container(
+                  color: Colors.transparent,
+                  child: TabBar(
+                    controller: _tabController,
+                    onTap: (index) {
+                      setState(() {
+                        _selectedTabIndex = index;
+                      });
+                    },
+                    labelColor: Colors.white.withOpacity(0.85),
+                    unselectedLabelColor: Colors.white.withOpacity(0.55),
+                    indicatorColor: Colors.white.withOpacity(0.85),
+                    indicatorWeight: 3,
+                    tabs: _tabTitles.map((title) => Tab(text: title)).toList(),
+                  ),
+                ),
+              ),
+            ),
+            Expanded(
+              child: _isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : IndexedStack(
+                      index: _selectedTabIndex,
+                      children: [
+                        // Saved Images Tab
+                        _buildImageGrid(_savedImages),
+
+                        // Received Images Tab
+                        _buildReceivedImageGrid(_receivedImages),
+                      ],
+                    ),
+            ),
+            // Banner Ad at the bottom
+            const BannerAdWidget(
+              height: 50,
+              margin: EdgeInsets.only(bottom: 8),
+            ),
+          ],
         ),
-      );
-    }
-  }
-
-  Future<void> _savePhoto(File photoFile) async {
-    try {
-      print('📸 [MEDIA DEBUG] Starting to save photo...');
-      final directory = await getApplicationDocumentsDirectory();
-      final mediaDir = Directory('${directory.path}/media');
-
-      if (!await mediaDir.exists()) {
-        print('📸 [MEDIA DEBUG] Creating media directory');
-        await mediaDir.create(recursive: true);
-      }
-
-      final timestamp = DateTime.now();
-      final fileName = '${timestamp.millisecondsSinceEpoch}_saved.jpg';
-      final savedFile = File('${mediaDir.path}/$fileName');
-
-      print('📸 [MEDIA DEBUG] Saving photo as: $fileName');
-      await photoFile.copy(savedFile.path);
-
-      // Save metadata
-      await _saveImageMetadata(fileName, 'saved', timestamp);
-      print('📸 [MEDIA DEBUG] Photo saved successfully!');
-
-      _loadImages(); // Reload images
-    } catch (e) {
-      print('❌ [MEDIA DEBUG] Error saving photo: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Failed to save photo: ${e.toString()}'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
-  }
-
-  Future<void> _saveImageMetadata(String fileName, String source, DateTime timestamp) async {
-    try {
-      final directory = await getApplicationDocumentsDirectory();
-      final metadataFile = File('${directory.path}/media_metadata.json');
-
-      Map<String, dynamic> metadata = {};
-      if (await metadataFile.exists()) {
-        final content = await metadataFile.readAsString();
-        if (content.isNotEmpty) {
-          final decodedMetadata = json.decode(content);
-          metadata = Map<String, dynamic>.from(decodedMetadata as Map);
-        }
-      }
-
-      metadata[fileName] = {
-        'source': source,
-        'timestamp': timestamp.toIso8601String(),
-        'dateAdded': timestamp.toIso8601String(),
-      };
-
-      await metadataFile.writeAsString(json.encode(metadata));
-    } catch (e) {
-      //print('Error saving image metadata: $e');
-    }
-  }
-
-  Future<void> _shareImage(File imageFile) async {
-    // TODO: Implement image sharing functionality
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Share functionality coming soon!'),
-        backgroundColor: Colors.orange,
       ),
     );
-  }
-
-  Future<void> _deleteImage(Map<String, dynamic> image) async {
-    try {
-      final file = image['file'] as File;
-      final fileName = image['fileName'] as String;
-
-      // Delete the file
-      await file.delete();
-
-      // Remove from metadata
-      final directory = await getApplicationDocumentsDirectory();
-      final metadataFile = File('${directory.path}/media_metadata.json');
-
-      if (await metadataFile.exists()) {
-        final content = await metadataFile.readAsString();
-        if (content.isNotEmpty) {
-          final decodedMetadata = json.decode(content);
-          final metadata = Map<String, dynamic>.from(decodedMetadata as Map);
-          metadata.remove(fileName);
-          await metadataFile.writeAsString(json.encode(metadata));
-        }
-      }
-
-      _loadImages(); // Reload images
-      
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Image deleted successfully'),
-          backgroundColor: Colors.green,
-        ),
-      );
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Failed to delete image: ${e.toString()}'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
   }
 }
