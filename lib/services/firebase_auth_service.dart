@@ -4,7 +4,6 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'package:http/http.dart' as http;
-import '../core/constants.dart';
 import '../core/config.dart';
 
 class FirebaseAuthService {
@@ -279,77 +278,140 @@ class FirebaseAuthService {
     // print('🔑 Provider: $provider');
     // print('📱 Token length: ${idToken.length}');
 
-    try {
-      // Build request body based on provider
-      final Map<String, dynamic> requestBody = {
-        'signInProvider': provider,
-      };
-
-      // Add displayName if available
-      if (userData['displayName'] != null) {
-        requestBody['displayName'] = userData['displayName'];
-      }
-
-      // Add photoURL if available
-      if (userData['photoURL'] != null) {
-        requestBody['photoURL'] = userData['photoURL'];
-      }
-
-      // Only add deviceId for anonymous users
-      if (provider == 'anonymous' && userData['deviceId'] != null) {
-        requestBody['deviceId'] = userData['deviceId'];
-      }
-
-      // print('🔍 DEBUG: Request body: $requestBody');
-
-      final response = await http
-          .post(
-            Uri.parse(_backendUrl),
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': 'Bearer $idToken',
-            },
-            body: jsonEncode(requestBody),
-          )
-          .timeout(AppConfig.apiTimeout);
-
-      // print('📡 Response status: ${response.statusCode}');
-      // print('📨 Response body: ${response.body}');
-
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        final data = jsonDecode(response.body);
-        // print('✅ Backend response successful');
-        // print('🔍 DEBUG: Parsed response data: $data');
-
-        // Extract user data from the correct location
-        final userData = data['data']['user'];
-        // print('🔍 DEBUG: User data: $userData');
-
-        return {
-          'success': true,
-          'user': userData,
-          'isNewUser': userData['isNewUser'] ?? false,
-          'message': data['message'],
+    // Retry logic for Render free tier wake-up
+    const maxRetries = 3;
+    const retryDelay = Duration(seconds: 2);
+    
+    for (int attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        // Build request body based on provider
+        final Map<String, dynamic> requestBody = {
+          'signInProvider': provider,
         };
-      } else if (response.statusCode == 429) {
-        // Handle rate limiting specifically
-        // print('⚠️ Rate limit exceeded');
-        final data = jsonDecode(response.body);
-        final retryAfter = data['retryAfter'] ?? 900; // Default to 15 minutes
-        final retryMinutes = (retryAfter / 60).ceil();
 
-        throw Exception(
-            'Rate limit exceeded. Please try again in $retryMinutes minutes.\n\nTip: If you\'re testing frequently, restart the backend server to reset the rate limits.');
-      } else {
-        // print('❌ Backend error: ${response.statusCode} - ${response.body}');
-        final data = jsonDecode(response.body);
-        final errorMessage = data['message'] ?? 'Backend authentication failed';
-        throw Exception('$errorMessage (Status: ${response.statusCode})');
+        // Add displayName if available
+        if (userData['displayName'] != null) {
+          requestBody['displayName'] = userData['displayName'];
+        }
+
+        // Add photoURL if available
+        if (userData['photoURL'] != null) {
+          requestBody['photoURL'] = userData['photoURL'];
+        }
+
+        // Only add deviceId for anonymous users
+        if (provider == 'anonymous' && userData['deviceId'] != null) {
+          requestBody['deviceId'] = userData['deviceId'];
+        }
+
+        // print('🔍 DEBUG: Request body: $requestBody');
+        // print('🔄 Attempt $attempt of $maxRetries');
+
+        final response = await http
+            .post(
+              Uri.parse(_backendUrl),
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer $idToken',
+              },
+              body: jsonEncode(requestBody),
+            )
+            .timeout(AppConfig.apiTimeout);
+
+        // print('📡 Response status: ${response.statusCode}');
+        // print('📨 Response body: ${response.body}');
+
+        if (response.statusCode == 200 || response.statusCode == 201) {
+          final data = jsonDecode(response.body);
+          // print('✅ Backend response successful');
+          // print('🔍 DEBUG: Parsed response data: $data');
+
+          // Extract user data from the correct location
+          final userData = data['data']['user'];
+          // print('🔍 DEBUG: User data: $userData');
+
+          return {
+            'success': true,
+            'user': userData,
+            'isNewUser': userData['isNewUser'] ?? false,
+            'message': data['message'],
+          };
+        } else if (response.statusCode == 503) {
+          // Backend is sleeping (Render free tier)
+          if (attempt < maxRetries) {
+            // print('⏳ Backend sleeping, waiting ${retryDelay.inSeconds}s before retry...');
+            await Future.delayed(retryDelay);
+            continue; // Retry
+          } else {
+            // Final attempt failed
+            throw Exception('Backend service is temporarily unavailable. The server may be waking up. Please try again in a moment.');
+          }
+        } else if (response.statusCode == 429) {
+          // Handle rate limiting specifically
+          // print('⚠️ Rate limit exceeded');
+          final data = jsonDecode(response.body);
+          final retryAfter = data['retryAfter'] ?? 900; // Default to 15 minutes
+          final retryMinutes = (retryAfter / 60).ceil();
+
+          throw Exception(
+              'Rate limit exceeded. Please try again in $retryMinutes minutes.\n\nTip: If you\'re testing frequently, restart the backend server to reset the rate limits.');
+        } else {
+          // print('❌ Backend error: ${response.statusCode} - ${response.body}');
+          String errorMessage = 'Backend authentication failed';
+          
+          // Check if response is HTML (e.g., Render sleep page or error page)
+          if (response.body.trim().startsWith('<!DOCTYPE') || response.body.trim().startsWith('<html')) {
+            if (response.statusCode == 503) {
+              errorMessage = 'Backend service is temporarily unavailable. Please try again in a moment.';
+            } else {
+              errorMessage = 'Backend returned invalid response. Please check if the backend is running.';
+            }
+          } else {
+            try {
+              final data = jsonDecode(response.body);
+              errorMessage = data['message'] ?? 'Backend authentication failed';
+            } catch (_) {
+              // If parsing fails, use the raw response
+              errorMessage = 'Backend error: ${response.statusCode}';
+            }
+          }
+          
+          throw Exception('$errorMessage (Status: ${response.statusCode})');
+        }
+      } catch (e) {
+        final errorMsg = e.toString();
+        
+        // Handle timeout or connection errors
+        if (errorMsg.contains('TimeoutException') || errorMsg.contains('SocketException') || errorMsg.contains('Failed host lookup')) {
+          if (attempt < maxRetries) {
+            // print('⏳ Connection failed, retrying in ${retryDelay.inSeconds}s...');
+            await Future.delayed(retryDelay);
+            continue; // Retry
+          }
+        }
+        
+        // Handle FormatException (HTML response)
+        if (errorMsg.contains('FormatException') || errorMsg.contains('Unexpected character')) {
+          if (attempt < maxRetries) {
+            // print('⏳ Backend returned HTML (sleeping), retrying in ${retryDelay.inSeconds}s...');
+            await Future.delayed(retryDelay);
+            continue; // Retry
+          }
+          throw Exception('Backend returned invalid response (HTML instead of JSON). The backend may be sleeping or unavailable. Please try again in a moment.');
+        }
+        
+        // If this is the last attempt or error is not retryable, throw
+        if (attempt == maxRetries) {
+          throw Exception('Failed to authenticate with backend: $e');
+        }
+        
+        // Otherwise, retry
+        await Future.delayed(retryDelay);
       }
-    } catch (e) {
-      // print('🚨 Backend request failed: $e');
-      throw Exception('Failed to authenticate with backend: $e');
     }
+    
+    // Should never reach here, but just in case
+    throw Exception('Failed to authenticate with backend after $maxRetries attempts');
   }
 
   // Sign out

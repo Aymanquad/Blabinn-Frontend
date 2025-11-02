@@ -43,25 +43,29 @@ class AppConfig {
 
   // WebSocket Configuration - Updated to match backend
   static String get wsBaseUrl {
+    // Force: in production or deployed (onrender), return URL without port.
     if (kIsWeb) {
       return EnvConfig.wsUrlWeb;
     }
-
     if (Platform.isAndroid) {
-      return const String.fromEnvironment(
+      final url = const String.fromEnvironment(
         'WS_URL',
         defaultValue: EnvConfig.wsUrlAndroid,
       );
+      // Remove :0 if accidentally present
+      return url.replaceAll(':0', '');
     } else if (Platform.isIOS) {
-      return const String.fromEnvironment(
+      final url = const String.fromEnvironment(
         'WS_URL',
         defaultValue: EnvConfig.wsUrlIos,
       );
+      return url.replaceAll(':0', '');
     } else {
-      return const String.fromEnvironment(
+      final url = const String.fromEnvironment(
         'WS_URL',
         defaultValue: EnvConfig.wsUrlDefault,
       );
+      return url.replaceAll(':0', '');
     }
   }
 
