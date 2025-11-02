@@ -279,8 +279,8 @@ class FirebaseAuthService {
     // print('📱 Token length: ${idToken.length}');
 
     // Retry logic for Render free tier wake-up
-    const maxRetries = 3;
-    const retryDelay = Duration(seconds: 2);
+    const maxRetries = 5; // Increased for Render wake-up
+    const retryDelay = Duration(seconds: 3); // Increased delay
     
     for (int attempt = 1; attempt <= maxRetries; attempt++) {
       try {

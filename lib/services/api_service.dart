@@ -113,8 +113,8 @@ class ApiService {
 
   // Generic HTTP methods with retry logic for Render free tier
   Future<http.Response> _get(String endpoint) async {
-    const maxRetries = 3;
-    const retryDelay = Duration(seconds: 2);
+    const maxRetries = 5; // Increased for Render wake-up
+    const retryDelay = Duration(seconds: 3); // Increased delay
     
     for (int attempt = 1; attempt <= maxRetries; attempt++) {
       try {
@@ -171,8 +171,8 @@ class ApiService {
 
   Future<http.Response> _post(
       String endpoint, Map<String, dynamic> data) async {
-    const maxRetries = 3;
-    const retryDelay = Duration(seconds: 2);
+    const maxRetries = 5; // Increased for Render wake-up
+    const retryDelay = Duration(seconds: 3); // Increased delay
     
     for (int attempt = 1; attempt <= maxRetries; attempt++) {
       try {
@@ -216,8 +216,8 @@ class ApiService {
   }
 
   Future<http.Response> _put(String endpoint, Map<String, dynamic> data) async {
-    const maxRetries = 3;
-    const retryDelay = Duration(seconds: 2);
+    const maxRetries = 5; // Increased for Render wake-up
+    const retryDelay = Duration(seconds: 3); // Increased delay
     
     for (int attempt = 1; attempt <= maxRetries; attempt++) {
       try {
@@ -261,8 +261,8 @@ class ApiService {
   }
 
   Future<http.Response> _delete(String endpoint) async {
-    const maxRetries = 3;
-    const retryDelay = Duration(seconds: 2);
+    const maxRetries = 5; // Increased for Render wake-up
+    const retryDelay = Duration(seconds: 3); // Increased delay
     
     for (int attempt = 1; attempt <= maxRetries; attempt++) {
       try {
