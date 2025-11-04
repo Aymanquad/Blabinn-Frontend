@@ -356,6 +356,12 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
   void _handleNewMessage(dynamic message) async {
     if (!mounted) return;
 
+    print('🎉 [HANDLE NEW MESSAGE] Received message in screen handler');
+    print('   📋 Message ID: ${message.id}');
+    print('   👤 Sender ID: ${message.senderId}');
+    print('   💬 Content: ${message.content}');
+    print('   📝 Type: ${message.type}');
+
     final messageId =
         message.id ?? DateTime.now().millisecondsSinceEpoch.toString();
     final messageContent =
@@ -415,6 +421,12 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
       }
 
       // Add new message
+      print('➕ [HANDLE NEW MESSAGE] Adding new message to UI');
+      print('   🆔 Message ID: $messageId');
+      print('   👤 Sender: $messageSenderId');
+      print('   📝 Content: ${moderatedContent.substring(0, moderatedContent.length > 50 ? 50 : moderatedContent.length)}...');
+      print('   🔵 Is from current user: $isFromCurrentUser');
+      
       setState(() {
         _messages.add({
           'id': messageId,
@@ -427,6 +439,7 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
         });
       });
 
+      print('✅ [HANDLE NEW MESSAGE] Message added to UI! Total messages: ${_messages.length}');
       _scrollToBottom();
 
       // Load partner info if we haven't already and this is from partner

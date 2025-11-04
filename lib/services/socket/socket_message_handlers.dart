@@ -1,17 +1,12 @@
 import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart' as FirebaseAuth;
 import '../../models/message.dart';
-import '../../models/chat.dart';
-import '../../models/user.dart';
 import '../notification_service.dart';
-import '../background_image_service.dart';
 import '../api_service.dart';
 import 'socket_types.dart';
 
 class SocketMessageHandlers {
   final NotificationService _notificationService = NotificationService();
-  final BackgroundImageService _backgroundImageService =
-      BackgroundImageService();
   final ApiService _apiService = ApiService();
 
   // Message deduplication
@@ -75,18 +70,20 @@ class SocketMessageHandlers {
 
       // Try different data structures to find sender name
       if (data['sender'] != null && data['sender'] is Map) {
-        senderName = data['sender']['displayName'] ??
-            data['sender']['username'] ??
+        final senderData = data['sender'] as Map<String, dynamic>;
+        senderName = (senderData['displayName'] as String?) ??
+            (senderData['username'] as String?) ??
             senderName;
       } else if (data['message'] != null && data['message'] is Map) {
         final messageData = data['message'] as Map<String, dynamic>;
-        if (messageData['sender'] != null) {
-          senderName = messageData['sender']['displayName'] ??
-              messageData['sender']['username'] ??
+        if (messageData['sender'] != null && messageData['sender'] is Map) {
+          final senderData = messageData['sender'] as Map<String, dynamic>;
+          senderName = (senderData['displayName'] as String?) ??
+              (senderData['username'] as String?) ??
               senderName;
         }
       } else if (data['senderName'] != null) {
-        senderName = data['senderName'];
+        senderName = data['senderName'] as String;
       }
 
       // Try to get the correct sender name from the profile API
@@ -94,10 +91,10 @@ class SocketMessageHandlers {
         final profileData = await _apiService.getUserProfile(senderId);
         if (profileData['displayName'] != null &&
             profileData['displayName'].toString().isNotEmpty) {
-          senderName = profileData['displayName'];
+          senderName = profileData['displayName'] as String;
         } else if (profileData['username'] != null &&
             profileData['username'].toString().isNotEmpty) {
-          senderName = profileData['username'];
+          senderName = profileData['username'] as String;
         }
       } catch (e) {
         // Keep the senderName from socket data as fallback
@@ -138,49 +135,60 @@ class SocketMessageHandlers {
     StreamController<SocketEvent> eventController,
   ) {
     try {
+      print('🎯 [NEW MESSAGE EVENT] Received data: ${data.toString().substring(0, data.toString().length > 200 ? 200 : data.toString().length)}...');
+      
       // Extract message from nested data structure
-      final messageData = data['message'];
+      final messageData = data['message'] as Map<String, dynamic>?;
       if (messageData == null) {
+        print('❌ [NEW MESSAGE EVENT] No message data found in payload');
         return;
       }
 
+      print('📦 [NEW MESSAGE EVENT] Message data: $messageData');
+      print('👤 [NEW MESSAGE EVENT] Sender ID: ${messageData['senderId']}');
+      print('💬 [NEW MESSAGE EVENT] Content: ${messageData['content']}');
+      
       final message = Message.fromJson(messageData);
+      print('✅ [NEW MESSAGE EVENT] Message parsed successfully: ${message.id}');
       final senderId = message.senderId;
       final currentUserId = _getCurrentUserId();
 
       // Don't show notification if this is our own message
       if (senderId == currentUserId) {
+        print('📤 [NEW MESSAGE EVENT] Own message, adding to stream without notification');
         messageController.add(message);
         return;
       }
 
       // Don't show notification if we're currently in a chat with this sender
       if (_currentChatWithUserId == senderId) {
+        print('💬 [NEW MESSAGE EVENT] Message from current chat partner ($senderId), adding to stream');
         messageController.add(message);
         return;
       }
 
       // Add message to stream
+      print('📨 [NEW MESSAGE EVENT] Adding message to stream from $senderId');
       messageController.add(message);
 
-      // Get sender name for notification
-      String senderName = 'Someone';
-      try {
-        // Check if sender data is available in the event
-        if (data.containsKey('sender') && data['sender'] != null) {
-          final senderData = data['sender'];
-          if (senderData.containsKey('displayName') &&
-              senderData['displayName'] != null) {
-            senderName = senderData['displayName'];
-          }
-        }
-        // Fallback to direct senderName if available
-        else if (data.containsKey('senderName') && data['senderName'] != null) {
-          senderName = data['senderName'];
-        }
-      } catch (e) {
-        // Error handling
-      }
+      // Get sender name for notification (unused in current implementation)
+      // String senderName = 'Someone';
+      // try {
+      //   // Check if sender data is available in the event
+      //   if (data.containsKey('sender') && data['sender'] != null) {
+      //     final senderData = data['sender'] as Map<String, dynamic>;
+      //     if (senderData.containsKey('displayName') &&
+      //         senderData['displayName'] != null) {
+      //       senderName = senderData['displayName'] as String;
+      //     }
+      //   }
+      //   // Fallback to direct senderName if available
+      //   else if (data.containsKey('senderName') && data['senderName'] != null) {
+      //     senderName = data['senderName'] as String;
+      //   }
+      // } catch (e) {
+      //   // Error handling
+      // }
 
       // Check if app is in foreground - only show in-app notification if app is active
       // Backend push notifications handle background notifications
@@ -210,7 +218,7 @@ class SocketMessageHandlers {
         return;
       }
 
-      final messageData = data['message'];
+      final messageData = data['message'] as Map<String, dynamic>?;
       if (messageData == null) {
         return;
       }
