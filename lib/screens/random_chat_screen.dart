@@ -45,6 +45,7 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
   bool _isSessionActive = true;
   bool _hasShownEndDialog = false; // Prevent multiple dialogs
   bool _isDisposing = false; // Prevent multiple dispose calls
+  bool _isSocketConnected = true; // Track socket connection status
   Timer? _heartbeatTimer;
   Map<String, dynamic>? _partnerInfo;
   bool _isLoadingPartnerInfo = false;
@@ -202,6 +203,25 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
       }
 
       switch (event) {
+        case SocketEvent.connect:
+          print('✅ [RANDOM CHAT DEBUG] Socket connected - rejoining chat room');
+          setState(() {
+            _isSocketConnected = true;
+          });
+          _joinChatRoom();
+          break;
+        case SocketEvent.disconnect:
+          print('⚠️ [RANDOM CHAT DEBUG] Socket disconnected - will auto-reconnect');
+          setState(() {
+            _isSocketConnected = false;
+          });
+          break;
+        case SocketEvent.error:
+          print('❌ [RANDOM CHAT DEBUG] Socket error - will attempt reconnect');
+          setState(() {
+            _isSocketConnected = false;
+          });
+          break;
         case SocketEvent.randomChatSessionEnded:
           print('🚪 [RANDOM CHAT DEBUG] Session ended by other user');
           _handlePartnerEndedSession();
@@ -729,7 +749,18 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
 
   Future<void> _sendMessage() async {
     final content = _messageController.text.trim();
-    if (content.isEmpty || !_isSessionActive) return;
+    if (content.isEmpty || !_isSessionActive || !_isSocketConnected) {
+      if (!_isSocketConnected) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Cannot send message: WebSocket not connected'),
+            backgroundColor: Colors.orange,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+      return;
+    }
 
     try {
       // Process message through moderation service
@@ -2014,6 +2045,35 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
         ),
         body: Column(
           children: [
+            // Connection Status Banner
+            if (!_isSocketConnected)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                color: Colors.orange.withValues(alpha: 0.2),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const SizedBox(
+                      width: 12,
+                      height: 12,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.orange),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      'Reconnecting...',
+                      style: TextStyle(
+                        color: Colors.orange.shade300,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             // Partner Profile Section
             if (_partnerInfo != null)
               GestureDetector(
@@ -2622,16 +2682,20 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
                         ),
                         const SizedBox(width: 8),
                         GestureDetector(
-                          onTap: _sendMessage,
+                          onTap: _isSocketConnected ? _sendMessage : null,
                           child: Container(
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
-                              color: AppColors.primary,
+                              color: _isSocketConnected 
+                                  ? AppColors.primary 
+                                  : Colors.grey.withValues(alpha: 0.3),
                               shape: BoxShape.circle,
                             ),
-                            child: const Icon(
+                            child: Icon(
                               Icons.send,
-                              color: Colors.white,
+                              color: _isSocketConnected 
+                                  ? Colors.white 
+                                  : Colors.grey.shade600,
                               size: 20,
                             ),
                           ),
