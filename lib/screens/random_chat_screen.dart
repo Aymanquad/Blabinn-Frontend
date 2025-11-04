@@ -432,22 +432,44 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
       
       setState(() {
         print('🔥🔥🔥 [INSIDE setState] Entered setState callback');
-        final newMessage = {
-          'id': messageId,
-          'content': moderatedContent,
-          'senderId': messageSenderId,
-          'timestamp': message.timestamp ?? DateTime.now(),
-          'isFromCurrentUser': isFromCurrentUser,
-          'type': message.type?.name ?? 'text',
-          'imageUrl': message.imageUrl,
-        };
-        print('🔥🔥🔥 [CRITICAL] About to add message to _messages array:');
-        print('   isFromCurrentUser: ${newMessage['isFromCurrentUser']}');
-        print('   senderId: ${newMessage['senderId']}');
-        print('   content: ${newMessage['content']}');
-        _messages.add(newMessage);
-        print('🔥🔥🔥 [CRITICAL] Message added! _messages.length is now: ${_messages.length}');
-        print('🔥🔥🔥 [CRITICAL] Last message in array: ${_messages.last}');
+        try {
+          print('🔍 Creating newMessage map...');
+          print('   id: $messageId');
+          print('   content: $moderatedContent');
+          print('   senderId: $messageSenderId');
+          print('   isFromCurrentUser: $isFromCurrentUser');
+          
+          // Build message piece by piece to isolate crash
+          final newMessage = <String, dynamic>{
+            'id': messageId,
+            'content': moderatedContent,
+            'senderId': messageSenderId,
+          };
+          print('✅ Basic fields added');
+          
+          newMessage['timestamp'] = message.timestamp ?? DateTime.now();
+          print('✅ Timestamp added');
+          
+          newMessage['isFromCurrentUser'] = isFromCurrentUser;
+          print('✅ isFromCurrentUser added');
+          
+          newMessage['type'] = message.type?.name ?? 'text';
+          print('✅ Type added: ${newMessage['type']}');
+          
+          newMessage['imageUrl'] = message.imageUrl;
+          print('✅ ImageUrl added');
+          
+          print('🔥🔥🔥 [CRITICAL] About to add message to _messages array:');
+          print('   Full message: $newMessage');
+          
+          _messages.add(newMessage);
+          print('🔥🔥🔥 [CRITICAL] Message added! _messages.length is now: ${_messages.length}');
+          print('🔥🔥🔥 [CRITICAL] Last message in array: ${_messages.last}');
+        } catch (e, stackTrace) {
+          print('❌❌❌ [FATAL ERROR IN setState] $e');
+          print('Stack trace: $stackTrace');
+          rethrow;
+        }
       });
 
       print('✅ [HANDLE NEW MESSAGE] Message added to UI! Total messages: ${_messages.length}');
