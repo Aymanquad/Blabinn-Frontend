@@ -53,9 +53,19 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
   void initState() {
     super.initState();
     
+    print('🔥🔥🔥 [INIT] RandomChatScreen initState called');
+    print('🔥🔥🔥 [INIT] isAIChat: ${widget.isAIChat}');
+    print('🔥🔥🔥 [INIT] aiPersonality: ${widget.aiPersonality}');
+    print('🔥🔥🔥 [INIT] sessionId: ${widget.sessionId}');
+    print('🔥🔥🔥 [INIT] chatRoomId: ${widget.chatRoomId}');
+    
     // For AI chats, create AI partner info FIRST before anything else
     if (widget.isAIChat) {
+      print('🔥🔥🔥 [INIT] Creating AI partner info...');
       _createAIPartnerInfo();
+      print('🔥🔥🔥 [INIT] _partnerInfo after creation: $_partnerInfo');
+    } else {
+      print('🔥🔥🔥 [INIT] NOT an AI chat, will load regular partner info');
     }
     
     _initializeServices();
@@ -1945,6 +1955,13 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
 
   @override
   Widget build(BuildContext context) {
+    print('🎨🎨🎨 [BUILD] RandomChatScreen build called');
+    print('🎨🎨🎨 [BUILD] _partnerInfo is null: ${_partnerInfo == null}');
+    if (_partnerInfo != null) {
+      print('🎨🎨🎨 [BUILD] _partnerInfo displayName: ${_partnerInfo!['displayName']}');
+      print('🎨🎨🎨 [BUILD] _partnerInfo isAIChat: ${_partnerInfo!['isAIChat']}');
+    }
+    
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, result) {
