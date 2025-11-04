@@ -453,7 +453,17 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
           newMessage['isFromCurrentUser'] = isFromCurrentUser;
           print('✅ isFromCurrentUser added');
           
-          newMessage['type'] = message.type?.name ?? 'text';
+          // Handle MessageType - it might be enum or string
+          String messageTypeStr = 'text';
+          if (message.type != null) {
+            if (message.type is String) {
+              messageTypeStr = message.type as String;
+            } else {
+              // It's already a MessageType enum, get its name via toString()
+              messageTypeStr = message.type.toString().split('.').last;
+            }
+          }
+          newMessage['type'] = messageTypeStr;
           print('✅ Type added: ${newMessage['type']}');
           
           newMessage['imageUrl'] = message.imageUrl;
