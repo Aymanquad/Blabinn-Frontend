@@ -415,8 +415,10 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
           _messages.indexWhere((msg) => msg['id'] == messageId);
 
       if (existingMessageIndex != -1) {
-        //print(
-        // '⏭️ [RANDOM CHAT DEBUG] Message already in UI, skipping: $messageId');
+        print('⏭️ [RANDOM CHAT DEBUG] Message already in UI, skipping: $messageId');
+        print('   📊 Current _messages.length: ${_messages.length}');
+        print('   📋 Existing message index: $existingMessageIndex');
+        print('   📝 Existing message: ${_messages[existingMessageIndex]}');
         return;
       }
 
@@ -426,8 +428,10 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
       print('   👤 Sender: $messageSenderId');
       print('   📝 Content: ${moderatedContent.substring(0, moderatedContent.length > 50 ? 50 : moderatedContent.length)}...');
       print('   🔵 Is from current user: $isFromCurrentUser');
+      print('   🔍 About to call setState...');
       
       setState(() {
+        print('🔥🔥🔥 [INSIDE setState] Entered setState callback');
         final newMessage = {
           'id': messageId,
           'content': moderatedContent,
