@@ -402,7 +402,7 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
           'senderId': messageSenderId,
           'timestamp': message.timestamp ?? DateTime.now(),
           'isFromCurrentUser': isFromCurrentUser,
-          'type': message.type ?? 'text',
+          'type': message.type?.name ?? 'text',
           'imageUrl': message.imageUrl,
         });
       });
