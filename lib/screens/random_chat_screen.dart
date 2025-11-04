@@ -2474,58 +2474,61 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
               ),
             // Messages list
             Expanded(
-              child: _messages.isEmpty
-                  ? Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.chat_bubble_outline,
-                            size: 64,
-                            color: Colors.grey[400],
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            'Start chatting!',
-                            style: TextStyle(
-                              fontSize: 18,
+              child: Container(
+                color: const Color(0xFF16213E), // Dark blue background
+                child: _messages.isEmpty
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.chat_bubble_outline,
+                              size: 64,
                               color: Colors.grey[400],
                             ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Say hello to your random chat partner',
-                            style: TextStyle(
-                              color: Colors.grey[400],
+                            const SizedBox(height: 16),
+                            Text(
+                              'Start chatting!',
+                              style: TextStyle(
+                                fontSize: 18,
+                                color: Colors.grey[400],
+                              ),
                             ),
-                          ),
-                        ],
-                      ),
-                    )
-                  : ListView.builder(
-                      controller: _scrollController,
-                      padding: const EdgeInsets.all(16),
-                      itemCount: _messages.length,
-                      itemBuilder: (context, index) {
-                        final message = _messages[index];
-                        final isFromCurrentUser =
-                            message['isFromCurrentUser'] as bool;
+                            const SizedBox(height: 8),
+                            Text(
+                              'Say hello to your AI chat partner',
+                              style: TextStyle(
+                                color: Colors.grey[400],
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    : ListView.builder(
+                        controller: _scrollController,
+                        padding: const EdgeInsets.all(16),
+                        itemCount: _messages.length,
+                        itemBuilder: (context, index) {
+                          final message = _messages[index];
+                          final isFromCurrentUser =
+                              message['isFromCurrentUser'] as bool;
 
-                        return Align(
-                          alignment: isFromCurrentUser
-                              ? Alignment.centerRight
-                              : Alignment.centerLeft,
-                          child: Container(
-                            margin: const EdgeInsets.only(bottom: 8),
-                            constraints: BoxConstraints(
-                              maxWidth: MediaQuery.of(context).size.width * 0.7,
+                          return Align(
+                            alignment: isFromCurrentUser
+                                ? Alignment.centerRight
+                                : Alignment.centerLeft,
+                            child: Container(
+                              margin: const EdgeInsets.only(bottom: 8),
+                              constraints: BoxConstraints(
+                                maxWidth: MediaQuery.of(context).size.width * 0.7,
+                              ),
+                              child:
+                                  _buildMessageBubble(message, isFromCurrentUser),
                             ),
-                            child:
-                                _buildMessageBubble(message, isFromCurrentUser),
-                          ),
-                        );
-                      },
-                    ),
+                          );
+                        },
+                      ),
+              ),
             ),
             // Message input
             if (_isSessionActive)
