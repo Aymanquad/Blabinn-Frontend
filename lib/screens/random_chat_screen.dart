@@ -428,7 +428,7 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
       print('   🔵 Is from current user: $isFromCurrentUser');
       
       setState(() {
-        _messages.add({
+        final newMessage = {
           'id': messageId,
           'content': moderatedContent,
           'senderId': messageSenderId,
@@ -436,7 +436,14 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
           'isFromCurrentUser': isFromCurrentUser,
           'type': message.type?.name ?? 'text',
           'imageUrl': message.imageUrl,
-        });
+        };
+        print('🔥🔥🔥 [CRITICAL] About to add message to _messages array:');
+        print('   isFromCurrentUser: ${newMessage['isFromCurrentUser']}');
+        print('   senderId: ${newMessage['senderId']}');
+        print('   content: ${newMessage['content']}');
+        _messages.add(newMessage);
+        print('🔥🔥🔥 [CRITICAL] Message added! _messages.length is now: ${_messages.length}');
+        print('🔥🔥🔥 [CRITICAL] Last message in array: ${_messages.last}');
       });
 
       print('✅ [HANDLE NEW MESSAGE] Message added to UI! Total messages: ${_messages.length}');
@@ -2000,6 +2007,8 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
   @override
   Widget build(BuildContext context) {
     print('🎨🎨🎨 [BUILD] RandomChatScreen build called');
+    print('🎨🎨🎨 [BUILD] _messages.length: ${_messages.length}');
+    print('🎨🎨🎨 [BUILD] _isSessionActive: $_isSessionActive');
     print('🎨🎨🎨 [BUILD] _partnerInfo is null: ${_partnerInfo == null}');
     if (_partnerInfo != null) {
       print('🎨🎨🎨 [BUILD] _partnerInfo displayName: ${_partnerInfo!['displayName']}');
@@ -2582,7 +2591,12 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
                         padding: const EdgeInsets.all(16),
                         itemCount: _messages.length,
                         itemBuilder: (context, index) {
+                          print('🎨 [UI BUILD] Building message $index of ${_messages.length}');
                           final message = _messages[index];
+                          print('   📋 Message ID: ${message['id']}');
+                          print('   👤 Sender: ${message['senderId']}');
+                          print('   📝 Content: ${message['content']}');
+                          print('   🔵 isFromCurrentUser: ${message['isFromCurrentUser']}');
                           final isFromCurrentUser =
                               message['isFromCurrentUser'] as bool;
 
