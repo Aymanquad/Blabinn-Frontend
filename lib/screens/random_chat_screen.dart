@@ -346,9 +346,8 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
 
     // Check if this is a message from the current user
     // For AI chats, messages from 'ai_bot' are from the partner (not current user)
-    final isFromCurrentUser =
-        currentUserId != null && messageSenderId == currentUserId ||
-        messageSenderId != 'ai_bot' && widget.isAIChat && messageSenderId == currentUserId;
+    final isFromCurrentUser = messageSenderId != 'ai_bot' && 
+        (currentUserId != null && messageSenderId == currentUserId);
 
     //print('🔍 [RANDOM CHAT DEBUG] Is from current user: $isFromCurrentUser');
 
