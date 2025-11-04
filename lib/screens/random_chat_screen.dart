@@ -52,6 +52,12 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
   @override
   void initState() {
     super.initState();
+    
+    // For AI chats, create AI partner info FIRST before anything else
+    if (widget.isAIChat) {
+      _createAIPartnerInfo();
+    }
+    
     _initializeServices();
     _validateSession();
     _setupSocketListeners();
@@ -59,11 +65,8 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
     _startHeartbeat();
     _startSessionTimeout();
 
-    // Load partner info with a delay to ensure session is ready
-    // For AI chats, create AI partner info immediately
-    if (widget.isAIChat) {
-      _createAIPartnerInfo();
-    } else {
+    // Load partner info with a delay for non-AI chats
+    if (!widget.isAIChat) {
       Future.delayed(const Duration(seconds: 2), () {
         if (mounted) {
           _loadPartnerInfo();
@@ -459,6 +462,8 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
 
   /// Build display name with age for better visibility
   String _buildDisplayNameWithAge() {
+    if (_partnerInfo == null) return 'Loading...';
+    
     final displayName =
         (_partnerInfo!['displayName'] as String?) ?? 'Anonymous';
     final age = _partnerInfo!['age'];
@@ -478,20 +483,19 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
     
     print('🤖 [AI CHAT] Creating AI partner info with personality: $personality');
     
-    setState(() {
-      _partnerInfo = {
-        'id': 'ai_bot',
-        'displayName': 'AI Chat Partner',
-        'profilePictureUrl': null,
-        'age': null,
-        'gender': 'AI',
-        'bio': 'I\'m an AI assistant here to chat with you! My personality is $personalityName.',
-        'isOnline': true,
-        'isAIChat': true,
-        'aiPersonality': personality,
-      };
-      _isLoadingPartnerInfo = false;
-    });
+    // Directly set values without setState during initState
+    _partnerInfo = {
+      'id': 'ai_bot',
+      'displayName': 'AI Chat Partner',
+      'profilePictureUrl': null,
+      'age': null,
+      'gender': 'AI',
+      'bio': 'I\'m an AI assistant here to chat with you! My personality is $personalityName.',
+      'isOnline': true,
+      'isAIChat': true,
+      'aiPersonality': personality,
+    };
+    _isLoadingPartnerInfo = false;
     
     print('✅ [AI CHAT] AI partner info created');
   }
