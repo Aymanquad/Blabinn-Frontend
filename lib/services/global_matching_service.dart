@@ -222,6 +222,31 @@ class GlobalMatchingService {
         _notifyStateChanges();
         break;
 
+      case 'ai_session_created':
+        // AI chatbot session created - navigate to chat with AI
+        final sessionIdStr = sessionId as String?;
+        final chatRoomIdStr = chatRoomId as String?;
+        final personality = data['personality'] as String?;
+        
+        print('🤖 [GLOBAL MATCHING DEBUG] AI session created with personality: $personality');
+        
+        if (sessionIdStr != null && chatRoomIdStr != null) {
+          _currentSessionId = sessionIdStr;
+          _isMatching = false;
+          _isConnected = true;
+          _matchMessage = 'Connected to AI chat partner! 🤖';
+          _notifyStateChanges();
+
+          // Navigate to AI chat
+          _navigateToAIChat(sessionIdStr, chatRoomIdStr, personality);
+        } else {
+          print('❌ [GLOBAL MATCHING DEBUG] Missing AI session or chat room ID');
+          _isMatching = false;
+          _matchMessage = 'Error: Invalid AI session data';
+          _notifyStateChanges();
+        }
+        break;
+
       default:
         print('⚠️ [GLOBAL MATCHING DEBUG] Unknown random chat event: $event');
         break;
@@ -517,6 +542,48 @@ class GlobalMatchingService {
       _isConnected = false;
       _currentSessionId = null;
       _matchMessage = 'Error starting chat. Please try again.';
+      _notifyStateChanges();
+    }
+  }
+
+  void _navigateToAIChat(String sessionId, String chatRoomId, String? personality) {
+    try {
+      print('🤖 [GLOBAL MATCHING DEBUG] Navigating to AI chat');
+      print('   📱 Session ID: $sessionId');
+      print('   💬 Chat Room ID: $chatRoomId');
+      print('   🎭 Personality: $personality');
+
+      // Navigate to random chat with AI flag
+      navigatorKey.currentState?.pushNamed(
+        '/random-chat',
+        arguments: {
+          'sessionId': sessionId,
+          'chatRoomId': chatRoomId,
+          'isAIChat': true,
+          'aiPersonality': personality ?? 'general-assistant',
+        },
+      ).then((_) {
+        print('🔙 [GLOBAL MATCHING DEBUG] Returned from AI chat, resetting state');
+        // When returning from AI chat, reset state
+        _isMatching = false;
+        _isConnected = false;
+        _currentSessionId = null;
+        _matchMessage = null;
+        _notifyStateChanges();
+      }).catchError((Object error) {
+        print('❌ [GLOBAL MATCHING DEBUG] AI navigation error: $error');
+        _isMatching = false;
+        _isConnected = false;
+        _currentSessionId = null;
+        _matchMessage = 'Navigation error. Please try again.';
+        _notifyStateChanges();
+      });
+    } catch (e) {
+      print('❌ [GLOBAL MATCHING DEBUG] Error during AI navigation: $e');
+      _isMatching = false;
+      _isConnected = false;
+      _currentSessionId = null;
+      _matchMessage = 'Error starting AI chat. Please try again.';
       _notifyStateChanges();
     }
   }
