@@ -149,10 +149,15 @@ class ChatApp extends StatelessWidget {
                   if (args != null) {
                     final sessionId = args['sessionId'] as String?;
                     final chatRoomId = args['chatRoomId'] as String?;
+                    final isAIChat = args['isAIChat'] as bool? ?? false;
+                    final aiPersonality = args['aiPersonality'] as String?;
+                    
                     if (sessionId != null && chatRoomId != null) {
                       return RandomChatScreen(
                         sessionId: sessionId,
                         chatRoomId: chatRoomId,
+                        isAIChat: isAIChat,
+                        aiPersonality: aiPersonality,
                       );
                     }
                   }

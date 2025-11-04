@@ -16,11 +16,15 @@ import '../utils/html_decoder.dart';
 class RandomChatScreen extends StatefulWidget {
   final String sessionId;
   final String chatRoomId;
+  final bool isAIChat;
+  final String? aiPersonality;
 
   const RandomChatScreen({
     super.key,
     required this.sessionId,
     required this.chatRoomId,
+    this.isAIChat = false,
+    this.aiPersonality,
   });
 
   @override
@@ -56,11 +60,16 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
     _startSessionTimeout();
 
     // Load partner info with a delay to ensure session is ready
-    Future.delayed(const Duration(seconds: 2), () {
-      if (mounted) {
-        _loadPartnerInfo();
-      }
-    });
+    // For AI chats, create AI partner info immediately
+    if (widget.isAIChat) {
+      _createAIPartnerInfo();
+    } else {
+      Future.delayed(const Duration(seconds: 2), () {
+        if (mounted) {
+          _loadPartnerInfo();
+        }
+      });
+    }
   }
 
   void _validateSession() {
@@ -336,8 +345,10 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
     }
 
     // Check if this is a message from the current user
+    // For AI chats, messages from 'ai_bot' are from the partner (not current user)
     final isFromCurrentUser =
-        currentUserId != null && messageSenderId == currentUserId;
+        currentUserId != null && messageSenderId == currentUserId ||
+        messageSenderId != 'ai_bot' && widget.isAIChat && messageSenderId == currentUserId;
 
     //print('🔍 [RANDOM CHAT DEBUG] Is from current user: $isFromCurrentUser');
 
@@ -457,6 +468,33 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
       return '$displayName, $age';
     }
     return displayName;
+  }
+
+  void _createAIPartnerInfo() {
+    // Create AI partner info based on personality
+    final personality = widget.aiPersonality ?? 'general-assistant';
+    final personalityName = personality.split('-').map((word) {
+      return word[0].toUpperCase() + word.substring(1);
+    }).join(' ');
+    
+    print('🤖 [AI CHAT] Creating AI partner info with personality: $personality');
+    
+    setState(() {
+      _partnerInfo = {
+        'id': 'ai_bot',
+        'displayName': 'AI Chat Partner',
+        'profilePictureUrl': null,
+        'age': null,
+        'gender': 'AI',
+        'bio': 'I\'m an AI assistant here to chat with you! My personality is $personalityName.',
+        'isOnline': true,
+        'isAIChat': true,
+        'aiPersonality': personality,
+      };
+      _isLoadingPartnerInfo = false;
+    });
+    
+    print('✅ [AI CHAT] AI partner info created');
   }
 
   Future<void> _loadPartnerInfo() async {
@@ -1647,6 +1685,38 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
                                 ),
                           ),
                         ),
+                      ] else if (_partnerInfo!['isAIChat'] == true) ...[
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.purple.withValues(alpha: 0.2),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: Colors.purple.withValues(alpha: 0.3),
+                              width: 1,
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.smart_toy, size: 12, color: Colors.purple),
+                              const SizedBox(width: 4),
+                              Text(
+                                'AI BOT',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .labelSmall!
+                                    .copyWith(
+                                      color: Colors.purple,
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 10,
+                                    ),
+                              ),
+                            ],
+                          ),
+                        ),
                       ] else if (_partnerInfo!['isRandomPartner'] == true) ...[
                         const SizedBox(width: 8),
                         Container(
@@ -2162,6 +2232,39 @@ class _RandomChatScreenState extends State<RandomChatScreen> {
                                             fontWeight: FontWeight.w600,
                                             fontSize: 9,
                                           ),
+                                    ),
+                                  ),
+                                ] else if (_partnerInfo!['isAIChat'] == true) ...[
+                                  const SizedBox(width: 8),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 6, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: Colors.purple.withValues(alpha: 0.2),
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: Border.all(
+                                        color:
+                                            Colors.purple.withValues(alpha: 0.3),
+                                        width: 1,
+                                      ),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        const Icon(Icons.smart_toy, size: 10, color: Colors.purple),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          'AI',
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .labelSmall!
+                                              .copyWith(
+                                                color: Colors.purple,
+                                                fontWeight: FontWeight.w600,
+                                                fontSize: 9,
+                                              ),
+                                        ),
+                                      ],
                                     ),
                                   ),
                                 ] else if (_partnerInfo!['isRandomPartner'] ==
